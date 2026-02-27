@@ -1,0 +1,70 @@
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
+
+const client = axios.create({ baseURL: API_URL })
+
+// Attach JWT token to every request
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// Handle 401 globally
+client.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('merchant')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  }
+)
+
+// ---- Auth ----
+export const authAPI = {
+  register: (data) => client.post('/auth/register', data),
+  login: (phone_number, password) => client.post('/auth/login', { phone_number, password }),
+  me: () => client.get('/auth/me'),
+}
+
+// ---- Products ----
+export const productsAPI = {
+  list: () => client.get('/products/'),
+  get: (id) => client.get(`/products/${id}`),
+  create: (data) => client.post('/products/', data),
+  update: (id, data) => client.patch(`/products/${id}`, data),
+  delete: (id) => client.delete(`/products/${id}`),
+}
+
+// ---- Inventory ----
+export const inventoryAPI = {
+  list: (lowStockOnly = false) => client.get('/inventory/', { params: { low_stock_only: lowStockOnly } }),
+  alerts: () => client.get('/inventory/alerts'),
+  adjust: (data) => client.post('/inventory/adjust', data),
+  updateThreshold: (productId, threshold) =>
+    client.patch(`/inventory/${productId}/threshold`, { reorder_threshold: threshold }),
+}
+
+// ---- Transactions ----
+export const transactionsAPI = {
+  list: (type = null, limit = 50) => client.get('/transactions/', { params: { type, limit } }),
+  create: (data) => client.post('/transactions/', data),
+}
+
+// ---- Analytics ----
+export const analyticsAPI = {
+  dashboard: () => client.get('/analytics/dashboard'),
+  salesChart: (days = 7) => client.get('/analytics/sales-chart', { params: { days } }),
+}
+
+// ---- Merchants ----
+export const merchantsAPI = {
+  me: () => client.get('/merchants/me'),
+  update: (data) => client.patch('/merchants/me', data),
+}
+
+export default client
