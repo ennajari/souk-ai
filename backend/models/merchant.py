@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import String, Enum, DateTime, Boolean
+from sqlalchemy import String, Enum, DateTime, Boolean, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -29,6 +29,10 @@ class Merchant(Base):
     business_category: Mapped[BusinessCategory] = mapped_column(
         Enum(BusinessCategory), default=BusinessCategory.GROCERY
     )
+    owner_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    location_lat: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    location_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    credit_score: Mapped[int] = mapped_column(Integer, default=500)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

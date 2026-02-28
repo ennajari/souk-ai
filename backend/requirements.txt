@@ -24,10 +24,13 @@ pydantic-settings==2.7.1
 email-validator==2.2.0
 
 # HTTP
-httpx==0.28.1
+httpx
 
 # AI
 openai==1.82.0
 
 # Utils
 python-dotenv==1.0.1
+
+# AI & Forecasting
+weaviate-client==4.4.4

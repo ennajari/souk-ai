@@ -11,7 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.config import settings
 from core.database import Base
-from models import Merchant, Product, Inventory, Transaction, Order  # noqa: F401
+from models import (  # noqa: F401
+    Merchant, Product, Inventory, Transaction, Order,
+    Supplier, SupplierOrder, ConversationMessage, Forecast, CreditHistory,
+)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

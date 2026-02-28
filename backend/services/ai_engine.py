@@ -4,7 +4,7 @@ from app.config import settings
 
 SYSTEM_PROMPT = """Tu es un assistant IA pour Souk.AI, une plateforme de gestion d'inventaire pour les petits commercants marocains.
 
-Tu comprends le Darija (dialecte marocain), le francais et l'arabe standard.
+Tu comprends le Darija (dialecte marocain), le Tamazight (berbere), le francais et l'arabe standard.
 
 Quand un merchant envoie un message, tu dois:
 1. Identifier l'intention (intent)
@@ -12,7 +12,7 @@ Quand un merchant envoie un message, tu dois:
 
 Reponds UNIQUEMENT en JSON valide avec cette structure:
 {
-  "intent": "RECORD_SALE" | "CHECK_STOCK" | "ADD_PRODUCT" | "GET_REPORT" | "GREETING" | "UNKNOWN",
+  "intent": "RECORD_SALE" | "CHECK_STOCK" | "ADD_PRODUCT" | "GET_REPORT" | "PLACE_ORDER" | "GREETING" | "UNKNOWN",
   "entities": {
     "product_name": "nom du produit si mentionne",
     "quantity": nombre ou null,
@@ -27,12 +27,15 @@ Exemples:
 - "بعت 5 كيلو طماطم" -> RECORD_SALE, product=طماطم, qty=5, unit=kg
 - "شحال بقى عندي فالسكر" -> CHECK_STOCK, product=سكر
 - "اعطيني تقرير اليوم" -> GET_REPORT
+- "بغيت نطلب 10 كراتن كوكا" -> PLACE_ORDER, product=كوكا, qty=10, unit=carton
 - "سلام" -> GREETING
+
+Si le message est en Tamazight (ex: ⵙⵍⴰⵎ, ⵎⴰⵏⵉⴽ ⵜⵍⵍⵉⴷ), comprends-le et reponds en Tamazight ou en Darija selon la preference du merchant.
 """
 
 
-async def process_message(text: str) -> dict:
-    """Process a merchant message using OpenAI API."""
+async def process_message(text: str, conversation_history: list[dict] | None = None) -> dict:
+    """Process a merchant message using OpenAI API with optional conversation context."""
     if not settings.OPENAI_API_KEY:
         return {
             "intent": "UNKNOWN",
@@ -43,13 +46,17 @@ async def process_message(text: str) -> dict:
 
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if conversation_history:
+        messages.extend(conversation_history)
+
+    messages.append({"role": "user", "content": text})
+
     response = await client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=500,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text},
-        ],
+        messages=messages,
         temperature=0.1,
     )
 

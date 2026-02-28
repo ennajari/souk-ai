@@ -5,11 +5,29 @@ from datetime import datetime, timezone
 from models.product import Product
 from models.inventory import Inventory
 from models.transaction import Transaction, TransactionType, TransactionSource
-
+from services.vector_db import search_similar_products
 
 async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) -> Product | None:
-    """Fuzzy search for a product by Arabic or French name."""
-    # Exact match first
+    """Fuzzy search for a product by Arabic or French name, enhanced with Vector DB."""
+    # 1. Try vector DB first for semantic search
+    try:
+        results = await search_similar_products(name, merchant_id, limit=1)
+        if results and results[0].get("certainty", 0) > 0.75:
+            product_id = results[0]["product_id"]
+            result = await db.execute(
+                select(Product).where(
+                    Product.id == product_id,
+                    Product.merchant_id == merchant_id,
+                    Product.is_active == True
+                )
+            )
+            prod = result.scalar_one_or_none()
+            if prod:
+                return prod
+    except Exception as e:
+        print(f"Vector search failed, falling back to ILIKE: {e}")
+
+    # 2. Fallback to exact ILIKE match
     result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant_id,
@@ -21,14 +39,15 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
 
 
 async def record_sale(
-    db: AsyncSession, merchant_id: str, product_id: str, quantity: int, unit_price: float
+    db: AsyncSession, merchant_id: str, product_id: str, quantity: int, unit_price: float,
+    source: TransactionSource = TransactionSource.WHATSAPP,
 ) -> Transaction:
     """Record a sale and update inventory."""
     txn = Transaction(
         merchant_id=merchant_id,
         product_id=product_id,
         type=TransactionType.SALE,
-        source=TransactionSource.WHATSAPP,
+        source=source,
         quantity=quantity,
         unit_price=unit_price,
         total_amount=quantity * unit_price,

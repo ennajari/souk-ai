@@ -15,6 +15,7 @@ class TransactionType(str, enum.Enum):
 
 class TransactionSource(str, enum.Enum):
     WHATSAPP = "WHATSAPP"
+    VOICE = "VOICE"
     WEB = "WEB"
     API = "API"
 

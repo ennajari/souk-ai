@@ -1,15 +1,18 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute from './components/ProtectedRoute'
-import Layout from './components/Layout'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Products from './pages/Products'
-import Inventory from './pages/Inventory'
-import Sales from './pages/Sales'
-import Analytics from './pages/Analytics'
-import Settings from './pages/Settings'
+import { Routes, Route, Navigate } from "react-router-dom"
+import { AuthProvider } from "./context/AuthContext"
+import ProtectedRoute from "./components/ProtectedRoute"
+import Layout from "./components/Layout"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
+import Dashboard from "./pages/Dashboard"
+import Products from "./pages/Products"
+import Inventory from "./pages/Inventory"
+import Sales from "./pages/Sales"
+import Analytics from "./pages/Analytics"
+import Settings from "./pages/Settings"
+import Forecasts from "./pages/Forecasts"
+import Suppliers from "./pages/Suppliers"
+import Credit from "./pages/Credit"
 
 export default function App() {
   return (
@@ -31,6 +34,9 @@ export default function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="sales" element={<Sales />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="forecasts" element={<Forecasts />} />
+          <Route path="suppliers" element={<Suppliers />} />
+          <Route path="credit" element={<Credit />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

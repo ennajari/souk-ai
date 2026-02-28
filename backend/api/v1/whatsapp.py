@@ -44,14 +44,17 @@ async def receive_webhook(request: Request):
             for message in messages:
                 from_number = message.get("from", "")
                 msg_type = message.get("type", "")
-                text = ""
 
                 if msg_type == "text":
                     text = message.get("text", {}).get("body", "")
+                    if text and from_number:
+                        from workers.tasks import process_whatsapp_message
+                        process_whatsapp_message.delay(from_number, text)
 
-                if text and from_number:
-                    # Send to Celery for async processing
-                    from workers.tasks import process_whatsapp_message
-                    process_whatsapp_message.delay(from_number, text)
+                elif msg_type == "audio":
+                    media_id = message.get("audio", {}).get("id", "")
+                    if media_id and from_number:
+                        from workers.tasks import process_whatsapp_voice_message
+                        process_whatsapp_voice_message.delay(from_number, media_id)
 
     return {"status": "ok"}
