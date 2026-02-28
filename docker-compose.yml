@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-souk_user}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-souk_user} -d ${POSTGRES_DB:-souk_db}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -34,7 +34,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-souk_user}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-souk_db}
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,7 +78,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
 
