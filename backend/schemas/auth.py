@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class RegisterRequest(BaseModel):
     phone_number: str
     password: str
     business_name: str
-    email: EmailStr | None = None
+    email: str | None = None
     preferred_language: str = "AR"
     business_category: str = "GROCERY"
 
