@@ -68,3 +68,26 @@ export const merchantsAPI = {
 }
 
 export default client
+
+// ---- Forecasts ----
+export const forecastsAPI = {
+  list: () => client.get('/forecasts/'),
+  get: (productId, days = 7) => client.get(`/forecasts/${productId}`, { params: { days } }),
+}
+
+// ---- Suppliers ----
+export const suppliersAPI = {
+  list: () => client.get('/suppliers/'),
+  create: (data) => client.post('/suppliers/', data),
+  update: (id, data) => client.patch(`/suppliers/${id}`, data),
+  orders: (supplierId) => client.get(`/suppliers/${supplierId}/orders`),
+  placeOrder: (supplierId, productId, quantity) =>
+    client.post(`/suppliers/${supplierId}/order`, null, { params: { product_id: productId, quantity } }),
+  aggregate: (supplierId) => client.post(`/suppliers/${supplierId}/aggregate`),
+}
+
+// ---- Credit ----
+export const creditAPI = {
+  score: () => client.get('/credit/score'),
+  offers: () => client.get('/credit/offers'),
+}
