@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Google Fonts loaded via index.html <link> to avoid PostCSS @import restriction */
+
+* { box-sizing: border-box; }
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+.gradient-text {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
