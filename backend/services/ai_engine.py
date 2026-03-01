@@ -20,12 +20,13 @@ RULES:
 
 Respond ONLY in valid JSON with this structure:
 {
-  "intent": "RECORD_SALE" | "CHECK_STOCK" | "ADD_PRODUCT" | "PRICE_UPDATE" | "GET_REPORT" | "PLACE_ORDER" | "GREETING" | "DASHBOARD_LINK" | "CREATE_INVOICE" | "UNKNOWN",
+  "intent": "RECORD_SALE" | "CHECK_STOCK" | "ADD_PRODUCT" | "PRICE_UPDATE" | "GET_REPORT" | "PLACE_ORDER" | "GREETING" | "DASHBOARD_LINK" | "CREATE_INVOICE" | "SALES_REPORT" | "LIST_PRODUCTS" | "UNKNOWN",
   "entities": {
-    "product_name": "product name as written by user",
+    "product_name": "product name as written by user (or null for general queries)",
     "quantity": number or null,
     "unit": "kg" | "litre" | "piece" | "carton" | null,
-    "price": number or null
+    "price": number or null,
+    "period": "today" | "week" | "month" | null
   },
   "confidence": 0.0 to 1.0,
   "response_text": "natural response in the SAME language as the user"
@@ -76,15 +77,48 @@ Examples — English:
 - "set sardines price to 10 DH" -> PRICE_UPDATE, product=sardines, price=10
 - "10DH" or "15 MAD" after adding a product -> PRICE_UPDATE, price=10 (product from context)
 
+SALES_REPORT examples (questions about sales, revenue, how much was sold):
+- "combien de sacs de sucre tu as vendu cette semaine" -> SALES_REPORT, product=sucre, period=week
+- "combien j'ai vendu aujourd'hui" -> SALES_REPORT, period=today
+- "mes ventes de la semaine" -> SALES_REPORT, period=week
+- "chiffre d'affaire du mois" -> SALES_REPORT, period=month
+- "شحال بعت اليوم" -> SALES_REPORT, period=today
+- "شحال من طماطم بعت هاد الاسبوع" -> SALES_REPORT, product=طماطم, period=week
+- "how much did I sell this week" -> SALES_REPORT, period=week
+- "my sales today" -> SALES_REPORT, period=today
+- "revenue this month" -> SALES_REPORT, period=month
+
+LIST_PRODUCTS examples (list products, show stock, recommendations):
+- "liste de produits" -> LIST_PRODUCTS
+- "mes produits" -> LIST_PRODUCTS
+- "montre moi mon stock" -> LIST_PRODUCTS
+- "envoie moi la liste des produits" -> LIST_PRODUCTS
+- "quels produits recommander" -> LIST_PRODUCTS
+- "quoi commander cette semaine" -> LIST_PRODUCTS
+- "عطيني ليست ديال المنتجات" -> LIST_PRODUCTS
+- "شنو عندي فالمخزون" -> LIST_PRODUCTS
+- "show me all products" -> LIST_PRODUCTS
+- "what do I have in stock" -> LIST_PRODUCTS
+
+GREETING examples (hello, bonjour, salam):
+- "bonjour" -> GREETING, response_text should be warm and in the SAME language, mentioning what the bot can do
+- "salam" -> GREETING
+- "السلام عليكم" -> GREETING
+- "hello" -> GREETING
+- "hi" -> GREETING
+- For GREETING: response_text must be friendly, in the user's language, and mention: voice messages, stock tracking, sales reports, invoices
+
 IMPORTANT RULES:
 1. "جيت ليما" / "j'ai recu" / "I received" / "وصلت" = merchant RECEIVED stock = ADD_PRODUCT (NOT RECORD_SALE)
 2. A message with ONLY a price like "10DH", "15 MAD", "8 euros" after an ADD_PRODUCT = PRICE_UPDATE (NOT ADD_PRODUCT)
 3. Extract product_name exactly as the user wrote it — never translate product names
 4. For mixed messages (Darija + French product name), keep the French product name as-is
 5. ANY question about low stock / alerts / rapport / ناقص / تسالي / قليل / bas / alertes = GET_REPORT
-6. Typos and SMS French like "alter"=alertes, "y'a il"=il y a, "koi"=quoi are valid — detect intent from context
-7. "lien dashboard" / "tableau de bord" / "lien de mon dashboard" / "dashborad" / "لوحة التحكم" / "link" = DASHBOARD_LINK
-8. Any message mentioning a CLIENT NAME + list of products sold = CREATE_INVOICE
+6. "combien j'ai vendu" / "mes ventes" / "chiffre" / "revenue" / "شحال بعت" = SALES_REPORT (NOT GET_REPORT)
+7. "liste produits" / "mes produits" / "mon stock" / "quoi commander" / "المنتجات" = LIST_PRODUCTS
+8. Typos and SMS French like "alter"=alertes, "y'a il"=il y a, "koi"=quoi are valid — detect intent from context
+9. "lien dashboard" / "tableau de bord" / "lien de mon dashboard" / "dashborad" / "لوحة التحكم" / "link" = DASHBOARD_LINK
+10. Any message mentioning a CLIENT NAME + list of products sold = CREATE_INVOICE
    - "j'ai un client X et j'ai vendu: ..." -> CREATE_INVOICE
    - "facture pour client X: ..." -> CREATE_INVOICE
    - "فاتورة لعميل X: ..." -> CREATE_INVOICE
