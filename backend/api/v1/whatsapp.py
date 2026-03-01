@@ -57,4 +57,11 @@ async def receive_webhook(request: Request):
                         from workers.tasks import process_whatsapp_voice_message
                         process_whatsapp_voice_message.delay(from_number, media_id)
 
+                elif msg_type == "image":
+                    media_id = message.get("image", {}).get("id", "")
+                    caption = message.get("image", {}).get("caption", "")
+                    if media_id and from_number:
+                        from workers.tasks import process_whatsapp_image_message
+                        process_whatsapp_image_message.delay(from_number, media_id, caption)
+
     return {"status": "ok"}
