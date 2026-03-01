@@ -8,16 +8,16 @@ export default function StatsCard({ title, value, icon: Icon, color = 'purple', 
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4 lg:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{title}</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mt-0.5 truncate">{value}</p>
+          {subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`p-3 rounded-lg ${colors[color]}`}>
-            <Icon className="h-6 w-6" />
+          <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ${colors[color]}`}>
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
           </div>
         )}
       </div>
