@@ -35,7 +35,7 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
             (Product.name_ar.ilike(f"%{name}%")) | (Product.name_fr.ilike(f"%{name}%")),
         )
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 
 async def record_sale(
