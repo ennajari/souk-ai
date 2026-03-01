@@ -34,3 +34,6 @@ python-dotenv==1.0.1
 
 # AI & Forecasting
 weaviate-client==4.4.4
+
+# PDF generation
+reportlab==4.2.5

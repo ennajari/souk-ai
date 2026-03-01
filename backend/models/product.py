@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, Boolean
+from datetime import datetime, timezone, date
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, Boolean, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -18,6 +18,7 @@ class Product(Base):
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     cost_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     merchant = relationship("Merchant", back_populates="products")

@@ -12,7 +12,7 @@ from models.merchant import Merchant
 from models.product import Product
 from models.transaction import Transaction, TransactionType, TransactionSource
 from models.conversation import MessageRole, MessageType
-from services.ai_engine import process_message
+from services.ai_engine import process_message, extract_invoice_data
 from services.whatsapp import send_text_message
 from services.inventory import find_product_by_name, record_sale, get_stock_level, get_low_stock_products
 from services.conversation import get_conversation_history, save_message
@@ -91,6 +91,11 @@ def t(key: str, lang: str, **kwargs) -> str:
             "fr": "❓ Nom et quantite?",
             "en": "❓ Product name and quantity?",
         },
+        "dashboard_link": {
+            "ar": "🔗 لوحة التحكم: {url}",
+            "fr": "🔗 Tableau de bord: {url}",
+            "en": "🔗 Dashboard: {url}",
+        },
     }
     tmpl = translations.get(key, {}).get(lang) or translations.get(key, {}).get("fr", key)
     return tmpl.format(**kwargs) if kwargs else tmpl
@@ -111,6 +116,126 @@ def run_async(coro):
         return loop.run_until_complete(coro)
     finally:
         loop.close()
+
+
+# ---- PDF Invoice Generator ----
+
+def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str,
+                       items_with_prices: list, date_str: str) -> bytes:
+    """Generate a professional PDF invoice using reportlab."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    import io
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        rightMargin=1.8 * cm, leftMargin=1.8 * cm,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+    )
+
+    GREEN = colors.HexColor("#059669")
+    LIGHT_GREEN = colors.HexColor("#D1FAE5")
+    BG_GREEN = colors.HexColor("#F0FDF4")
+    GREY = colors.HexColor("#6B7280")
+
+    h1 = ParagraphStyle("h1", fontSize=26, fontName="Helvetica-Bold", textColor=GREEN, alignment=TA_CENTER, spaceAfter=2)
+    sub = ParagraphStyle("sub", fontSize=10, fontName="Helvetica", textColor=GREY, alignment=TA_CENTER, spaceAfter=4)
+    normal = ParagraphStyle("normal", fontSize=10, fontName="Helvetica", spaceAfter=3)
+    bold = ParagraphStyle("bold", fontSize=10, fontName="Helvetica-Bold", spaceAfter=3)
+    right = ParagraphStyle("right", fontSize=10, fontName="Helvetica", alignment=TA_RIGHT)
+    footer_s = ParagraphStyle("footer", fontSize=8, fontName="Helvetica", textColor=GREY, alignment=TA_CENTER)
+
+    elements = []
+
+    # Header
+    elements.append(Paragraph("SOUK.AI", h1))
+    elements.append(Paragraph("Gestion d'inventaire intelligente pour marchands marocains", sub))
+    elements.append(HRFlowable(width="100%", thickness=2, color=GREEN, spaceAfter=10))
+
+    # Invoice metadata
+    inv_meta = [
+        [Paragraph(f"<b>FACTURE N° {invoice_number}</b>",
+                   ParagraphStyle("inv", fontSize=16, fontName="Helvetica-Bold", textColor=GREEN)),
+         Paragraph(f"Date: {date_str}", right)],
+    ]
+    meta_table = Table(inv_meta, colWidths=[10 * cm, 7 * cm])
+    meta_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+    elements.append(meta_table)
+    elements.append(Spacer(1, 0.4 * cm))
+
+    # Vendor & client info
+    info_data = [
+        [Paragraph(f"<b>Vendeur:</b><br/>{merchant_name}", normal),
+         Paragraph(f"<b>Client:</b><br/>{client_name or 'Client'}", normal)],
+    ]
+    info_table = Table(info_data, colWidths=[8.5 * cm, 8.5 * cm])
+    info_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), BG_GREEN),
+        ("BOX", (0, 0), (-1, -1), 0.5, LIGHT_GREEN),
+        ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GREEN),
+        ("PADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Products table
+    header_row = [
+        Paragraph("<b>Produit</b>", ParagraphStyle("th", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white)),
+        Paragraph("<b>Qté</b>", ParagraphStyle("th2", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)),
+        Paragraph("<b>Prix unit.</b>", ParagraphStyle("th3", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
+        Paragraph("<b>Total</b>", ParagraphStyle("th4", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
+    ]
+    rows = [header_row]
+    grand_total = 0.0
+    for item in items_with_prices:
+        qty = float(item.get("quantity", 1))
+        price = float(item.get("unit_price", 0))
+        subtotal = qty * price
+        grand_total += subtotal
+        unit = item.get("unit", "pcs")
+        rows.append([
+            item.get("name", ""),
+            Paragraph(f"{qty:.0f} {unit}", ParagraphStyle("c", alignment=TA_CENTER, fontSize=10, fontName="Helvetica")),
+            Paragraph(f"{price:.2f} MAD", ParagraphStyle("r", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica")),
+            Paragraph(f"{subtotal:.2f} MAD", ParagraphStyle("r2", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica")),
+        ])
+
+    # Total row
+    rows.append([
+        "", "",
+        Paragraph("<b>TOTAL</b>", ParagraphStyle("tot", fontName="Helvetica-Bold", fontSize=11, alignment=TA_RIGHT)),
+        Paragraph(f"<b>{grand_total:.2f} MAD</b>", ParagraphStyle("tot2", fontName="Helvetica-Bold", fontSize=11, alignment=TA_RIGHT, textColor=GREEN)),
+    ])
+
+    prod_table = Table(rows, colWidths=[8.5 * cm, 2.5 * cm, 3 * cm, 3 * cm])
+    prod_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), GREEN),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, BG_GREEN]),
+        ("GRID", (0, 0), (-1, -2), 0.5, LIGHT_GREEN),
+        ("LINEABOVE", (0, -1), (-1, -1), 1.5, GREEN),
+        ("PADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    elements.append(prod_table)
+    elements.append(Spacer(1, 0.8 * cm))
+
+    # Footer
+    elements.append(HRFlowable(width="100%", thickness=1, color=LIGHT_GREEN, spaceAfter=6))
+    elements.append(Paragraph(
+        f"Merci pour votre confiance! | Souk.AI — {settings.FRONTEND_URL}",
+        footer_s,
+    ))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.read()
 
 
 # ---- WhatsApp Text Message ----
@@ -283,6 +408,7 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                 lines.append("*Stock mis à jour:*")
                 lines.extend(updated)
             lines.append(f"\n📊 {len(added)} ajouté(s), {len(updated)} mis à jour")
+            lines.append(f"🔗 {settings.FRONTEND_URL}")
 
             await send_text_message(phone_number, "\n".join(lines))
     finally:
@@ -320,6 +446,31 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
             # Determine transaction source
             source = TransactionSource.VOICE if message_type == MessageType.VOICE else TransactionSource.WHATSAPP
             lang = detect_lang(text)
+
+            # Keyword fallback: if UNKNOWN but message is about stock alerts/report, force GET_REPORT
+            if intent == "UNKNOWN":
+                txt_lower = text.lower()
+                report_keywords = [
+                    "alert", "alter", "rapport", "report", "bilan", "stock bas", "stock faible",
+                    "ناقص", "تسالي", "قليل", "قليلة", "المخزون", "alertes", "منخفض",
+                    "running low", "low stock", "what's low", "koi les", "شنو ناقص",
+                    "المواد القاص", "مواد قليل", "ريبور",
+                ]
+                dashboard_keywords = [
+                    "dashboard", "dashborad", "tableau de bord", "tableau bord", "lien",
+                    "لوحة التحكم", "لوحة", "link", "url", "site", "application", "app",
+                    "connecter", "connexion", "acceder", "accès", "ouvrir", "open",
+                ]
+                invoice_keywords = [
+                    "facture", "invoice", "facteur", "fatura", "فاتورة", "client ",
+                    "generer facture", "creer facture", "faire facture",
+                ]
+                if any(kw in txt_lower for kw in report_keywords):
+                    intent = "GET_REPORT"
+                elif any(kw in txt_lower for kw in dashboard_keywords):
+                    intent = "DASHBOARD_LINK"
+                elif any(kw in txt_lower for kw in invoice_keywords):
+                    intent = "CREATE_INVOICE"
 
             if intent == "RECORD_SALE":
                 product_name = entities.get("product_name", "")
@@ -432,13 +583,15 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
 
             elif intent == "GET_REPORT":
                 low_stock = await get_low_stock_products(db, merchant.id)
+                dashboard_url = settings.FRONTEND_URL
                 if low_stock:
                     lines = [t("low_stock_header", lang)]
                     for item in low_stock:
                         lines.append(f"- {item['product_name']}: {item['quantity']} (seuil: {item['threshold']})")
+                    lines.append(f"\n{t('dashboard_link', lang, url=dashboard_url)}")
                     response_text = "\n".join(lines)
                 else:
-                    response_text = t("stock_ok", lang)
+                    response_text = t("stock_ok", lang) + f"\n{t('dashboard_link', lang, url=dashboard_url)}"
 
             elif intent == "PLACE_ORDER":
                 product_name = entities.get("product_name", "")
@@ -470,6 +623,95 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         else:
                             response_text = f"Aucun fournisseur trouve pour {product.name_ar}. Ajoutez un fournisseur dans le dashboard."
 
+            # For DASHBOARD_LINK: send direct URL
+            if intent == "DASHBOARD_LINK":
+                dashboard_url = settings.FRONTEND_URL
+                msgs = {
+                    "ar": f"🔗 لوحة التحكم الخاصة بك:\n{dashboard_url}\n\nيمكنك تسجيل الدخول برقم هاتفك وكلمة المرور.",
+                    "fr": f"🔗 Votre tableau de bord:\n{dashboard_url}\n\nConnectez-vous avec votre numéro de téléphone et mot de passe.",
+                    "en": f"🔗 Your dashboard:\n{dashboard_url}\n\nLogin with your phone number and password.",
+                }
+                response_text = msgs.get(lang, msgs["fr"])
+
+            # For CREATE_INVOICE: extract items, generate PDF, send via WhatsApp
+            if intent == "CREATE_INVOICE":
+                invoice_data = await extract_invoice_data(text)
+                client_name = invoice_data.get("client_name", "")
+                raw_items = invoice_data.get("items", [])
+
+                if not raw_items:
+                    response_text = {
+                        "ar": "❌ لم أتمكن من استخراج المنتجات من رسالتك. مثال: 'فاتورة لعميل أحمد: 5 زيت، 8 سردين'",
+                        "fr": "❌ Je n'ai pas pu extraire les produits. Exemple: 'facture pour client Ahmed: 5 zite, 8 sardine'",
+                        "en": "❌ Could not extract products. Example: 'invoice for client Ahmed: 5 oil, 8 sardines'",
+                    }.get(lang, "❌ Produits introuvables dans le message.")
+                else:
+                    # Resolve prices from DB
+                    items_with_prices = []
+                    missing = []
+                    for raw in raw_items:
+                        pname = str(raw.get("name", "")).strip()
+                        qty = float(raw.get("quantity", 1) or 1)
+                        if not pname:
+                            continue
+                        product = await find_product_by_name(db, merchant.id, pname)
+                        if product:
+                            display = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
+                            items_with_prices.append({
+                                "name": display,
+                                "quantity": qty,
+                                "unit_price": float(product.unit_price),
+                                "unit": product.unit,
+                            })
+                        else:
+                            items_with_prices.append({
+                                "name": pname,
+                                "quantity": qty,
+                                "unit_price": 0.0,
+                                "unit": "pcs",
+                            })
+                            missing.append(pname)
+
+                    # Generate invoice PDF
+                    from datetime import date as date_cls
+                    invoice_number = f"INV-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                    date_str = date_cls.today().strftime("%d/%m/%Y")
+                    merchant_name = getattr(merchant, "owner_name", None) or merchant.phone_number
+
+                    pdf_bytes = _build_invoice_pdf(
+                        invoice_number, client_name, merchant_name,
+                        items_with_prices, date_str,
+                    )
+
+                    # Send PDF via WhatsApp
+                    from services.whatsapp import send_document_message
+                    filename = f"facture_{invoice_number}.pdf"
+                    caption_map = {
+                        "ar": f"🧾 فاتورة N°{invoice_number} — {client_name}",
+                        "fr": f"🧾 Facture N°{invoice_number} — {client_name}",
+                        "en": f"🧾 Invoice N°{invoice_number} — {client_name}",
+                    }
+                    await send_document_message(phone_number, pdf_bytes, filename, caption_map.get(lang, caption_map["fr"]))
+
+                    # Confirmation text message
+                    total = sum(float(i["quantity"]) * float(i["unit_price"]) for i in items_with_prices)
+                    lines_ok = [f"  • {i['name']}: {i['quantity']:.0f} × {i['unit_price']:.2f} = {float(i['quantity'])*float(i['unit_price']):.2f} MAD"
+                                for i in items_with_prices]
+                    summary = {
+                        "ar": f"✅ تم إنشاء الفاتورة!\nالعميل: {client_name}\n" + "\n".join(lines_ok) + f"\n💰 المجموع: {total:.2f} درهم",
+                        "fr": f"✅ Facture générée!\nClient: {client_name}\n" + "\n".join(lines_ok) + f"\n💰 Total: {total:.2f} MAD",
+                        "en": f"✅ Invoice generated!\nClient: {client_name}\n" + "\n".join(lines_ok) + f"\n💰 Total: {total:.2f} MAD",
+                    }
+                    response_text = summary.get(lang, summary["fr"])
+                    if missing:
+                        response_text += "\n⚠️ Prix non trouvé pour: " + ", ".join(missing)
+
+            # For GREETING: introduce dashboard link
+            if intent == "GREETING":
+                dashboard_url = settings.FRONTEND_URL
+                link = t("dashboard_link", lang, url=dashboard_url)
+                response_text = (response_text or "👋 Bonjour! Je suis votre assistant Souk.AI.") + f"\n{link}"
+
             # Save assistant response
             await save_message(db, merchant.id, MessageRole.ASSISTANT, response_text, intent=intent)
             await db.commit()
@@ -496,11 +738,40 @@ async def _send_alerts():
             result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
             for merchant in merchants:
+                lines = []
+
+                # Low stock alerts
                 low_stock = await get_low_stock_products(db, merchant.id)
                 if low_stock:
-                    lines = ["Alerte stock bas:"]
+                    lines.append("⚠️ *Stock bas:*")
                     for item in low_stock:
-                        lines.append(f"- {item['product_name']}: {item['quantity']}")
+                        lines.append(f"  • {item['product_name']}: {item['quantity']}")
+
+                # Expiry date alerts (within 7 days)
+                from datetime import date as date_cls
+                today = date_cls.today()
+                deadline = today + timedelta(days=7)
+                expiry_result = await db.execute(
+                    select(Product).where(
+                        Product.merchant_id == merchant.id,
+                        Product.is_active == True,
+                        Product.expiry_date != None,
+                        Product.expiry_date <= deadline,
+                    )
+                )
+                expiring = expiry_result.scalars().all()
+                if expiring:
+                    lines.append("\n📅 *Produits proches de l'expiration:*")
+                    for p in expiring:
+                        days_left = (p.expiry_date - today).days
+                        name = p.name_fr or p.name_ar
+                        if days_left <= 0:
+                            lines.append(f"  🔴 {name}: EXPIRÉ le {p.expiry_date.strftime('%d/%m/%Y')}")
+                        else:
+                            lines.append(f"  🟡 {name}: expire dans {days_left} jour(s) ({p.expiry_date.strftime('%d/%m/%Y')})")
+
+                if lines:
+                    lines.append(f"\n🔗 {settings.FRONTEND_URL}")
                     await send_text_message(merchant.phone_number, "\n".join(lines))
     finally:
         await engine.dispose()
@@ -572,10 +843,82 @@ async def _send_weekly_summary():
                     for item in low_stock[:5]:
                         lines.append(f"  - {item['product_name']}: {item['quantity']}")
 
+                lines.append(f"\n🔗 Dashboard: {settings.FRONTEND_URL}")
                 await send_text_message(merchant.phone_number, "\n".join(lines))
     finally:
         await engine.dispose()
     return {"status": "summaries_sent"}
+
+
+# ---- Daily Sales Report (midnight) ----
+
+@celery_app.task(name="send_daily_sales_report")
+def send_daily_sales_report():
+    return run_async(_send_daily_sales_report())
+
+
+async def _send_daily_sales_report():
+    engine, SessionLocal = get_async_session()
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            merchants = result.scalars().all()
+
+            for merchant in merchants:
+                now = datetime.now(timezone.utc)
+                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+                txn_result = await db.execute(
+                    select(Transaction).where(
+                        Transaction.merchant_id == merchant.id,
+                        Transaction.type == TransactionType.SALE,
+                        Transaction.created_at >= today_start,
+                    )
+                )
+                txns = txn_result.scalars().all()
+
+                if not txns:
+                    continue  # No sales today — skip merchant
+
+                total_revenue = sum(float(t.total_amount) for t in txns)
+                nb_sales = len(txns)
+
+                # Top products by revenue
+                product_rev: dict = {}
+                for t in txns:
+                    pid = str(t.product_id)
+                    product_rev[pid] = product_rev.get(pid, 0) + float(t.total_amount)
+                top_pids = sorted(product_rev, key=lambda x: product_rev[x], reverse=True)[:5]
+
+                top_lines = []
+                for pid in top_pids:
+                    prod_r = await db.execute(select(Product).where(Product.id == pid))
+                    prod = prod_r.scalar_one_or_none()
+                    name = prod.name_fr or prod.name_ar if prod else pid
+                    top_lines.append(f"  • {name}: {product_rev[pid]:.2f} MAD")
+
+                low_stock = await get_low_stock_products(db, merchant.id)
+
+                date_str = today_start.strftime("%d/%m/%Y")
+                lines = [
+                    f"📊 *Rapport quotidien — {date_str}*",
+                    "",
+                    f"🛒 Ventes: {nb_sales}",
+                    f"💰 Revenu: {total_revenue:.2f} MAD",
+                    "",
+                    "🏆 Top produits:",
+                ] + top_lines
+
+                if low_stock:
+                    lines += ["", f"⚠️ Stock bas ({len(low_stock)}):"]
+                    for item in low_stock[:3]:
+                        lines.append(f"  • {item['product_name']}: {item['quantity']}")
+
+                lines.append(f"\n🔗 {settings.FRONTEND_URL}")
+                await send_text_message(merchant.phone_number, "\n".join(lines))
+    finally:
+        await engine.dispose()
+    return {"status": "daily_reports_sent"}
 
 
 # ---- Update Credit Scores ----
