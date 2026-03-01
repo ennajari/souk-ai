@@ -465,7 +465,20 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     "facture", "invoice", "facteur", "fatura", "فاتورة", "client ",
                     "generer facture", "creer facture", "faire facture",
                 ]
-                if any(kw in txt_lower for kw in report_keywords):
+                sales_keywords = [
+                    "vendu", "ventes", "chiffre", "revenue", "revenu", "combien j'ai vendu",
+                    "mes ventes", "بعت", "شحال بعت", "sold", "sales", "how much did i sell",
+                ]
+                list_keywords = [
+                    "liste", "produits", "mon stock", "mes produits", "quoi commander",
+                    "المنتجات", "المخزون", "ليست", "عندي فال", "all products", "my products",
+                    "show stock", "recommander", "recommend",
+                ]
+                if any(kw in txt_lower for kw in sales_keywords):
+                    intent = "SALES_REPORT"
+                elif any(kw in txt_lower for kw in list_keywords):
+                    intent = "LIST_PRODUCTS"
+                elif any(kw in txt_lower for kw in report_keywords):
                     intent = "GET_REPORT"
                 elif any(kw in txt_lower for kw in dashboard_keywords):
                     intent = "DASHBOARD_LINK"
@@ -623,6 +636,99 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         else:
                             response_text = f"Aucun fournisseur trouve pour {product.name_ar}. Ajoutez un fournisseur dans le dashboard."
 
+            elif intent == "SALES_REPORT":
+                product_name = entities.get("product_name", "")
+                period = entities.get("period", "week") or "week"
+                now = datetime.now(timezone.utc)
+                if period == "today":
+                    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    period_label = {"ar": "اليوم", "fr": "aujourd'hui", "en": "today"}
+                elif period == "month":
+                    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    period_label = {"ar": "هاد الشهر", "fr": "ce mois", "en": "this month"}
+                else:
+                    start = now - timedelta(days=7)
+                    period_label = {"ar": "هاد الأسبوع", "fr": "cette semaine", "en": "this week"}
+
+                query = select(Transaction).where(
+                    Transaction.merchant_id == merchant.id,
+                    Transaction.type == TransactionType.SALE,
+                    Transaction.created_at >= start,
+                )
+                txn_result = await db.execute(query)
+                txns = txn_result.scalars().all()
+
+                if product_name:
+                    product = await find_product_by_name(db, merchant.id, product_name)
+                    if product:
+                        product_txns = [tx for tx in txns if str(tx.product_id) == str(product.id)]
+                        total_qty = sum(int(tx.quantity) for tx in product_txns)
+                        total_rev = sum(float(tx.total_amount) for tx in product_txns)
+                        display = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
+                        msgs = {
+                            "ar": f"📊 *{display}* — {period_label['ar']}:\n🛒 الكمية: {total_qty}\n💰 الإيرادات: {total_rev:.2f} درهم",
+                            "fr": f"📊 *{display}* — {period_label['fr']}:\n🛒 Quantite vendue: {total_qty}\n💰 Revenu: {total_rev:.2f} MAD",
+                            "en": f"📊 *{display}* — {period_label['en']}:\n🛒 Qty sold: {total_qty}\n💰 Revenue: {total_rev:.2f} MAD",
+                        }
+                        response_text = msgs.get(lang, msgs["fr"])
+                    else:
+                        response_text = t("product_not_found", lang, name=product_name)
+                else:
+                    total_rev = sum(float(tx.total_amount) for tx in txns)
+                    nb = len(txns)
+                    # Top 5 products
+                    product_rev = {}
+                    for tx in txns:
+                        product_rev[str(tx.product_id)] = product_rev.get(str(tx.product_id), 0) + float(tx.total_amount)
+                    top_pids = sorted(product_rev, key=lambda x: product_rev[x], reverse=True)[:5]
+                    top_lines = []
+                    for pid in top_pids:
+                        prod_r = await db.execute(select(Product).where(Product.id == pid))
+                        prod = prod_r.scalar_one_or_none()
+                        name = (prod.name_fr or prod.name_ar) if prod else pid
+                        top_lines.append(f"  • {name}: {product_rev[pid]:.2f} MAD")
+                    pl = period_label.get(lang, period_label["fr"])
+                    header = {"ar": f"📊 *ملخص المبيعات* — {pl}", "fr": f"📊 *Resume des ventes* — {pl}", "en": f"📊 *Sales summary* — {pl}"}
+                    lines = [header.get(lang, header["fr"])]
+                    lines.append(f"🛒 {nb} vente(s)")
+                    lines.append(f"💰 {total_rev:.2f} MAD")
+                    if top_lines:
+                        top_h = {"ar": "\n🏆 *أفضل المنتجات:*", "fr": "\n🏆 *Top produits:*", "en": "\n🏆 *Top products:*"}
+                        lines.append(top_h.get(lang, top_h["fr"]))
+                        lines.extend(top_lines)
+                    lines.append(f"\n{t('dashboard_link', lang, url=settings.FRONTEND_URL)}")
+                    response_text = "\n".join(lines)
+
+            elif intent == "LIST_PRODUCTS":
+                from models.inventory import Inventory
+                prod_result = await db.execute(
+                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+                )
+                products = prod_result.scalars().all()
+                if not products:
+                    msgs = {
+                        "ar": "📦 ما عندك حتى منتج. أرسل 'جيت ليما 10 سكر' لإضافة منتج.",
+                        "fr": "📦 Vous n'avez aucun produit. Envoyez 'j'ai recu 10 sucre' pour ajouter un produit.",
+                        "en": "📦 No products yet. Send 'I received 10 sugar' to add one.",
+                    }
+                    response_text = msgs.get(lang, msgs["fr"])
+                else:
+                    header = {"ar": "📦 *منتجاتك:*", "fr": "📦 *Vos produits:*", "en": "📦 *Your products:*"}
+                    lines = [header.get(lang, header["fr"])]
+                    for p in products[:20]:
+                        inv_r = await db.execute(select(Inventory).where(Inventory.product_id == p.id))
+                        inv = inv_r.scalar_one_or_none()
+                        stock = float(inv.quantity) if inv else 0
+                        name = p.name_fr if lang in ("fr", "en") and p.name_fr else p.name_ar
+                        threshold = inv.reorder_threshold if inv else 10
+                        alert = " ⚠️" if stock <= threshold else ""
+                        price_str = f" | {float(p.unit_price):.2f} MAD" if p.unit_price else ""
+                        lines.append(f"  • {name}: {stock:.0f} {p.unit}{price_str}{alert}")
+                    if len(products) > 20:
+                        lines.append(f"  ... +{len(products) - 20} autres")
+                    lines.append(f"\n{t('dashboard_link', lang, url=settings.FRONTEND_URL)}")
+                    response_text = "\n".join(lines)
+
             # For DASHBOARD_LINK: send direct URL
             if intent == "DASHBOARD_LINK":
                 dashboard_url = settings.FRONTEND_URL
@@ -706,11 +812,45 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     if missing:
                         response_text += "\n⚠️ Prix non trouvé pour: " + ", ".join(missing)
 
-            # For GREETING: introduce dashboard link
+            # For GREETING: warm welcome with capabilities
             if intent == "GREETING":
                 dashboard_url = settings.FRONTEND_URL
-                link = t("dashboard_link", lang, url=dashboard_url)
-                response_text = (response_text or "👋 Bonjour! Je suis votre assistant Souk.AI.") + f"\n{link}"
+                greetings = {
+                    "ar": (
+                        f"مرحبا! انا Souk.AI، المساعد الذكي ديالك 🤖\n\n"
+                        f"واش تعرف شنو نقدر ندير ليك?\n"
+                        f"🎤 غير سيفط ليا vocal وانا نفهمك\n"
+                        f"📦 'شحال بقى عندي فالسكر' → نشوف ليك المخزون\n"
+                        f"🛒 'بعت 5 كيلو طماطم' → نسجل ليك البيع\n"
+                        f"📊 'شحال بعت هاد الأسبوع' → نعطيك الملخص\n"
+                        f"📋 'عطيني ليست ديال المنتجات' → نبعت ليك كلشي\n"
+                        f"🧾 'فاتورة لعميل أحمد' → نخدم ليك PDF\n\n"
+                        f"🔗 لوحة التحكم: {dashboard_url}"
+                    ),
+                    "fr": (
+                        f"Bonjour! Je suis Souk.AI, votre assistant intelligent 🤖\n\n"
+                        f"Voici ce que je peux faire pour vous:\n"
+                        f"🎤 Envoyez un vocal, je comprends!\n"
+                        f"📦 'combien de sucre' → je verifie le stock\n"
+                        f"🛒 'j'ai vendu 5 kg tomates' → j'enregistre la vente\n"
+                        f"📊 'mes ventes cette semaine' → resume complet\n"
+                        f"📋 'liste de produits' → tout votre stock\n"
+                        f"🧾 'facture pour client Ahmed' → PDF genere\n\n"
+                        f"🔗 Tableau de bord: {dashboard_url}"
+                    ),
+                    "en": (
+                        f"Hello! I'm Souk.AI, your smart assistant 🤖\n\n"
+                        f"Here's what I can do:\n"
+                        f"🎤 Send a voice message, I understand!\n"
+                        f"📦 'how much sugar' → I check your stock\n"
+                        f"🛒 'I sold 5 kg tomatoes' → I record the sale\n"
+                        f"📊 'my sales this week' → full summary\n"
+                        f"📋 'list products' → all your stock\n"
+                        f"🧾 'invoice for client Ahmed' → PDF generated\n\n"
+                        f"🔗 Dashboard: {dashboard_url}"
+                    ),
+                }
+                response_text = greetings.get(lang, greetings["fr"])
 
             # Save assistant response
             await save_message(db, merchant.id, MessageRole.ASSISTANT, response_text, intent=intent)
