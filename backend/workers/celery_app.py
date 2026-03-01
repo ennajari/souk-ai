@@ -38,6 +38,11 @@ celery_app.conf.update(
             "task": "update_credit_scores",
             "schedule": crontab(day_of_week="sunday", hour=2, minute=0),
         },
+        # Daily sales report every night at 00:00 (midnight)
+        "daily-sales-report-midnight": {
+            "task": "send_daily_sales_report",
+            "schedule": crontab(hour=0, minute=0),
+        },
     },
 )
 

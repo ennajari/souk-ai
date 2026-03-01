@@ -45,6 +45,39 @@ async def send_template_message(to: str, template_name: str, language: str = "ar
         return response.json()
 
 
+async def send_document_message(to: str, document_bytes: bytes, filename: str, caption: str = "") -> dict:
+    """Upload a PDF document and send it via WhatsApp Cloud API."""
+    headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"}
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        # Step 1: Upload media
+        upload_url = f"{WHATSAPP_API_URL}/{settings.WHATSAPP_PHONE_NUMBER_ID}/media"
+        upload_resp = await client.post(
+            upload_url,
+            headers=headers,
+            data={"messaging_product": "whatsapp"},
+            files={"file": (filename, document_bytes, "application/pdf")},
+        )
+        upload_data = upload_resp.json()
+        media_id = upload_data.get("id")
+        if not media_id:
+            return upload_data
+
+        # Step 2: Send document message
+        msg_url = f"{WHATSAPP_API_URL}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "document",
+            "document": {"id": media_id, "filename": filename, "caption": caption},
+        }
+        msg_resp = await client.post(
+            msg_url, json=payload,
+            headers={**headers, "Content-Type": "application/json"},
+        )
+        return msg_resp.json()
+
+
 async def mark_as_read(message_id: str) -> dict:
     """Mark a message as read."""
     url = f"{WHATSAPP_API_URL}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"

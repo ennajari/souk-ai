@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
     BACKEND_CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000"]'
+    FRONTEND_URL: str = "http://<VPS_IP>"
 
     @property
     def cors_origins(self) -> List[str]:
