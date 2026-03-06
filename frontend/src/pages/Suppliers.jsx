@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { FiEdit2, FiTrash2, FiX } from 'react-icons/fi'
 import client from '../api/client'
+import toast from 'react-hot-toast'
 
 const CATEGORIES = ['FMCG', 'FRESH', 'BEVERAGES', 'DAIRY', 'SNACKS', 'OTHER']
 
@@ -9,6 +11,7 @@ export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -25,18 +28,46 @@ export default function Suppliers() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (form.minimum_order_value < 0) return toast.error('La commande minimum ne peut pas etre negative')
     setSaving(true)
+    setError(null)
     try {
-      await client.post('/suppliers/', form)
+      if (editingId) {
+        await client.patch(`/suppliers/${editingId}`, form)
+        toast.success('Fournisseur mis a jour')
+      } else {
+        await client.post('/suppliers/', form)
+        toast.success('Fournisseur ajoute')
+      }
       setShowForm(false)
+      setEditingId(null)
       setForm(emptyForm)
       fetchSuppliers()
-    } catch {
-      setError('Erreur lors de la création du fournisseur')
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Erreur'
+      toast.error(msg)
+      setError(msg)
     } finally {
       setSaving(false)
     }
   }
+
+  const handleEdit = (s) => {
+    setForm({ name: s.name, category: s.category, contact_name: s.contact_name || '', phone_number: s.phone_number || '', email: s.email || '', minimum_order_value: s.minimum_order_value || 0 })
+    setEditingId(s.id)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Supprimer le fournisseur "${s.name}" ?`)) return
+    try {
+      await client.delete(`/suppliers/${s.id}`)
+      toast.success('Fournisseur supprime')
+      fetchSuppliers()
+    } catch { toast.error('Erreur lors de la suppression') }
+  }
+
+  const cancelForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); setError(null) }
 
   const categoryColor = {
     FMCG: 'bg-blue-100 text-blue-700',
@@ -55,7 +86,7 @@ export default function Suppliers() {
           <p className="text-sm text-gray-500 mt-1">Gérez vos fournisseurs et passez des commandes groupées</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm) }}
           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
         >
           + Ajouter
@@ -69,7 +100,10 @@ export default function Suppliers() {
       {/* Add supplier form */}
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4">Nouveau fournisseur</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">{editingId ? 'Modifier le fournisseur' : 'Nouveau fournisseur'}</h2>
+            <button onClick={cancelForm} className="p-1.5 hover:bg-gray-100 rounded-lg"><FiX className="h-4 w-4 text-gray-500" /></button>
+          </div>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
@@ -123,8 +157,9 @@ export default function Suppliers() {
               <input
                 type="number"
                 value={form.minimum_order_value}
-                onChange={e => setForm(f => ({ ...f, minimum_order_value: parseFloat(e.target.value) || 0 }))}
+                onChange={e => setForm(f => ({ ...f, minimum_order_value: Math.max(0, parseFloat(e.target.value) || 0) }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                min="0"
               />
             </div>
             <div className="sm:col-span-2 flex gap-3">
@@ -133,11 +168,11 @@ export default function Suppliers() {
                 disabled={saving}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium disabled:opacity-50"
               >
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
+                {saving ? 'Enregistrement...' : editingId ? 'Mettre a jour' : 'Enregistrer'}
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setForm(emptyForm) }}
+                onClick={cancelForm}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
               >
                 Annuler
@@ -166,10 +201,18 @@ export default function Suppliers() {
                   <h3 className="font-semibold text-gray-900">{s.name}</h3>
                   {s.contact_name && <p className="text-xs text-gray-500 mt-0.5">{s.contact_name}</p>}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${categoryColor[s.category] || 'bg-gray-100 text-gray-600'}`}>
-                  {s.category}
-                </span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => handleEdit(s)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Modifier">
+                    <FiEdit2 className="h-3.5 w-3.5 text-gray-500" />
+                  </button>
+                  <button onClick={() => handleDelete(s)} className="p-1.5 hover:bg-red-50 rounded-lg" title="Supprimer">
+                    <FiTrash2 className="h-3.5 w-3.5 text-red-500" />
+                  </button>
+                </div>
               </div>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${categoryColor[s.category] || 'bg-gray-100 text-gray-600'}`}>
+                {s.category}
+              </span>
               <div className="space-y-1.5 text-sm">
                 {s.phone_number && (
                   <p className="text-gray-600 flex items-center gap-2">

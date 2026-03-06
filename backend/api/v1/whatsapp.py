@@ -64,4 +64,13 @@ async def receive_webhook(request: Request):
                         from workers.tasks import process_whatsapp_image_message
                         process_whatsapp_image_message.delay(from_number, media_id, caption)
 
+                elif msg_type == "document":
+                    doc = message.get("document", {})
+                    media_id = doc.get("id", "")
+                    filename = doc.get("filename", "")
+                    mime_type = doc.get("mime_type", "")
+                    if media_id and from_number and filename.lower().endswith(('.csv', '.txt')):
+                        from workers.tasks import process_whatsapp_document
+                        process_whatsapp_document.delay(from_number, media_id, filename)
+
     return {"status": "ok"}

@@ -91,3 +91,22 @@ export const creditAPI = {
   score: () => client.get('/credit/score'),
   offers: () => client.get('/credit/offers'),
 }
+
+// ---- Sage Import ----
+export const sageAPI = {
+  importArticles: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return client.post('/sage/import/articles', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  importSales: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return client.post('/sage/import/sales', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  importAuto: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return client.post('/sage/import/auto', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+}
