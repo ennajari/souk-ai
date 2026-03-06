@@ -29,6 +29,13 @@ async def create_supplier(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
+    if data.minimum_order_value < 0:
+        raise HTTPException(400, "La commande minimum ne peut pas etre negative")
+    existing = await db.execute(
+        select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
     supplier = Supplier(**data.model_dump())
     db.add(supplier)
     await db.flush()
@@ -47,11 +54,33 @@ async def update_supplier(
     supplier = result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
+    if data.minimum_order_value is not None and data.minimum_order_value < 0:
+        raise HTTPException(400, "La commande minimum ne peut pas etre negative")
+    if data.name and data.name != supplier.name:
+        dup = await db.execute(
+            select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True, Supplier.id != supplier_id)
+        )
+        if dup.scalar_one_or_none():
+            raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
     for key, value in data.model_dump(exclude_none=True).items():
         setattr(supplier, key, value)
     await db.flush()
     await db.refresh(supplier)
     return supplier
+
+
+@router.delete("/{supplier_id}", status_code=204)
+async def delete_supplier(
+    supplier_id: str,
+    merchant: Merchant = Depends(get_current_merchant),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
+    supplier = result.scalar_one_or_none()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fournisseur introuvable")
+    supplier.is_active = False
+    await db.flush()
 
 
 @router.get("/{supplier_id}/orders", response_model=list[SupplierOrderResponse])

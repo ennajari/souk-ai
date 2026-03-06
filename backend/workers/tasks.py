@@ -417,6 +417,134 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
     return {"status": "image_processed", "added": len(added), "updated": len(updated)}
 
 
+# ---- WhatsApp Document (CSV) Import ----
+
+@celery_app.task(name="process_whatsapp_document")
+def process_whatsapp_document(phone_number: str, media_id: str, filename: str):
+    """Process CSV document sent via WhatsApp (Sage 100 import)."""
+    return run_async(_process_document(phone_number, media_id, filename))
+
+
+async def _process_document(phone_number: str, media_id: str, filename: str):
+    from services.sage_import import parse_sage_articles, detect_sage_file_type
+    from models.inventory import Inventory
+
+    engine, SessionLocal = get_async_session()
+
+    try:
+        # Download file
+        file_bytes = await download_whatsapp_media(media_id)
+        if not file_bytes:
+            await send_text_message(phone_number, "Impossible de telecharger le fichier.")
+            return {"status": "download_failed"}
+
+        # Decode content
+        content = None
+        for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+            try:
+                content = file_bytes.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+
+        if not content:
+            await send_text_message(phone_number, "Impossible de lire le fichier. Encodage non reconnu.")
+            return {"status": "decode_failed"}
+
+        # Detect file type
+        file_type = detect_sage_file_type(content)
+        if not file_type or file_type != 'articles':
+            await send_text_message(
+                phone_number,
+                "Le fichier ne semble pas etre un export Sage 100 d'articles.\n"
+                "Exportez depuis Sage: Fichier > Exporter > Articles > CSV"
+            )
+            return {"status": "unknown_format"}
+
+        # Parse articles
+        articles = parse_sage_articles(content)
+        if not articles:
+            await send_text_message(phone_number, "Aucun article trouve dans le fichier CSV.")
+            return {"status": "no_articles"}
+
+        async with SessionLocal() as db:
+            result = await db.execute(select(Merchant).where(Merchant.phone_number == phone_number))
+            merchant = result.scalar_one_or_none()
+
+            if not merchant:
+                await send_text_message(phone_number, "Inscrivez-vous d'abord sur Souk.AI.")
+                return {"status": "unregistered"}
+
+            added = []
+            updated = []
+            for art in articles:
+                name = art.get('name', '')
+                existing = None
+
+                if art.get('barcode'):
+                    r = await db.execute(
+                        select(Product).where(
+                            Product.merchant_id == merchant.id,
+                            Product.barcode == art['barcode'],
+                            Product.is_active == True,
+                        )
+                    )
+                    existing = r.scalar_one_or_none()
+
+                if not existing:
+                    r = await db.execute(
+                        select(Product).where(
+                            Product.merchant_id == merchant.id,
+                            (Product.name_fr == name) | (Product.name_ar == name),
+                            Product.is_active == True,
+                        )
+                    )
+                    existing = r.scalar_one_or_none()
+
+                if existing:
+                    if art.get('unit_price'):
+                        existing.unit_price = art['unit_price']
+                    if art.get('cost_price'):
+                        existing.cost_price = art['cost_price']
+                    if art.get('stock') is not None and existing.inventory:
+                        existing.inventory.quantity = art['stock']
+                    updated.append(name)
+                else:
+                    product = Product(
+                        merchant_id=merchant.id, name_ar=name, name_fr=name,
+                        barcode=art.get('barcode'), unit=art.get('unit', 'piece'),
+                        unit_price=art.get('unit_price', 0), cost_price=art.get('cost_price', 0),
+                    )
+                    db.add(product)
+                    await db.flush()
+                    inv = Inventory(product_id=product.id, quantity=art.get('stock', 0) or 0)
+                    db.add(inv)
+                    added.append(name)
+
+            await db.commit()
+
+        # Send result
+        lines = [f"Import Sage 100 termine! ({filename})"]
+        lines.append(f"Total: {len(articles)} articles lus")
+        if added:
+            lines.append(f"+{len(added)} ajoutes: {', '.join(added[:5])}")
+            if len(added) > 5:
+                lines.append(f"  ...et {len(added)-5} de plus")
+        if updated:
+            lines.append(f"{len(updated)} mis a jour: {', '.join(updated[:5])}")
+            if len(updated) > 5:
+                lines.append(f"  ...et {len(updated)-5} de plus")
+        if not added and not updated:
+            lines.append("Aucun changement effectue.")
+
+        await send_text_message(phone_number, "\n".join(lines))
+
+    finally:
+        await engine.dispose()
+
+    return {"status": "imported", "added": len(added), "updated": len(updated)}
+
+
 # ---- Core Message Processing (with conversation context) ----
 
 async def _process_message(phone_number: str, text: str, message_type: MessageType = MessageType.TEXT):
@@ -474,7 +602,14 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     "المنتجات", "المخزون", "ليست", "عندي فال", "all products", "my products",
                     "show stock", "recommander", "recommend",
                 ]
-                if any(kw in txt_lower for kw in sales_keywords):
+                greeting_keywords = [
+                    "bonjour", "bonsoir", "salut", "salam", "slm", "hello", "hi ", "hey",
+                    "السلام", "سلام", "مرحبا", "صباح", "مساء", "ⵙⵍⴰⵎ",
+                    "bsr", "bjr", "coucou", "yo ", "slt",
+                ]
+                if any(kw in txt_lower or txt_lower == kw.strip() for kw in greeting_keywords):
+                    intent = "GREETING"
+                elif any(kw in txt_lower for kw in sales_keywords):
                     intent = "SALES_REPORT"
                 elif any(kw in txt_lower for kw in list_keywords):
                     intent = "LIST_PRODUCTS"

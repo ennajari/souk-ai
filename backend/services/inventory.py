@@ -35,7 +35,31 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
             (Product.name_ar.ilike(f"%{name}%")) | (Product.name_fr.ilike(f"%{name}%")),
         )
     )
-    return result.scalars().first()
+    found = result.scalars().first()
+    if found:
+        return found
+
+    # 3. Try product aliases (tomates = طماطم etc.)
+    try:
+        from services.product_aliases import get_all_aliases
+        aliases = get_all_aliases(name)
+        for alias in aliases:
+            if alias.lower() == name.lower():
+                continue
+            r = await db.execute(
+                select(Product).where(
+                    Product.merchant_id == merchant_id,
+                    Product.is_active == True,
+                    (Product.name_ar.ilike(f"%{alias}%")) | (Product.name_fr.ilike(f"%{alias}%")),
+                )
+            )
+            p = r.scalars().first()
+            if p:
+                return p
+    except Exception:
+        pass
+
+    return None
 
 
 async def record_sale(

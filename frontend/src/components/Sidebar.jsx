@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom"
 import {
   FiHome, FiPackage, FiBox, FiDollarSign,
   FiBarChart2, FiSettings, FiTrendingUp, FiTruck, FiStar, FiX,
-  FiMessageSquare
+  FiMessageSquare, FiDatabase
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 
@@ -28,6 +28,7 @@ const sections = [
     label: "COMMERCE",
     links: [
       { to: "/suppliers", icon: FiTruck, label: "Fournisseurs" },
+      { to: "/sage-import", icon: FiDatabase, label: "Import Sage 100" },
       { to: "/settings", icon: FiSettings, label: "Paramètres" },
     ],
   },

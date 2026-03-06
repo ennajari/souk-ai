@@ -13,6 +13,7 @@ import Settings from "./pages/Settings"
 import Forecasts from "./pages/Forecasts"
 import Suppliers from "./pages/Suppliers"
 import Credit from "./pages/Credit"
+import SageImport from "./pages/SageImport"
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="credit" element={<Credit />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="sage-import" element={<SageImport />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
