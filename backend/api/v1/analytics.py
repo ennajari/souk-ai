@@ -9,7 +9,7 @@ from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
 from models.transaction import Transaction, TransactionType
-from schemas.analytics import DashboardStats, SalesChartPoint
+from schemas.analytics import DashboardStats, SalesChartPoint, ProductProfit, ProfitSummary
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -115,3 +115,67 @@ async def get_sales_chart(
         points.append(SalesChartPoint(date=d, revenue=data["revenue"], count=data["count"]))
 
     return points
+
+
+@router.get("/profit", response_model=ProfitSummary)
+async def get_profit_analysis(
+    days: int = Query(30, le=365),
+    merchant: Merchant = Depends(get_current_merchant),
+    db: AsyncSession = Depends(get_db),
+):
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    result = await db.execute(
+        select(Transaction).where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.type == TransactionType.SALE,
+            Transaction.created_at >= since,
+        )
+    )
+    txns = result.scalars().all()
+
+    # Group by product
+    product_map: dict[str, dict] = {}
+    for t in txns:
+        pid = t.product_id
+        if pid not in product_map:
+            prod_res = await db.execute(select(Product).where(Product.id == pid))
+            product = prod_res.scalar_one_or_none()
+            product_map[pid] = {
+                "product_id": pid,
+                "name_fr": product.name_fr if product else "-",
+                "name_ar": product.name_ar if product else "-",
+                "cost_price": float(product.cost_price) if product else 0,
+                "qty": 0, "revenue": 0,
+            }
+        product_map[pid]["qty"] += t.quantity
+        product_map[pid]["revenue"] += float(t.total_amount)
+
+    products = []
+    total_revenue = 0
+    total_cost = 0
+    for pd in product_map.values():
+        cost_total = pd["qty"] * pd["cost_price"]
+        profit = pd["revenue"] - cost_total
+        margin = (profit / pd["revenue"] * 100) if pd["revenue"] > 0 else 0
+        total_revenue += pd["revenue"]
+        total_cost += cost_total
+        products.append(ProductProfit(
+            product_id=pd["product_id"],
+            name_fr=pd["name_fr"], name_ar=pd["name_ar"],
+            quantity_sold=pd["qty"], revenue=pd["revenue"],
+            cost_total=cost_total, profit=profit, margin_pct=round(margin, 1),
+        ))
+
+    # Sort by profit descending
+    products.sort(key=lambda p: p.profit, reverse=True)
+    total_profit = total_revenue - total_cost
+    avg_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
+
+    return ProfitSummary(
+        total_revenue=round(total_revenue, 2),
+        total_cost=round(total_cost, 2),
+        total_profit=round(total_profit, 2),
+        avg_margin=round(avg_margin, 1),
+        products=products,
+    )
