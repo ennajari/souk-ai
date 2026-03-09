@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from api.v1 import auth, whatsapp, products, inventory, transactions, analytics, merchants, suppliers, credit, forecasts, sage
+from api.v1 import auth, whatsapp, products, inventory, transactions, analytics, merchants, suppliers, credit, forecasts, sage, customers, export
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -15,3 +15,5 @@ api_router.include_router(suppliers.router)
 api_router.include_router(credit.router)
 api_router.include_router(forecasts.router)
 api_router.include_router(sage.router)
+api_router.include_router(customers.router)
+api_router.include_router(export.router)

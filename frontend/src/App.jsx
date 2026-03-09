@@ -16,6 +16,8 @@ import Credit from "./pages/Credit"
 import SageImport from "./pages/SageImport"
 import AdminDashboard from "./pages/AdminDashboard"
 import POS from "./pages/POS"
+import Customers from "./pages/Customers"
+import Profit from "./pages/Profit"
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="credit" element={<Credit />} />
           <Route path="admin" element={<AdminDashboard />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="profit" element={<Profit />} />
           <Route path="settings" element={<Settings />} />
           <Route path="sage-import" element={<SageImport />} />
         </Route>

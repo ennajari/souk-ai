@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom"
 import {
   FiHome, FiPackage, FiBox, FiDollarSign,
   FiBarChart2, FiSettings, FiTrendingUp, FiTruck, FiStar, FiX,
-  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor
+  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor, FiUsers, FiPercent
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 
@@ -21,6 +21,7 @@ const sections = [
     label: "INTELLIGENCE",
     links: [
       { to: "/analytics", icon: FiBarChart2, label: "Analytics" },
+      { to: "/profit", icon: FiPercent, label: "Profits" },
       { to: "/forecasts", icon: FiTrendingUp, label: "Prévisions IA" },
       { to: "/credit", icon: FiStar, label: "Crédit Score" },
     ],
@@ -28,6 +29,7 @@ const sections = [
   {
     label: "COMMERCE",
     links: [
+      { to: "/customers", icon: FiUsers, label: "Carnet Crédit" },
       { to: "/suppliers", icon: FiTruck, label: "Fournisseurs" },
       { to: "/sage-import", icon: FiDatabase, label: "Import Sage 100" },
       { to: "/admin", icon: FiMonitor, label: "Monitoring" },

@@ -14,3 +14,22 @@ class SalesChartPoint(BaseModel):
     date: str
     revenue: float
     count: int
+
+
+class ProductProfit(BaseModel):
+    product_id: str
+    name_fr: str
+    name_ar: str
+    quantity_sold: int = 0
+    revenue: float = 0
+    cost_total: float = 0
+    profit: float = 0
+    margin_pct: float = 0
+
+
+class ProfitSummary(BaseModel):
+    total_revenue: float = 0
+    total_cost: float = 0
+    total_profit: float = 0
+    avg_margin: float = 0
+    products: list[ProductProfit] = []

@@ -60,6 +60,14 @@ export const transactionsAPI = {
 export const analyticsAPI = {
   dashboard: () => client.get('/analytics/dashboard'),
   salesChart: (days = 7) => client.get('/analytics/sales-chart', { params: { days } }),
+  profit: (days = 30) => client.get('/analytics/profit', { params: { days } }),
+}
+
+// ---- Export ----
+export const exportAPI = {
+  products: () => `${API_URL}/export/products`,
+  transactions: (days = 30) => `${API_URL}/export/transactions?days=${days}`,
+  profit: (days = 30) => `${API_URL}/export/profit?days=${days}`,
 }
 
 // ---- Merchants ----
@@ -96,6 +104,16 @@ export const creditAPI = {
 // ---- Admin ----
 export const adminAPI = {
   health: () => client.get('/health'),
+}
+
+// ---- Customers (Carnet de credit) ----
+export const customersAPI = {
+  list: () => client.get('/customers/'),
+  get: (id) => client.get(`/customers/${id}`),
+  create: (data) => client.post('/customers/', data),
+  update: (id, data) => client.patch(`/customers/${id}`, data),
+  delete: (id) => client.delete(`/customers/${id}`),
+  addEntry: (id, data) => client.post(`/customers/${id}/entries`, data),
 }
 
 // ---- Sage Import ----

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart } from 'react-icons/fi'
+import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera } from 'react-icons/fi'
 import { productsAPI, transactionsAPI } from '../api/client'
+import BarcodeScanner from '../components/BarcodeScanner'
 import toast from 'react-hot-toast'
 
 export default function POS() {
@@ -11,6 +12,7 @@ export default function POS() {
   const [processing, setProcessing] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
   const [lastReceipt, setLastReceipt] = useState(null)
+  const [showScanner, setShowScanner] = useState(false)
   const searchRef = useRef()
 
   useEffect(() => {
@@ -21,9 +23,44 @@ export default function POS() {
   }, [])
 
   useEffect(() => {
-    // Focus search on load
     searchRef.current?.focus()
   }, [loading])
+
+  // Listen for barcode scanner keyboard input (external USB scanners)
+  useEffect(() => {
+    let buffer = ''
+    let timeout = null
+
+    const handleKeyPress = (e) => {
+      // External barcode scanners type fast and end with Enter
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+      if (e.key === 'Enter' && buffer.length >= 4) {
+        const code = buffer.trim()
+        const product = products.find(p => p.barcode === code)
+        if (product) {
+          addToCart(product)
+          toast.success(`${product.name_fr || product.name_ar} ajoute`)
+        } else {
+          toast.error(`Produit non trouve: ${code}`)
+        }
+        buffer = ''
+        return
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key
+        clearTimeout(timeout)
+        timeout = setTimeout(() => { buffer = '' }, 100)
+      }
+    }
+
+    window.addEventListener('keypress', handleKeyPress)
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress)
+      clearTimeout(timeout)
+    }
+  }, [products])
 
   const filtered = products.filter(p => {
     const q = search.toLowerCase()
@@ -40,6 +77,18 @@ export default function POS() {
       }
       return [...prev, { product, qty: 1, price: product.unit_price || 0 }]
     })
+  }
+
+  const handleBarcodeScan = (code) => {
+    setShowScanner(false)
+    const product = products.find(p => p.barcode === code)
+    if (product) {
+      addToCart(product)
+      toast.success(`${product.name_fr || product.name_ar} ajoute`)
+    } else {
+      setSearch(code)
+      toast.error(`Aucun produit avec code-barres: ${code}`)
+    }
   }
 
   const updateQty = (productId, delta) => {
@@ -86,49 +135,68 @@ export default function POS() {
     }
   }
 
+  const generateReceiptHTML = (receipt) => `<!DOCTYPE html>
+<html><head><title>Ticket de caisse</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; padding: 10px; font-size: 12px; max-width: 280px; margin: auto; }
+  .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 6px; margin-bottom: 6px; }
+  .header h1 { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
+  .header p { font-size: 9px; color: #666; margin-top: 2px; }
+  .date { text-align: center; font-size: 10px; color: #666; margin-bottom: 8px; }
+  .sep { border-top: 1px dashed #ccc; margin: 6px 0; }
+  .item { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
+  .item-name { flex: 1; }
+  .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; border-top: 2px dashed #333; padding-top: 8px; margin-top: 8px; }
+  .footer { text-align: center; margin-top: 12px; font-size: 9px; color: #999; border-top: 1px dashed #ccc; padding-top: 8px; }
+  @media print { body { padding: 0; } @page { margin: 0; size: 80mm auto; } }
+</style></head><body>
+<div class="header">
+  <h1>SOUK.AI</h1>
+  <p>Ticket de caisse</p>
+</div>
+<div class="date">${receipt.date.toLocaleString('fr-FR')}</div>
+<div class="sep"></div>
+${receipt.items.map(c => `
+  <div class="item">
+    <span class="item-name">${c.product.name_fr || c.product.name_ar}</span>
+    <span>${c.qty}x${c.price.toFixed(2)}</span>
+    <span style="min-width:60px;text-align:right">${(c.qty * c.price).toFixed(2)}</span>
+  </div>
+`).join('')}
+<div class="total">
+  <span>TOTAL</span>
+  <span>${receipt.total.toFixed(2)} MAD</span>
+</div>
+<div class="footer">Merci de votre visite!<br/>Souk.AI - Gestion Intelligente</div>
+</body></html>`
+
   const printReceipt = () => {
     if (!lastReceipt) return
+    const html = generateReceiptHTML(lastReceipt)
     const win = window.open('', '_blank', 'width=350,height=500')
-    win.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Ticket de caisse</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; padding: 10px; font-size: 12px; max-width: 280px; margin: auto; }
-        .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 6px; margin-bottom: 6px; }
-        .header h1 { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
-        .header p { font-size: 9px; color: #666; margin-top: 2px; }
-        .date { text-align: center; font-size: 10px; color: #666; margin-bottom: 8px; }
-        .sep { border-top: 1px dashed #ccc; margin: 6px 0; }
-        .item { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
-        .item-name { flex: 1; }
-        .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; border-top: 2px dashed #333; padding-top: 8px; margin-top: 8px; }
-        .footer { text-align: center; margin-top: 12px; font-size: 9px; color: #999; border-top: 1px dashed #ccc; padding-top: 8px; }
-        @media print { body { padding: 0; } }
-      </style></head><body>
-      <div class="header">
-        <h1>SOUK.AI</h1>
-        <p>Ticket de caisse</p>
-      </div>
-      <div class="date">${lastReceipt.date.toLocaleString('fr-FR')}</div>
-      <div class="sep"></div>
-      ${lastReceipt.items.map(c => `
-        <div class="item">
-          <span class="item-name">${c.product.name_fr || c.product.name_ar}</span>
-          <span>${c.qty}x${c.price.toFixed(2)}</span>
-          <span style="min-width:60px;text-align:right">${(c.qty * c.price).toFixed(2)}</span>
-        </div>
-      `).join('')}
-      <div class="total">
-        <span>TOTAL</span>
-        <span>${lastReceipt.total.toFixed(2)} MAD</span>
-      </div>
-      <div class="footer">Merci de votre visite!<br/>Souk.AI</div>
-      </body></html>
-    `)
+    win.document.write(html)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+    setTimeout(() => { win.print() }, 300)
+  }
+
+  // Direct print to connected thermal printer (auto-print without preview)
+  const directPrint = () => {
+    if (!lastReceipt) return
+    const html = generateReceiptHTML(lastReceipt)
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.top = '-10000px'
+    iframe.style.left = '-10000px'
+    iframe.style.width = '80mm'
+    document.body.appendChild(iframe)
+    iframe.contentDocument.write(html)
+    iframe.contentDocument.close()
+    setTimeout(() => {
+      iframe.contentWindow.print()
+      setTimeout(() => document.body.removeChild(iframe), 1000)
+    }, 300)
   }
 
   if (loading) {
@@ -139,8 +207,8 @@ export default function POS() {
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-7rem)]">
       {/* Left: Product Grid */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="mb-4">
-          <div className="relative">
+        <div className="mb-4 flex gap-2">
+          <div className="relative flex-1">
             <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               ref={searchRef}
@@ -150,6 +218,14 @@ export default function POS() {
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
             />
           </div>
+          <button
+            onClick={() => setShowScanner(true)}
+            className="px-4 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors flex items-center gap-2"
+            title="Scanner code-barres"
+          >
+            <FiCamera className="h-5 w-5" />
+            <span className="hidden sm:inline text-sm font-medium">Scanner</span>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -165,6 +241,9 @@ export default function POS() {
                     inCart ? 'border-violet-500 bg-violet-50' : 'border-gray-100 bg-white hover:border-gray-200'
                   }`}
                 >
+                  {p.barcode && (
+                    <p className="text-[10px] text-gray-400 font-mono mb-1 truncate">{p.barcode}</p>
+                  )}
                   <p className="font-semibold text-sm text-gray-900 truncate">{p.name_fr || p.name_ar}</p>
                   {p.name_ar && p.name_fr && (
                     <p className="text-xs text-gray-400 truncate mt-0.5">{p.name_ar}</p>
@@ -212,7 +291,7 @@ export default function POS() {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <FiShoppingCart className="h-10 w-10 mb-3 opacity-30" />
               <p className="text-sm">Panier vide</p>
-              <p className="text-xs mt-1">Cliquez sur un produit pour l'ajouter</p>
+              <p className="text-xs mt-1">Cliquez sur un produit ou scannez un code-barres</p>
             </div>
           ) : cart.map(item => (
             <div key={item.product.id} className="px-4 py-3">
@@ -275,6 +354,14 @@ export default function POS() {
         </div>
       </div>
 
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
       {/* Receipt Modal */}
       {showReceipt && lastReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -302,7 +389,7 @@ export default function POS() {
                 <span className="text-violet-600">{lastReceipt.total.toFixed(2)} MAD</span>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button
                 onClick={() => setShowReceipt(false)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors"
@@ -310,10 +397,18 @@ export default function POS() {
                 Fermer
               </button>
               <button
-                onClick={printReceipt}
-                className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                onClick={directPrint}
+                className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                title="Impression directe (imprimante thermique)"
               >
-                <FiPrinter className="h-4 w-4" /> Imprimer
+                <FiPrinter className="h-4 w-4" /> Direct
+              </button>
+              <button
+                onClick={printReceipt}
+                className="py-2.5 px-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                title="Apercu avant impression"
+              >
+                <FiPrinter className="h-4 w-4" />
               </button>
             </div>
           </div>
