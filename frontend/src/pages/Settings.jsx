@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
-import { merchantsAPI } from '../api/client'
+import { FiTrash2, FiAlertTriangle } from 'react-icons/fi'
+import { merchantsAPI, authAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 export default function Settings() {
-  const { merchant: authMerchant } = useAuth()
+  const { merchant: authMerchant, logout } = useAuth()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [form, setForm] = useState({ business_name: '', email: '', preferred_language: 'AR', business_category: 'GROCERY' })
 
   useEffect(() => {
@@ -131,6 +135,78 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Danger zone */}
+      <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+        <h2 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-2">
+          <FiAlertTriangle className="h-5 w-5" /> Zone dangereuse
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          La suppression de votre compte est permanente. Toutes vos donnees (produits, ventes, inventaire) seront definitivement supprimees.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors"
+        >
+          <FiTrash2 className="h-4 w-4" /> Supprimer mon compte
+        </button>
+      </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <FiAlertTriangle className="h-7 w-7 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Supprimer votre compte ?</h3>
+              <p className="text-sm text-gray-500 mt-2">
+                Cette action est <strong>irreversible</strong>. Tous vos produits, ventes, inventaire et conversations seront supprimes.
+              </p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Tapez <strong className="text-red-600">SUPPRIMER</strong> pour confirmer
+              </label>
+              <input
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="SUPPRIMER"
+                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  if (deleteConfirmText !== 'SUPPRIMER') return toast.error('Tapez SUPPRIMER pour confirmer')
+                  setDeleting(true)
+                  try {
+                    await authAPI.deleteAccount()
+                    toast.success('Compte supprime')
+                    logout()
+                  } catch {
+                    toast.error('Erreur lors de la suppression')
+                  } finally {
+                    setDeleting(false)
+                  }
+                }}
+                disabled={deleteConfirmText !== 'SUPPRIMER' || deleting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Suppression...' : 'Supprimer definitivement'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

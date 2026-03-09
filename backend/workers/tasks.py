@@ -124,7 +124,7 @@ def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str
                        items_with_prices: list, date_str: str) -> bytes:
     """Generate a professional PDF invoice using reportlab."""
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm
+    from reportlab.lib.units import cm, mm
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
     from reportlab.lib.styles import ParagraphStyle
@@ -134,102 +134,148 @@ def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
-        rightMargin=1.8 * cm, leftMargin=1.8 * cm,
-        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+        rightMargin=2 * cm, leftMargin=2 * cm,
+        topMargin=1.5 * cm, bottomMargin=2 * cm,
     )
 
-    GREEN = colors.HexColor("#059669")
-    LIGHT_GREEN = colors.HexColor("#D1FAE5")
-    BG_GREEN = colors.HexColor("#F0FDF4")
-    GREY = colors.HexColor("#6B7280")
+    # Color palette
+    PRIMARY = colors.HexColor("#7c3aed")   # violet-600
+    PRIMARY_DARK = colors.HexColor("#5b21b6")  # violet-800
+    PRIMARY_LIGHT = colors.HexColor("#ede9fe")  # violet-100
+    PRIMARY_BG = colors.HexColor("#f5f3ff")    # violet-50
+    DARK = colors.HexColor("#1f2937")    # gray-800
+    GREY = colors.HexColor("#6b7280")    # gray-500
+    LIGHT_GREY = colors.HexColor("#f3f4f6")  # gray-100
+    GREEN = colors.HexColor("#059669")   # emerald-600
 
-    h1 = ParagraphStyle("h1", fontSize=26, fontName="Helvetica-Bold", textColor=GREEN, alignment=TA_CENTER, spaceAfter=2)
-    sub = ParagraphStyle("sub", fontSize=10, fontName="Helvetica", textColor=GREY, alignment=TA_CENTER, spaceAfter=4)
-    normal = ParagraphStyle("normal", fontSize=10, fontName="Helvetica", spaceAfter=3)
-    bold = ParagraphStyle("bold", fontSize=10, fontName="Helvetica-Bold", spaceAfter=3)
-    right = ParagraphStyle("right", fontSize=10, fontName="Helvetica", alignment=TA_RIGHT)
+    # Styles
+    h1 = ParagraphStyle("h1", fontSize=28, fontName="Helvetica-Bold", textColor=PRIMARY, alignment=TA_LEFT, spaceAfter=2)
+    sub = ParagraphStyle("sub", fontSize=9, fontName="Helvetica", textColor=GREY, alignment=TA_LEFT, spaceAfter=0)
+    normal = ParagraphStyle("normal", fontSize=10, fontName="Helvetica", textColor=DARK, spaceAfter=3, leading=14)
+    label = ParagraphStyle("label", fontSize=8, fontName="Helvetica-Bold", textColor=GREY, spaceAfter=2)
+    right_s = ParagraphStyle("right", fontSize=10, fontName="Helvetica", alignment=TA_RIGHT, textColor=DARK)
     footer_s = ParagraphStyle("footer", fontSize=8, fontName="Helvetica", textColor=GREY, alignment=TA_CENTER)
 
     elements = []
 
-    # Header
-    elements.append(Paragraph("SOUK.AI", h1))
-    elements.append(Paragraph("Gestion d'inventaire intelligente pour marchands marocains", sub))
-    elements.append(HRFlowable(width="100%", thickness=2, color=GREEN, spaceAfter=10))
-
-    # Invoice metadata
-    inv_meta = [
-        [Paragraph(f"<b>FACTURE N° {invoice_number}</b>",
-                   ParagraphStyle("inv", fontSize=16, fontName="Helvetica-Bold", textColor=GREEN)),
-         Paragraph(f"Date: {date_str}", right)],
+    # ── Header: Logo + Invoice number ──
+    header_data = [
+        [
+            Paragraph("<b>SOUK.AI</b>", h1),
+            Paragraph(
+                f"<b>FACTURE</b><br/>"
+                f"<font size=9 color='#6b7280'>N° {invoice_number}</font><br/>"
+                f"<font size=9 color='#6b7280'>Date: {date_str}</font>",
+                ParagraphStyle("inv_r", fontSize=14, fontName="Helvetica-Bold", textColor=PRIMARY, alignment=TA_RIGHT, leading=16)
+            ),
+        ],
     ]
-    meta_table = Table(inv_meta, colWidths=[10 * cm, 7 * cm])
-    meta_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    elements.append(meta_table)
-    elements.append(Spacer(1, 0.4 * cm))
+    header_table = Table(header_data, colWidths=[9 * cm, 8 * cm])
+    header_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    elements.append(header_table)
+    elements.append(Paragraph("Gestion intelligente pour commercants marocains", sub))
+    elements.append(Spacer(1, 4 * mm))
+    elements.append(HRFlowable(width="100%", thickness=2, color=PRIMARY, spaceAfter=12))
 
-    # Vendor & client info
+    # ── Vendor & Client info ──
     info_data = [
-        [Paragraph(f"<b>Vendeur:</b><br/>{merchant_name}", normal),
-         Paragraph(f"<b>Client:</b><br/>{client_name or 'Client'}", normal)],
+        [
+            Paragraph(f"<font size=8 color='#6b7280'><b>VENDEUR</b></font>", label),
+            Paragraph(f"<font size=8 color='#6b7280'><b>CLIENT</b></font>", label),
+        ],
+        [
+            Paragraph(f"<b>{merchant_name}</b>", normal),
+            Paragraph(f"<b>{client_name or 'Client'}</b>", normal),
+        ],
     ]
     info_table = Table(info_data, colWidths=[8.5 * cm, 8.5 * cm])
     info_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), BG_GREEN),
-        ("BOX", (0, 0), (-1, -1), 0.5, LIGHT_GREEN),
-        ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GREEN),
+        ("BACKGROUND", (0, 0), (-1, -1), PRIMARY_BG),
+        ("BOX", (0, 0), (-1, -1), 0.5, PRIMARY_LIGHT),
         ("PADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
+        ("TOPPADDING", (0, 1), (-1, 1), 2),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ROUNDEDCORNERS", [4, 4, 4, 4]),
     ]))
     elements.append(info_table)
-    elements.append(Spacer(1, 0.5 * cm))
+    elements.append(Spacer(1, 6 * mm))
 
-    # Products table
+    # ── Products table ──
     header_row = [
-        Paragraph("<b>Produit</b>", ParagraphStyle("th", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white)),
-        Paragraph("<b>Qté</b>", ParagraphStyle("th2", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)),
-        Paragraph("<b>Prix unit.</b>", ParagraphStyle("th3", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
-        Paragraph("<b>Total</b>", ParagraphStyle("th4", fontSize=11, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
+        Paragraph("<b>PRODUIT</b>", ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=colors.white)),
+        Paragraph("<b>QTE</b>", ParagraphStyle("th2", fontSize=9, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)),
+        Paragraph("<b>PRIX UNIT.</b>", ParagraphStyle("th3", fontSize=9, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
+        Paragraph("<b>TOTAL</b>", ParagraphStyle("th4", fontSize=9, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT)),
     ]
     rows = [header_row]
     grand_total = 0.0
-    for item in items_with_prices:
+
+    for idx, item in enumerate(items_with_prices):
         qty = float(item.get("quantity", 1))
         price = float(item.get("unit_price", 0))
         subtotal = qty * price
         grand_total += subtotal
         unit = item.get("unit", "pcs")
+        row_style = ParagraphStyle(f"row_{idx}", fontSize=10, fontName="Helvetica", textColor=DARK)
         rows.append([
-            item.get("name", ""),
-            Paragraph(f"{qty:.0f} {unit}", ParagraphStyle("c", alignment=TA_CENTER, fontSize=10, fontName="Helvetica")),
-            Paragraph(f"{price:.2f} MAD", ParagraphStyle("r", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica")),
-            Paragraph(f"{subtotal:.2f} MAD", ParagraphStyle("r2", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica")),
+            Paragraph(f"{item.get('name', '')}", row_style),
+            Paragraph(f"{qty:.0f} {unit}", ParagraphStyle(f"c_{idx}", alignment=TA_CENTER, fontSize=10, fontName="Helvetica", textColor=DARK)),
+            Paragraph(f"{price:.2f}", ParagraphStyle(f"r_{idx}", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica", textColor=DARK)),
+            Paragraph(f"{subtotal:.2f}", ParagraphStyle(f"r2_{idx}", alignment=TA_RIGHT, fontSize=10, fontName="Helvetica-Bold", textColor=DARK)),
         ])
 
-    # Total row
+    # Subtotal + Total rows
     rows.append([
         "", "",
-        Paragraph("<b>TOTAL</b>", ParagraphStyle("tot", fontName="Helvetica-Bold", fontSize=11, alignment=TA_RIGHT)),
-        Paragraph(f"<b>{grand_total:.2f} MAD</b>", ParagraphStyle("tot2", fontName="Helvetica-Bold", fontSize=11, alignment=TA_RIGHT, textColor=GREEN)),
+        Paragraph("<b>SOUS-TOTAL</b>", ParagraphStyle("subtot", fontName="Helvetica-Bold", fontSize=9, alignment=TA_RIGHT, textColor=GREY)),
+        Paragraph(f"<b>{grand_total:.2f} MAD</b>", ParagraphStyle("subtot2", fontName="Helvetica-Bold", fontSize=10, alignment=TA_RIGHT, textColor=DARK)),
+    ])
+    rows.append([
+        "", "",
+        Paragraph("<b>TOTAL TTC</b>", ParagraphStyle("tot", fontName="Helvetica-Bold", fontSize=11, alignment=TA_RIGHT, textColor=PRIMARY_DARK)),
+        Paragraph(f"<b>{grand_total:.2f} MAD</b>", ParagraphStyle("tot2", fontName="Helvetica-Bold", fontSize=12, alignment=TA_RIGHT, textColor=PRIMARY)),
     ])
 
-    prod_table = Table(rows, colWidths=[8.5 * cm, 2.5 * cm, 3 * cm, 3 * cm])
+    prod_table = Table(rows, colWidths=[8 * cm, 2.5 * cm, 3 * cm, 3.5 * cm])
     prod_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), GREEN),
+        # Header row
+        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, BG_GREEN]),
-        ("GRID", (0, 0), (-1, -2), 0.5, LIGHT_GREEN),
-        ("LINEABOVE", (0, -1), (-1, -1), 1.5, GREEN),
+        ("TOPPADDING", (0, 0), (-1, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+        # Data rows: alternating background
+        ("ROWBACKGROUNDS", (0, 1), (-1, -3), [colors.white, LIGHT_GREY]),
+        # Grid for data rows only
+        ("GRID", (0, 0), (-1, -3), 0.5, colors.HexColor("#e5e7eb")),
+        # Subtotal separator
+        ("LINEABOVE", (0, -2), (-1, -2), 0.5, colors.HexColor("#d1d5db")),
+        # Total separator
+        ("LINEABOVE", (0, -1), (-1, -1), 1.5, PRIMARY),
+        ("BACKGROUND", (2, -1), (-1, -1), PRIMARY_BG),
+        # General
         ("PADDING", (0, 0), (-1, -1), 8),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
     elements.append(prod_table)
-    elements.append(Spacer(1, 0.8 * cm))
+    elements.append(Spacer(1, 1 * cm))
 
-    # Footer
-    elements.append(HRFlowable(width="100%", thickness=1, color=LIGHT_GREEN, spaceAfter=6))
+    # ── Payment info ──
     elements.append(Paragraph(
-        f"Merci pour votre confiance! | Souk.AI — {settings.FRONTEND_URL}",
+        "<b>Conditions:</b> Paiement a reception | Devise: MAD (Dirham Marocain)",
+        ParagraphStyle("conditions", fontSize=8, fontName="Helvetica", textColor=GREY),
+    ))
+    elements.append(Spacer(1, 1.2 * cm))
+
+    # ── Footer ──
+    elements.append(HRFlowable(width="100%", thickness=1, color=PRIMARY_LIGHT, spaceAfter=8))
+    elements.append(Paragraph(
+        f"Merci pour votre confiance!",
+        ParagraphStyle("thanks", fontSize=10, fontName="Helvetica-Bold", textColor=PRIMARY, alignment=TA_CENTER, spaceAfter=4),
+    ))
+    elements.append(Paragraph(
+        f"Souk.AI — Gestion Intelligente pour Commercants Marocains | {settings.FRONTEND_URL}",
         footer_s,
     ))
 
