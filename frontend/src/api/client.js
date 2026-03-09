@@ -29,6 +29,7 @@ export const authAPI = {
   register: (data) => client.post('/auth/register', data),
   login: (phone_number, password) => client.post('/auth/login', { phone_number, password }),
   me: () => client.get('/auth/me'),
+  deleteAccount: () => client.delete('/auth/account'),
 }
 
 // ---- Products ----
@@ -90,6 +91,11 @@ export const suppliersAPI = {
 export const creditAPI = {
   score: () => client.get('/credit/score'),
   offers: () => client.get('/credit/offers'),
+}
+
+// ---- Admin ----
+export const adminAPI = {
+  health: () => client.get('/health'),
 }
 
 // ---- Sage Import ----

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { FiDollarSign } from 'react-icons/fi'
+import { useState, useEffect, useRef } from 'react'
+import { FiDollarSign, FiPrinter } from 'react-icons/fi'
 import { productsAPI, transactionsAPI } from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -8,6 +8,7 @@ export default function Sales() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ product_id: '', quantity: 1, unit_price: 0, type: 'SALE', source: 'WEB' })
+  const printRef = useRef()
 
   useEffect(() => {
     Promise.all([
@@ -39,13 +40,78 @@ export default function Sales() {
     }
   }
 
+  const handlePrint = () => {
+    const content = printRef.current
+    if (!content) return
+    const win = window.open('', '_blank', 'width=400,height=600')
+    win.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>Recu de vente - Souk.AI</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; padding: 12px; font-size: 12px; max-width: 300px; margin: auto; }
+        .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 8px; margin-bottom: 8px; }
+        .header h1 { font-size: 18px; font-weight: bold; }
+        .header p { font-size: 10px; color: #666; }
+        .date { text-align: center; font-size: 10px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; border-bottom: 1px solid #333; padding: 4px 0; font-size: 11px; }
+        td { padding: 3px 0; font-size: 11px; }
+        .right { text-align: right; }
+        .total-row { border-top: 2px dashed #333; margin-top: 8px; padding-top: 8px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; }
+        .footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #999; font-size: 9px; color: #999; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      <div class="header">
+        <h1>SOUK.AI</h1>
+        <p>Recu de vente</p>
+      </div>
+      <div class="date">${new Date().toLocaleString('fr-FR')}</div>
+      <table>
+        <thead><tr><th>Produit</th><th class="right">Qte</th><th class="right">Prix</th><th class="right">Total</th></tr></thead>
+        <tbody>
+          ${transactions.map(t => `
+            <tr>
+              <td>${t.product_name_fr || t.product_name_ar || '-'}</td>
+              <td class="right">${t.quantity}</td>
+              <td class="right">${t.unit_price.toFixed(2)}</td>
+              <td class="right">${t.total_amount.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="total-row">
+        <span>TOTAL</span>
+        <span>${transactions.reduce((s, t) => s + t.total_amount, 0).toFixed(2)} MAD</span>
+      </div>
+      <div class="footer">
+        Merci pour votre achat!<br/>
+        Souk.AI - Gestion Intelligente
+      </div>
+      </body></html>
+    `)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 300)
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Ventes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Ventes</h1>
+        {transactions.length > 0 && (
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 text-sm font-medium transition-colors"
+          >
+            <FiPrinter className="h-4 w-4" /> Imprimer recu
+          </button>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -96,7 +162,7 @@ export default function Sales() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div ref={printRef} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold">Dernieres ventes</h2>
         </div>

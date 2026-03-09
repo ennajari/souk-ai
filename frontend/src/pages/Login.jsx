@@ -26,6 +26,30 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
+  const formatPhone = (value) => {
+    // Strip non-digits
+    let digits = value.replace(/[^\d+]/g, '')
+    // Auto-format: 06... or 07... → 212...
+    if (digits.startsWith('0') && digits.length >= 2) {
+      digits = '212' + digits.slice(1)
+    }
+    // Remove leading + if present
+    if (digits.startsWith('+')) digits = digits.slice(1)
+    return digits
+  }
+
+  const displayPhone = (value) => {
+    if (!value) return ''
+    if (value.startsWith('212') && value.length > 3) {
+      return '+212 ' + value.slice(3, 4) + ' ' + value.slice(4, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8, 10) + ' ' + value.slice(10)
+    }
+    return value
+  }
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -146,12 +170,13 @@ export default function Login() {
                 <input
                   type="tel"
                   required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="212612345678"
+                  value={displayPhone(phone)}
+                  onChange={handlePhoneChange}
+                  placeholder="0612345678"
                   className="w-full pl-14 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
                 />
               </div>
+              <p className="text-xs text-gray-400 mt-1.5">Format: 06XXXXXXXX ou 212XXXXXXXXX</p>
             </div>
 
             {/* Password */}
