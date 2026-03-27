@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { authAPI } from '../api/client'
+import client, { authAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import { FiEye, FiEyeOff, FiMessageSquare, FiPackage, FiTrendingUp, FiShield, FiArrowLeft } from 'react-icons/fi'
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 const FEATURES = [
   { icon: FiMessageSquare, color: 'from-violet-500 to-purple-600', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
@@ -39,17 +37,11 @@ export default function Login() {
     e.preventDefault()
     setResetLoading(true)
     try {
-      const res = await fetch(`${API_URL}/auth/reset-request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: formatPhone(resetPhone) }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Erreur')
+      await client.post('/auth/reset-request', { phone_number: normalizePhone(resetPhone) })
       toast.success('Code envoyé sur WhatsApp!')
       setResetMode('code')
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.response?.data?.detail || 'Erreur de connexion au serveur')
     } finally {
       setResetLoading(false)
     }
@@ -59,57 +51,39 @@ export default function Login() {
     e.preventDefault()
     setResetLoading(true)
     try {
-      const res = await fetch(`${API_URL}/auth/reset-confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone_number: formatPhone(resetPhone),
-          code: resetCode,
-          new_password: newPassword,
-        }),
+      const { data } = await client.post('/auth/reset-confirm', {
+        phone_number: normalizePhone(resetPhone),
+        code: resetCode,
+        new_password: newPassword,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Erreur')
-      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: formatPhone(resetPhone) })
+      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(resetPhone), is_admin: data.is_admin })
       toast.success('Mot de passe changé avec succès!')
       navigate('/dashboard')
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.response?.data?.detail || 'Erreur de connexion au serveur')
     } finally {
       setResetLoading(false)
     }
   }
 
-  const formatPhone = (value) => {
-    // Strip non-digits
-    let digits = value.replace(/[^\d+]/g, '')
-    // Auto-format: 06... or 07... → 212...
+  const normalizePhone = (value) => {
+    let digits = value.replace(/[^\d]/g, '')
     if (digits.startsWith('0') && digits.length >= 2) {
       digits = '212' + digits.slice(1)
     }
-    // Remove leading + if present
-    if (digits.startsWith('+')) digits = digits.slice(1)
     return digits
   }
 
-  const displayPhone = (value) => {
-    if (!value) return ''
-    if (value.startsWith('212') && value.length > 3) {
-      return '+212 ' + value.slice(3, 4) + ' ' + value.slice(4, 6) + ' ' + value.slice(6, 8) + ' ' + value.slice(8, 10) + ' ' + value.slice(10)
-    }
-    return value
-  }
-
   const handlePhoneChange = (e) => {
-    setPhone(formatPhone(e.target.value))
+    setPhone(e.target.value)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const { data } = await authAPI.login(phone, password)
-      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: phone })
+      const { data } = await authAPI.login(normalizePhone(phone), password)
+      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(phone), is_admin: data.is_admin })
       toast.success(`Bienvenue ${data.business_name}!`)
       navigate('/dashboard')
     } catch (err) {
@@ -224,7 +198,7 @@ export default function Login() {
                 <input
                   type="tel"
                   required
-                  value={displayPhone(phone)}
+                  value={phone}
                   onChange={handlePhoneChange}
                   placeholder="0612345678"
                   className="w-full pl-14 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
@@ -337,7 +311,7 @@ export default function Login() {
                   <input
                     type="tel"
                     required
-                    value={displayPhone(formatPhone(resetPhone))}
+                    value={resetPhone}
                     onChange={(e) => setResetPhone(e.target.value)}
                     placeholder="0612345678"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
@@ -355,7 +329,7 @@ export default function Login() {
               <form onSubmit={handleResetConfirm} className="space-y-4">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Entrez le code</h2>
-                  <p className="text-sm text-gray-500 mt-1">Code envoyé au {displayPhone(formatPhone(resetPhone))}</p>
+                  <p className="text-sm text-gray-500 mt-1">Code envoyé au {resetPhone}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Code à 6 chiffres</label>

@@ -49,7 +49,7 @@ async def create_aggregated_bulk_order(db: AsyncSession, supplier_id: str) -> di
         order.submitted_at = datetime.now(timezone.utc)
         total_bulk_amount += float(order.total_amount)
         
-    await db.commit()
+    await db.flush()
     
     return {
         "status": "success",

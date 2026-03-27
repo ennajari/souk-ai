@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = ""
 
+    # Admin
+    ADMIN_PHONE: str = "212655798315"
+
     # App
     APP_ENV: str = "development"
     APP_DEBUG: bool = True

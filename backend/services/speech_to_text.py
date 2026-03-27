@@ -31,8 +31,8 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.ogg") -> s
     tmp_path = None
     try:
         suffix = os.path.splitext(filename)[1] or ".ogg"
-        tmp_path = tempfile.mktemp(suffix=suffix)
-        with open(tmp_path, "wb") as f:
+        fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+        with os.fdopen(fd, "wb") as f:
             f.write(audio_bytes)
 
         with open(tmp_path, "rb") as audio_file:

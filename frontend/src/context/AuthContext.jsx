@@ -11,7 +11,10 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token')
     if (token) {
       authAPI.me()
-        .then((res) => setMerchant(res.data))
+        .then((res) => {
+          const saved = JSON.parse(localStorage.getItem('merchant') || '{}')
+          setMerchant({ ...res.data, is_admin: res.data.is_admin ?? saved.is_admin })
+        })
         .catch(() => {
           localStorage.removeItem('token')
           localStorage.removeItem('merchant')

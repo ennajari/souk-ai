@@ -11,6 +11,7 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory
 from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from schemas.merchant import MerchantResponse
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,7 +38,6 @@ def normalize_phone(phone: str) -> str:
 async def _get_redis():
     """Get async Redis connection for OTP storage."""
     import redis.asyncio as aioredis
-    from app.config import settings
     return aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
@@ -64,6 +64,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
+        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
     )
 
 
@@ -81,12 +82,16 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
+        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
     )
 
 
-@router.get("/me", response_model=MerchantResponse)
+@router.get("/me")
 async def get_me(merchant: Merchant = Depends(get_current_merchant)):
-    return merchant
+    from schemas.merchant import MerchantResponse
+    data = MerchantResponse.model_validate(merchant).model_dump()
+    data["is_admin"] = merchant.phone_number == settings.ADMIN_PHONE
+    return data
 
 
 @router.post("/reset-request")
@@ -143,6 +148,7 @@ async def reset_confirm(body: ResetConfirmBody, db: AsyncSession = Depends(get_d
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
+        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
     )
 
 

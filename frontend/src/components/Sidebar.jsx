@@ -7,7 +7,7 @@ import {
 import { useAuth } from "../context/AuthContext"
 import { useTranslation } from "react-i18next"
 
-const getSections = (t) => [
+const getSections = (t, isAdmin) => [
   {
     label: t("nav.principal"),
     links: [
@@ -37,7 +37,7 @@ const getSections = (t) => [
       { to: "/suppliers", icon: FiTruck, label: t("nav.suppliers") },
       { to: "/sage-import", icon: FiDatabase, label: t("nav.sageImport") },
       { to: "/employees", icon: FiUserCheck, label: t("nav.employees") },
-      { to: "/admin", icon: FiMonitor, label: t("nav.monitoring") },
+      ...(isAdmin ? [{ to: "/admin", icon: FiMonitor, label: t("nav.monitoring") }] : []),
       { to: "/settings", icon: FiSettings, label: t("nav.settings") },
     ],
   },
@@ -46,7 +46,7 @@ const getSections = (t) => [
 export default function Sidebar({ onClose }) {
   const { merchant } = useAuth()
   const { t, i18n } = useTranslation()
-  const sections = getSections(t)
+  const sections = getSections(t, merchant?.is_admin)
 
   const toggleLang = () => {
     const newLang = i18n.language === 'ar' ? 'fr' : 'ar'
