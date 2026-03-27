@@ -20,3 +20,4 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     merchant_id: str
     business_name: str
+    is_admin: bool = False

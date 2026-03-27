@@ -18,7 +18,8 @@ function api(path, options = {}) {
   }).then(async (r) => {
     if (!r.ok) {
       const err = await r.json().catch(() => ({}))
-      throw new Error(err.detail || 'Erreur')
+      const msg = typeof err.detail === 'string' ? err.detail : Array.isArray(err.detail) ? err.detail.map(e => e.msg || e).join(', ') : 'Erreur'
+      throw new Error(msg)
     }
     if (r.status === 204) return null
     return r.json()

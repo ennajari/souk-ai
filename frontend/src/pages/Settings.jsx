@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { FiTrash2, FiAlertTriangle } from 'react-icons/fi'
+import { FiTrash2, FiAlertTriangle, FiGlobe } from 'react-icons/fi'
 import { merchantsAPI, authAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 
 export default function Settings() {
   const { merchant: authMerchant, logout } = useAuth()
+  const { i18n } = useTranslation()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -133,6 +135,32 @@ export default function Settings() {
             <span className="text-gray-500">Statut</span>
             <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Actif</span>
           </div>
+        </div>
+      </div>
+
+      {/* Language / Langue */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <FiGlobe className="h-5 w-5 text-violet-600" /> Langue de l'interface
+        </h2>
+        <div className="flex gap-3">
+          {[
+            { code: 'fr', label: 'Francais', flag: '🇫🇷' },
+            { code: 'ar', label: 'العربية', flag: '🇲🇦' },
+          ].map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => { i18n.changeLanguage(lang.code); toast.success(lang.code === 'ar' ? 'تم تغيير اللغة' : 'Langue changee') }}
+              className={`flex items-center gap-3 px-5 py-3 rounded-xl border-2 transition-all ${
+                i18n.language === lang.code
+                  ? 'border-violet-500 bg-violet-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <span className="text-2xl">{lang.flag}</span>
+              <span className={`font-semibold text-sm ${i18n.language === lang.code ? 'text-violet-700' : 'text-gray-700'}`}>{lang.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

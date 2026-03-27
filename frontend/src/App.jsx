@@ -23,6 +23,13 @@ import CoachIA from "./pages/CoachIA"
 import Employees from "./pages/Employees"
 import Catalogue from "./pages/Catalogue"
 import CataloguePublic from "./pages/CataloguePublic"
+import { useAuth } from "./context/AuthContext"
+
+function AdminRoute({ children }) {
+  const { merchant } = useAuth()
+  if (!merchant?.is_admin) return <Navigate to="/dashboard" replace />
+  return children
+}
 
 export default function App() {
   return (
@@ -49,7 +56,7 @@ export default function App() {
           <Route path="forecasts" element={<Forecasts />} />
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="credit" element={<Credit />} />
-          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="customers" element={<Customers />} />
           <Route path="profit" element={<Profit />} />
           <Route path="notifications" element={<Notifications />} />
