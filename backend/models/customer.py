@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, Enum, Integer, Text
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, Enum, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -21,7 +21,7 @@ class Customer(Base):
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)  # positive = customer owes
-    is_active: Mapped[bool] = mapped_column(Integer, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     merchant = relationship("Merchant")

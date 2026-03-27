@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 
 
 class ProductCreate(BaseModel):
@@ -9,6 +9,7 @@ class ProductCreate(BaseModel):
     unit: str = "piece"
     unit_price: float = 0
     cost_price: float = 0
+    expiry_date: date | None = None
 
 
 class ProductUpdate(BaseModel):
@@ -18,6 +19,7 @@ class ProductUpdate(BaseModel):
     unit: str | None = None
     unit_price: float | None = None
     cost_price: float | None = None
+    expiry_date: date | None = None
 
 
 class ProductResponse(BaseModel):
@@ -31,6 +33,7 @@ class ProductResponse(BaseModel):
     cost_price: float
     is_active: bool
     created_at: datetime
+    expiry_date: date | None = None
     stock_quantity: float | None = None
 
     model_config = {"from_attributes": True}

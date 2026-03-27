@@ -4,6 +4,7 @@ from datetime import datetime
 
 class TransactionCreate(BaseModel):
     product_id: str
+    customer_id: str | None = None
     type: str = "SALE"
     source: str = "WEB"
     quantity: int

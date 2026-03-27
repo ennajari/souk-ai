@@ -1143,7 +1143,10 @@ async def _send_weekly_summary():
 
                 product_sales = {}
                 for t in txns:
-                    name = t.product_id
+                    pid = str(t.product_id)
+                    prod_r = await db.execute(select(Product).where(Product.id == pid))
+                    prod = prod_r.scalar_one_or_none()
+                    name = (prod.name_fr or prod.name_ar) if prod else pid
                     product_sales[name] = product_sales.get(name, 0) + float(t.total_amount)
 
                 low_stock = await get_low_stock_products(db, merchant.id)
@@ -1215,7 +1218,7 @@ async def _send_daily_sales_report():
                 for pid in top_pids:
                     prod_r = await db.execute(select(Product).where(Product.id == pid))
                     prod = prod_r.scalar_one_or_none()
-                    name = prod.name_fr or prod.name_ar if prod else pid
+                    name = (prod.name_fr or prod.name_ar) if prod else pid
                     top_lines.append(f"  • {name}: {product_rev[pid]:.2f} MAD")
 
                 low_stock = await get_low_stock_products(db, merchant.id)

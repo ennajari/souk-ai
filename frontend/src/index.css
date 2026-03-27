@@ -23,3 +23,20 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* RTL support */
+[dir="rtl"] body { font-family: 'Tajawal', 'Inter', system-ui, sans-serif; }
+[dir="rtl"] .text-left { text-align: right; }
+[dir="rtl"] .text-right { text-align: left; }
+
+/* Mobile bottom sheet animation */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Touch-friendly: prevent double-tap zoom on buttons */
+button, a { touch-action: manipulation; }

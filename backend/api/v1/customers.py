@@ -6,6 +6,8 @@ from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
 from models.customer import Customer, CreditEntry, CreditEntryType
+from models.transaction import Transaction
+from models.product import Product
 from schemas.customer import (
     CustomerCreate, CustomerUpdate, CustomerResponse,
     CustomerListResponse, CreditEntryCreate, CreditEntryResponse,
@@ -78,7 +80,7 @@ async def update_customer(
     customer = result.scalar_one_or_none()
     if not customer:
         raise HTTPException(404, "Client introuvable")
-    for key, value in data.model_dump(exclude_none=True).items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(customer, key, value)
     await db.flush()
     await db.refresh(customer)
@@ -136,3 +138,40 @@ async def add_credit_entry(
     await db.flush()
     await db.refresh(entry)
     return entry
+
+
+@router.get("/{customer_id}/purchases")
+async def get_customer_purchases(
+    customer_id: str,
+    merchant: Merchant = Depends(get_current_merchant),
+    db: AsyncSession = Depends(get_db),
+):
+    # Verify customer belongs to merchant
+    result = await db.execute(
+        select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(404, "Client introuvable")
+
+    # Get transactions for this customer
+    txn_result = await db.execute(
+        select(Transaction).where(
+            Transaction.customer_id == customer_id,
+            Transaction.merchant_id == merchant.id,
+        ).order_by(Transaction.created_at.desc()).limit(50)
+    )
+    txns = txn_result.scalars().all()
+
+    purchases = []
+    for t in txns:
+        prod_r = await db.execute(select(Product).where(Product.id == t.product_id))
+        prod = prod_r.scalar_one_or_none()
+        purchases.append({
+            "id": t.id,
+            "product_name": (prod.name_fr or prod.name_ar) if prod else "Inconnu",
+            "quantity": t.quantity,
+            "unit_price": float(t.unit_price),
+            "total": float(t.total_amount),
+            "date": t.created_at.isoformat(),
+        })
+    return purchases

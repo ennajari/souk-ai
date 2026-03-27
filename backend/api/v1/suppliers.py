@@ -62,7 +62,7 @@ async def update_supplier(
         )
         if dup.scalar_one_or_none():
             raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
-    for key, value in data.model_dump(exclude_none=True).items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(supplier, key, value)
     await db.flush()
     await db.refresh(supplier)

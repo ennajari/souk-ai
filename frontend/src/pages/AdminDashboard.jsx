@@ -1,13 +1,25 @@
 import { useState, useEffect } from 'react'
 import { FiUsers, FiPackage, FiDollarSign, FiActivity, FiRefreshCw, FiAlertTriangle, FiTrendingUp, FiClock } from 'react-icons/fi'
-import { analyticsAPI, productsAPI, transactionsAPI, merchantsAPI } from '../api/client'
+import { analyticsAPI, productsAPI, transactionsAPI } from '../api/client'
 import toast from 'react-hot-toast'
 
-const StatCard = ({ icon: Icon, label, value, sub, color = 'violet' }) => (
+const COLOR_MAP = {
+  violet: { bg: 'bg-violet-100', text: 'text-violet-600' },
+  green: { bg: 'bg-green-100', text: 'text-green-600' },
+  blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
+  amber: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  red: { bg: 'bg-red-100', text: 'text-red-600' },
+  orange: { bg: 'bg-orange-100', text: 'text-orange-600' },
+  emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+}
+
+const StatCard = ({ icon: Icon, label, value, sub, color = 'violet' }) => {
+  const c = COLOR_MAP[color] || COLOR_MAP.violet
+  return (
   <div className="bg-white rounded-xl border border-gray-100 p-5">
     <div className="flex items-center gap-3">
-      <div className={`w-10 h-10 bg-${color}-100 rounded-xl flex items-center justify-center`}>
-        <Icon className={`h-5 w-5 text-${color}-600`} />
+      <div className={`w-10 h-10 ${c.bg} rounded-xl flex items-center justify-center`}>
+        <Icon className={`h-5 w-5 ${c.text}`} />
       </div>
       <div>
         <p className="text-2xl font-black text-gray-900">{value}</p>
@@ -16,7 +28,8 @@ const StatCard = ({ icon: Icon, label, value, sub, color = 'violet' }) => (
     </div>
     {sub && <p className="text-xs text-gray-400 mt-2">{sub}</p>}
   </div>
-)
+  )
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null)

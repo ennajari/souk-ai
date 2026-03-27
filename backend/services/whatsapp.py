@@ -20,7 +20,10 @@ async def send_text_message(to: str, text: str) -> dict:
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=payload, headers=headers)
-        return response.json()
+        data = response.json()
+        if response.status_code != 200:
+            print(f"WhatsApp API error: {response.status_code} - {data}")
+        return data
 
 
 async def send_template_message(to: str, template_name: str, language: str = "ar") -> dict:

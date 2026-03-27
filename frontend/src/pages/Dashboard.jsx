@@ -9,6 +9,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import StatsCard from '../components/StatsCard'
+import RamadanBanner from '../components/RamadanBanner'
 import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -91,7 +92,7 @@ export default function Dashboard() {
     { label: 'Premier produit ajouté', done: (stats?.total_products || 0) > 0 },
     { label: 'Première vente enregistrée', done: (stats?.total_sales_month || 0) > 0 },
     { label: 'Bot WhatsApp testé', done: false, link: 'https://wa.me/212751649010?text=سلام' },
-    { label: 'Stock configuré', done: alerts !== null },
+    { label: 'Stock configuré', done: (stats?.total_products || 0) >= 3 },
   ]
   const checklistDone = checklist.filter(c => c.done).length
   const allDone = checklistDone === checklist.length
@@ -119,6 +120,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 md:space-y-6">
+
+      {/* ── Ramadan Banner ── */}
+      <RamadanBanner />
 
       {/* ── Header row ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
