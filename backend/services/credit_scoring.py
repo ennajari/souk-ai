@@ -55,14 +55,15 @@ async def calculate_credit_score(db: AsyncSession, merchant_id: str) -> Dict[str
     first_txn = oldest_result.scalar_one_or_none()
     
     history_points = 0
+    days_on_platform = 0
     if first_txn:
         days_on_platform = (now - first_txn.created_at).days
         # Give 1 point per day, max 100 points
         history_points = min(100, days_on_platform)
-        
+
     score += history_points
     factors["history_points"] = history_points
-    factors["days_on_platform"] = days_on_platform if first_txn else 0
+    factors["days_on_platform"] = days_on_platform
     
     # Cap score at 1000
     final_score = min(1000, score)

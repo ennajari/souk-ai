@@ -74,15 +74,15 @@ export default function Sales() {
             <tr>
               <td>${t.product_name_fr || t.product_name_ar || '-'}</td>
               <td class="right">${t.quantity}</td>
-              <td class="right">${t.unit_price.toFixed(2)}</td>
-              <td class="right">${t.total_amount.toFixed(2)}</td>
+              <td class="right">${Number(t.unit_price || 0).toFixed(2)}</td>
+              <td class="right">${Number(t.total_amount || 0).toFixed(2)}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       <div class="total-row">
         <span>TOTAL</span>
-        <span>${transactions.reduce((s, t) => s + t.total_amount, 0).toFixed(2)} MAD</span>
+        <span>${transactions.reduce((s, t) => s + Number(t.total_amount || 0), 0).toFixed(2)} MAD</span>
       </div>
       <div class="footer">
         Merci pour votre achat!<br/>
@@ -137,7 +137,9 @@ export default function Sales() {
               type="number"
               min="1"
               value={form.quantity}
-              onChange={(e) => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value === '' ? '' : (parseInt(e.target.value) || '') })}
+              onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setForm(f => ({ ...f, quantity: 1 })) }}
+              onFocus={(e) => e.target.select()}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
           </div>
@@ -147,7 +149,9 @@ export default function Sales() {
               type="number"
               step="0.01"
               value={form.unit_price}
-              onChange={(e) => setForm({ ...form, unit_price: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setForm({ ...form, unit_price: e.target.value === '' ? '' : (parseFloat(e.target.value) || '') })}
+              onBlur={(e) => { if (!e.target.value) setForm(f => ({ ...f, unit_price: 0 })) }}
+              onFocus={(e) => e.target.select()}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
           </div>
@@ -183,8 +187,8 @@ export default function Sales() {
                   <span className="font-medium text-gray-900">{t.product_name_fr || t.product_name_ar}</span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{t.quantity}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{t.unit_price.toFixed(2)} MAD</td>
-                <td className="px-6 py-4 text-sm font-bold text-green-600">{t.total_amount.toFixed(2)} MAD</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{Number(t.unit_price || 0).toFixed(2)} MAD</td>
+                <td className="px-6 py-4 text-sm font-bold text-green-600">{Number(t.total_amount || 0).toFixed(2)} MAD</td>
                 <td className="px-6 py-4 text-sm text-gray-500">{new Date(t.created_at).toLocaleString('fr-FR')}</td>
               </tr>
             ))}

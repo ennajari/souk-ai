@@ -18,11 +18,17 @@ import AdminDashboard from "./pages/AdminDashboard"
 import POS from "./pages/POS"
 import Customers from "./pages/Customers"
 import Profit from "./pages/Profit"
+import Notifications from "./pages/Notifications"
+import CoachIA from "./pages/CoachIA"
+import Employees from "./pages/Employees"
+import Catalogue from "./pages/Catalogue"
+import CataloguePublic from "./pages/CataloguePublic"
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/catalogue/:merchantId" element={<CataloguePublic />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -46,6 +52,10 @@ export default function App() {
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="customers" element={<Customers />} />
           <Route path="profit" element={<Profit />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="coach" element={<CoachIA />} />
+          <Route path="employees" element={<Employees />} />
+          <Route path="my-catalogue" element={<Catalogue />} />
           <Route path="settings" element={<Settings />} />
           <Route path="sage-import" element={<SageImport />} />
         </Route>

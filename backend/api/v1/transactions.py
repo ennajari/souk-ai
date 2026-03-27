@@ -65,6 +65,7 @@ async def create_transaction(
     txn = Transaction(
         merchant_id=merchant.id,
         product_id=req.product_id,
+        customer_id=req.customer_id,
         type=TransactionType(req.type),
         source=TransactionSource(req.source),
         quantity=req.quantity,

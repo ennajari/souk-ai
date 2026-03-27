@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -25,7 +25,7 @@ async def list_forecasts(
 @router.get("/{product_id}", response_model=ProductForecast)
 async def get_product_forecast(
     product_id: str,
-    days: int = 7,
+    days: int = Query(7, ge=1, le=90),
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):

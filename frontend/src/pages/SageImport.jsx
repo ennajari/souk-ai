@@ -1,5 +1,5 @@
 import { useState, useRef } from "react"
-import { FiUploadCloud, FiFileText, FiCheckCircle, FiAlertCircle, FiPackage, FiDollarSign, FiUsers, FiRefreshCw } from "react-icons/fi"
+import { FiUploadCloud, FiFileText, FiCheckCircle, FiAlertCircle, FiPackage, FiDollarSign, FiRefreshCw } from "react-icons/fi"
 import { sageAPI } from "../api/client"
 
 const importTypes = [
@@ -8,7 +8,8 @@ const importTypes = [
     label: "Articles / Produits",
     description: "Importer la liste des articles avec prix et stock",
     icon: FiPackage,
-    color: "violet",
+    activeBorder: "border-violet-500 bg-violet-50 shadow-md",
+    activeText: "text-violet-600",
     accept: ".csv,.txt",
   },
   {
@@ -16,7 +17,8 @@ const importTypes = [
     label: "Ventes / Factures",
     description: "Importer l'historique des ventes et factures",
     icon: FiDollarSign,
-    color: "emerald",
+    activeBorder: "border-emerald-500 bg-emerald-50 shadow-md",
+    activeText: "text-emerald-600",
     accept: ".csv,.txt",
   },
   {
@@ -24,7 +26,8 @@ const importTypes = [
     label: "Détection auto",
     description: "Souk.AI détecte automatiquement le type de fichier",
     icon: FiRefreshCw,
-    color: "blue",
+    activeBorder: "border-blue-500 bg-blue-50 shadow-md",
+    activeText: "text-blue-600",
     accept: ".csv,.txt",
   },
 ]
@@ -100,12 +103,12 @@ export default function SageImport() {
               onClick={() => { setSelectedType(type.id); setResult(null); setError(null) }}
               className={`p-4 rounded-xl border-2 text-left transition-all ${
                 selectedType === type.id
-                  ? `border-${type.color}-500 bg-${type.color}-50 shadow-md`
+                  ? type.activeBorder
                   : "border-gray-200 bg-white hover:border-gray-300"
               }`}
             >
               <type.icon className={`h-6 w-6 mb-2 ${
-                selectedType === type.id ? `text-${type.color}-600` : "text-gray-400"
+                selectedType === type.id ? type.activeText : "text-gray-400"
               }`} />
               <p className="font-semibold text-sm text-gray-900">{type.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{type.description}</p>

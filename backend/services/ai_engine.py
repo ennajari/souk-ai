@@ -207,7 +207,8 @@ async def extract_invoice_data(text: str) -> dict:
     )
     raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
-        raw = raw.split("```")[1]
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
         if raw.startswith("json"):
             raw = raw[4:]
     try:

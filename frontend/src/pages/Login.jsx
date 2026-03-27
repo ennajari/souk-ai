@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../api/client'
 import toast from 'react-hot-toast'
-import { FiEye, FiEyeOff, FiMessageSquare, FiPackage, FiTrendingUp, FiShield } from 'react-icons/fi'
+import { FiEye, FiEyeOff, FiMessageSquare, FiPackage, FiTrendingUp, FiShield, FiArrowLeft } from 'react-icons/fi'
+
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 const FEATURES = [
   { icon: FiMessageSquare, color: 'from-violet-500 to-purple-600', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
@@ -25,6 +27,58 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Reset password state
+  const [resetMode, setResetMode] = useState(null) // null | 'phone' | 'code'
+  const [resetPhone, setResetPhone] = useState('')
+  const [resetCode, setResetCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+
+  const handleResetRequest = async (e) => {
+    e.preventDefault()
+    setResetLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: formatPhone(resetPhone) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Erreur')
+      toast.success('Code envoyé sur WhatsApp!')
+      setResetMode('code')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
+  const handleResetConfirm = async (e) => {
+    e.preventDefault()
+    setResetLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: formatPhone(resetPhone),
+          code: resetCode,
+          new_password: newPassword,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Erreur')
+      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: formatPhone(resetPhone) })
+      toast.success('Mot de passe changé avec succès!')
+      navigate('/dashboard')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setResetLoading(false)
+    }
+  }
 
   const formatPhone = (value) => {
     // Strip non-digits
@@ -201,6 +255,17 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Forgot password */}
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => { setResetMode('phone'); setResetPhone(phone) }}
+                className="text-xs text-violet-600 hover:text-violet-700 font-medium transition-colors"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+
             {/* Submit */}
             <button
               type="submit"
@@ -250,6 +315,92 @@ export default function Login() {
           </p>
         </div>
       </div>
+      {/* Reset password modal */}
+      {resetMode && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <button
+              onClick={() => { setResetMode(null); setResetCode(''); setNewPassword('') }}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4"
+            >
+              <FiArrowLeft className="w-4 h-4" /> Retour
+            </button>
+
+            {resetMode === 'phone' ? (
+              <form onSubmit={handleResetRequest} className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Réinitialiser le mot de passe</h2>
+                  <p className="text-sm text-gray-500 mt-1">Un code sera envoyé sur votre WhatsApp</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de téléphone</label>
+                  <input
+                    type="tel"
+                    required
+                    value={displayPhone(formatPhone(resetPhone))}
+                    onChange={(e) => setResetPhone(e.target.value)}
+                    placeholder="0612345678"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+                >
+                  {resetLoading ? 'Envoi en cours...' : 'Envoyer le code'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetConfirm} className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Entrez le code</h2>
+                  <p className="text-sm text-gray-500 mt-1">Code envoyé au {displayPhone(formatPhone(resetPhone))}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Code à 6 chiffres</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={resetCode}
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm font-mono tracking-[0.5em] text-center text-lg"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nouveau mot de passe</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resetLoading || resetCode.length < 6}
+                  className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+                >
+                  {resetLoading ? 'Changement...' : 'Changer le mot de passe'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResetMode('phone')}
+                  className="w-full text-sm text-gray-500 hover:text-violet-600 transition-colors"
+                >
+                  Renvoyer le code
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

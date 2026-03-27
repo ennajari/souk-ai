@@ -20,9 +20,23 @@ export default function Profit() {
 
   useEffect(() => { fetchProfit() }, [days])
 
-  const handleExport = () => {
-    const token = localStorage.getItem('token')
-    window.open(`${API_URL}/export/profit?days=${days}&token=${token}`, '_blank')
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_URL}/export/profit?days=${days}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `profit_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Erreur export CSV')
+    }
   }
 
   if (loading) {

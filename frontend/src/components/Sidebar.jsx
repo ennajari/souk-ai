@@ -2,44 +2,58 @@ import { NavLink } from "react-router-dom"
 import {
   FiHome, FiPackage, FiBox, FiDollarSign,
   FiBarChart2, FiSettings, FiTrendingUp, FiTruck, FiStar, FiX,
-  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor, FiUsers, FiPercent
+  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor, FiUsers, FiPercent, FiGlobe, FiBell, FiCpu, FiUserCheck
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
+import { useTranslation } from "react-i18next"
 
-const sections = [
+const getSections = (t) => [
   {
-    label: "PRINCIPAL",
+    label: t("nav.principal"),
     links: [
-      { to: "/dashboard", icon: FiHome, label: "Tableau de bord" },
-      { to: "/products", icon: FiPackage, label: "Produits" },
-      { to: "/inventory", icon: FiBox, label: "Inventaire" },
-      { to: "/sales", icon: FiDollarSign, label: "Ventes" },
-      { to: "/pos", icon: FiShoppingCart, label: "Caisse POS" },
+      { to: "/dashboard", icon: FiHome, label: t("nav.dashboard") },
+      { to: "/products", icon: FiPackage, label: t("nav.products") },
+      { to: "/inventory", icon: FiBox, label: t("nav.inventory") },
+      { to: "/sales", icon: FiDollarSign, label: t("nav.sales") },
+      { to: "/pos", icon: FiShoppingCart, label: t("nav.pos") },
     ],
   },
   {
-    label: "INTELLIGENCE",
+    label: t("nav.intelligence"),
     links: [
-      { to: "/analytics", icon: FiBarChart2, label: "Analytics" },
-      { to: "/profit", icon: FiPercent, label: "Profits" },
-      { to: "/forecasts", icon: FiTrendingUp, label: "Prévisions IA" },
-      { to: "/credit", icon: FiStar, label: "Crédit Score" },
+      { to: "/analytics", icon: FiBarChart2, label: t("nav.analytics") },
+      { to: "/profit", icon: FiPercent, label: t("nav.profit") },
+      { to: "/forecasts", icon: FiTrendingUp, label: t("nav.forecasts") },
+      { to: "/credit", icon: FiStar, label: t("nav.credit") },
+      { to: "/coach", icon: FiCpu, label: t("nav.coach") },
     ],
   },
   {
-    label: "COMMERCE",
+    label: t("nav.commerce"),
     links: [
-      { to: "/customers", icon: FiUsers, label: "Carnet Crédit" },
-      { to: "/suppliers", icon: FiTruck, label: "Fournisseurs" },
-      { to: "/sage-import", icon: FiDatabase, label: "Import Sage 100" },
-      { to: "/admin", icon: FiMonitor, label: "Monitoring" },
-      { to: "/settings", icon: FiSettings, label: "Paramètres" },
+      { to: "/customers", icon: FiUsers, label: t("nav.customers") },
+      { to: "/notifications", icon: FiBell, label: t("notifications.title") },
+      { to: "/my-catalogue", icon: FiShoppingCart, label: t("nav.catalogue") },
+      { to: "/suppliers", icon: FiTruck, label: t("nav.suppliers") },
+      { to: "/sage-import", icon: FiDatabase, label: t("nav.sageImport") },
+      { to: "/employees", icon: FiUserCheck, label: t("nav.employees") },
+      { to: "/admin", icon: FiMonitor, label: t("nav.monitoring") },
+      { to: "/settings", icon: FiSettings, label: t("nav.settings") },
     ],
   },
 ]
 
 export default function Sidebar({ onClose }) {
   const { merchant } = useAuth()
+  const { t, i18n } = useTranslation()
+  const sections = getSections(t)
+
+  const toggleLang = () => {
+    const newLang = i18n.language === 'ar' ? 'fr' : 'ar'
+    i18n.changeLanguage(newLang)
+    localStorage.setItem('i18nextLng', newLang)
+  }
+
   const initials = (merchant?.business_name || "S")
     .split(" ")
     .slice(0, 2)
@@ -56,7 +70,7 @@ export default function Sidebar({ onClose }) {
           </div>
           <div>
             <h1 className="text-white text-lg font-black tracking-tight leading-none">Souk.AI</h1>
-            <p className="text-gray-500 text-[10px] font-medium mt-0.5">Gestion Intelligente</p>
+            <p className="text-gray-500 text-[10px] font-medium mt-0.5">{t("common.smartManagement")}</p>
           </div>
         </div>
         {onClose && (
@@ -99,7 +113,7 @@ export default function Sidebar({ onClose }) {
         ))}
       </nav>
 
-      {/* ── Bottom: WhatsApp + User ── */}
+      {/* ── Bottom: WhatsApp + Lang + User ── */}
       <div className="px-3 pb-5 space-y-2 border-t border-white/5 pt-3">
         <a
           href="https://wa.me/212751649010"
@@ -109,10 +123,21 @@ export default function Sidebar({ onClose }) {
         >
           <FiMessageSquare className="h-4 w-4 text-emerald-400 flex-shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-emerald-400 leading-none">Bot WhatsApp</p>
+            <p className="text-xs font-semibold text-emerald-400 leading-none">{t("common.whatsappBot")}</p>
             <p className="text-xs text-gray-500 mt-0.5">+212 751 649010</p>
           </div>
         </a>
+
+        {/* Language toggle */}
+        <button
+          onClick={toggleLang}
+          className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-xl hover:bg-white/5 transition-colors"
+        >
+          <FiGlobe className="h-4 w-4 text-violet-400 flex-shrink-0" />
+          <span className="text-xs font-semibold text-gray-400">
+            {i18n.language === 'ar' ? 'Français' : 'العربية'}
+          </span>
+        </button>
 
         <div className="flex items-center gap-2.5 px-3 py-2">
           <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -130,7 +155,7 @@ export default function Sidebar({ onClose }) {
         <div className="px-3 pt-1 pb-1">
           <p className="text-[9px] text-gray-700 leading-relaxed">
             © {new Date().getFullYear()} <span className="text-gray-600 font-semibold">Souk.AI</span><br />
-            Tous droits réservés.
+            {t("common.allRightsReserved")}
           </p>
         </div>
       </div>
