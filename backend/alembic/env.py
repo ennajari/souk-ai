@@ -15,6 +15,8 @@ from models import (  # noqa: F401
     Merchant, Product, Inventory, Transaction, Order,
     Supplier, SupplierOrder, ConversationMessage, Forecast, CreditHistory,
     Customer, CreditEntry, Notification, Employee,
+    MarketplaceListing, MarketplaceOrder, Payment, MerchantPaymentConfig,
+    MarketBenchmark,
 )
 
 config = context.config

@@ -116,6 +116,37 @@ export const customersAPI = {
   addEntry: (id, data) => client.post(`/customers/${id}/entries`, data),
 }
 
+// ---- Marketplace ----
+export const marketplaceAPI = {
+  browse: (params) => client.get('/marketplace/listings', { params }),
+  myListings: () => client.get('/marketplace/my-listings'),
+  createListing: (data) => client.post('/marketplace/listings', data),
+  updateListing: (id, data) => client.patch(`/marketplace/listings/${id}`, data),
+  deleteListing: (id) => client.delete(`/marketplace/listings/${id}`),
+  createOrder: (data) => client.post('/marketplace/orders', data),
+  buyingOrders: () => client.get('/marketplace/orders/buying'),
+  sellingOrders: () => client.get('/marketplace/orders/selling'),
+  updateOrderStatus: (id, status) => client.patch(`/marketplace/orders/${id}/status`, { status }),
+}
+
+// ---- Payments ----
+export const paymentsAPI = {
+  list: (status) => client.get('/payments/', { params: { status } }),
+  create: (data) => client.post('/payments/', data),
+  get: (id) => client.get(`/payments/${id}`),
+  config: () => client.get('/payments/config/me'),
+  updateConfig: (data) => client.patch('/payments/config/me', data),
+}
+
+// ---- Market Intelligence ----
+export const marketAPI = {
+  overview: () => client.get('/market/overview'),
+  benchmark: () => client.get('/market/benchmark'),
+  trendingProducts: (limit = 20) => client.get('/market/trending-products', { params: { limit } }),
+  priceBenchmark: () => client.get('/market/price-benchmark'),
+  trends: (weeks = 8) => client.get('/market/trends', { params: { weeks } }),
+}
+
 // ---- Sage Import ----
 export const sageAPI = {
   importArticles: (file) => {

@@ -23,6 +23,9 @@ import CoachIA from "./pages/CoachIA"
 import Employees from "./pages/Employees"
 import Catalogue from "./pages/Catalogue"
 import CataloguePublic from "./pages/CataloguePublic"
+import Marketplace from "./pages/Marketplace"
+import Payments from "./pages/Payments"
+import MarketIntelligence from "./pages/MarketIntelligence"
 import { useAuth } from "./context/AuthContext"
 
 function AdminRoute({ children }) {
@@ -65,6 +68,9 @@ export default function App() {
           <Route path="my-catalogue" element={<Catalogue />} />
           <Route path="settings" element={<Settings />} />
           <Route path="sage-import" element={<SageImport />} />
+          <Route path="marketplace" element={<Marketplace />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="market-intelligence" element={<MarketIntelligence />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

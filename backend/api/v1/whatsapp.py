@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi.responses import Response
 
 from app.config import settings
 
@@ -15,7 +16,7 @@ async def verify_webhook(
 ):
     """WhatsApp webhook verification (GET)."""
     if hub_mode == "subscribe" and hub_verify_token == settings.WHATSAPP_VERIFY_TOKEN:
-        return int(hub_challenge)
+        return Response(content=hub_challenge, media_type="text/plain")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
