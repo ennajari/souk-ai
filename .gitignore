@@ -33,3 +33,8 @@ frontend/dist/
 
 # Alembic
 backend/alembic/versions/__pycache__/
+.env.update
+pitch-deck-souk-ai.html
+souk-ai-logo.svg
+.claude/settings.json
+.claude/settings.local.json

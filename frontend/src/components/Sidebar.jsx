@@ -2,7 +2,8 @@ import { NavLink } from "react-router-dom"
 import {
   FiHome, FiPackage, FiBox, FiDollarSign,
   FiBarChart2, FiSettings, FiTrendingUp, FiTruck, FiStar, FiX,
-  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor, FiUsers, FiPercent, FiGlobe, FiBell, FiCpu, FiUserCheck
+  FiMessageSquare, FiDatabase, FiShoppingCart, FiMonitor, FiUsers, FiPercent, FiGlobe, FiBell, FiCpu, FiUserCheck,
+  FiShoppingBag, FiCreditCard, FiActivity
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 import { useTranslation } from "react-i18next"
@@ -25,6 +26,7 @@ const getSections = (t, isAdmin) => [
       { to: "/profit", icon: FiPercent, label: t("nav.profit") },
       { to: "/forecasts", icon: FiTrendingUp, label: t("nav.forecasts") },
       { to: "/credit", icon: FiStar, label: t("nav.credit") },
+      { to: "/market-intelligence", icon: FiActivity, label: "Intelligence Marche" },
       { to: "/coach", icon: FiCpu, label: t("nav.coach") },
     ],
   },
@@ -34,6 +36,8 @@ const getSections = (t, isAdmin) => [
       { to: "/customers", icon: FiUsers, label: t("nav.customers") },
       { to: "/notifications", icon: FiBell, label: t("notifications.title") },
       { to: "/my-catalogue", icon: FiShoppingCart, label: t("nav.catalogue") },
+      { to: "/marketplace", icon: FiShoppingBag, label: "Marketplace B2B" },
+      { to: "/payments", icon: FiCreditCard, label: "Paiements" },
       { to: "/suppliers", icon: FiTruck, label: t("nav.suppliers") },
       { to: "/sage-import", icon: FiDatabase, label: t("nav.sageImport") },
       { to: "/employees", icon: FiUserCheck, label: t("nav.employees") },

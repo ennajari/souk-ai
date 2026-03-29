@@ -11,9 +11,14 @@ from models.credit import CreditHistory
 from models.customer import Customer, CreditEntry
 from models.notification import Notification
 from models.employee import Employee
+from models.marketplace import MarketplaceListing, MarketplaceOrder
+from models.payment import Payment, MerchantPaymentConfig
+from models.market_benchmark import MarketBenchmark
 
 __all__ = [
     "Merchant", "Product", "Inventory", "Transaction", "Order",
     "Supplier", "SupplierOrder", "ConversationMessage", "Forecast", "CreditHistory",
     "Customer", "CreditEntry", "Notification", "Employee",
+    "MarketplaceListing", "MarketplaceOrder", "Payment", "MerchantPaymentConfig",
+    "MarketBenchmark",
 ]
