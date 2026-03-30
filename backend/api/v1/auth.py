@@ -110,8 +110,12 @@ async def reset_request(body: ResetRequestBody, db: AsyncSession = Depends(get_d
     await r.setex(f"otp:{phone}", 600, code)
     await r.aclose()
 
-    from services.whatsapp import send_text_message
-    await send_text_message(phone, f"Souk.AI - Code de reinitialisation: {code}\nCe code expire dans 10 minutes.")
+    from services.whatsapp import send_otp_message
+    try:
+        await send_otp_message(phone, code)
+    except Exception as e:
+        print(f"[OTP] Failed to send WhatsApp to {phone}: {e}")
+        raise HTTPException(503, "Impossible d'envoyer le code WhatsApp. Contactez le support au +212 623 572558")
 
     return {"message": "Code envoye par WhatsApp"}
 

@@ -260,7 +260,7 @@ export default function Login() {
 
           {/* WhatsApp CTA */}
           <a
-            href="https://wa.me/212751649010?text=سلام"
+            href="https://wa.me/212623572558?text=سلام"
             target="_blank"
             rel="noreferrer"
             className="mt-5 flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 hover:bg-emerald-100/70 transition-colors group"
@@ -270,7 +270,7 @@ export default function Login() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-emerald-900">Tester le bot WhatsApp</p>
-              <p className="text-xs text-emerald-600 mt-0.5">+212 751 649010 · Gratuit</p>
+              <p className="text-xs text-emerald-600 mt-0.5">+212 623 572558 · Gratuit</p>
             </div>
             <span className="text-emerald-400 group-hover:translate-x-1 transition-transform font-bold">→</span>
           </a>
@@ -301,30 +301,57 @@ export default function Login() {
             </button>
 
             {resetMode === 'phone' ? (
-              <form onSubmit={handleResetRequest} className="space-y-4">
+              <div className="space-y-4">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Réinitialiser le mot de passe</h2>
-                  <p className="text-sm text-gray-500 mt-1">Un code sera envoyé sur votre WhatsApp</p>
+                  <p className="text-sm text-gray-500 mt-1">Entrez votre numéro puis récupérez le code</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de téléphone</label>
                   <input
                     type="tel"
-                    required
                     value={resetPhone}
                     onChange={(e) => setResetPhone(e.target.value)}
                     placeholder="0612345678"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={resetLoading}
-                  className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+
+                {/* Primary: WhatsApp bot (always works, no 24h restriction) */}
+                <a
+                  href={`https://wa.me/212623572558?text=code`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors text-sm"
                 >
-                  {resetLoading ? 'Envoi en cours...' : 'Envoyer le code'}
-                </button>
-              </form>
+                  <FiMessageSquare className="h-4 w-4 flex-shrink-0" />
+                  <span>Obtenir le code via WhatsApp Bot</span>
+                  <span className="ml-auto text-xs font-normal opacity-80">Recommandé</span>
+                </a>
+                <p className="text-xs text-gray-400 text-center -mt-1">
+                  Envoyez "code" au bot → il vous répond avec votre code
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <span className="text-xs text-gray-400">ou</span>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+
+                {/* Fallback: direct API call */}
+                <form onSubmit={handleResetRequest} className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={resetLoading || !resetPhone}
+                    className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+                  >
+                    {resetLoading ? 'Envoi en cours...' : 'Envoyer par API'}
+                  </button>
+                  <p className="text-xs text-gray-400 text-center">
+                    (fonctionne si vous avez messagé le bot récemment)
+                  </p>
+                </form>
+              </div>
             ) : (
               <form onSubmit={handleResetConfirm} className="space-y-4">
                 <div>

@@ -1,7 +1,7 @@
 import httpx
 from app.config import settings
 
-WHATSAPP_API_URL = "https://graph.facebook.com/v21.0"
+WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 
 async def send_text_message(to: str, text: str) -> dict:
@@ -22,30 +22,66 @@ async def send_text_message(to: str, text: str) -> dict:
         response = await client.post(url, json=payload, headers=headers)
         data = response.json()
         if response.status_code != 200:
-            print(f"WhatsApp API error: {response.status_code} - {data}")
+            print(f"[WhatsApp ERROR] {response.status_code} - to={to} - {data}")
+            raise Exception(f"WhatsApp send failed: {data.get('error', {}).get('message', str(data))}")
         return data
 
 
-async def send_template_message(to: str, template_name: str, language: str = "ar") -> dict:
-    """Send a template message via WhatsApp Cloud API."""
+async def send_template_message(
+    to: str, template_name: str, language: str = "ar", body_params: list[str] | None = None
+) -> dict:
+    """Send a template message via WhatsApp Cloud API.
+
+    body_params: list of text values for {{1}}, {{2}}, … placeholders in the template body.
+    """
     url = f"{WHATSAPP_API_URL}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}",
         "Content-Type": "application/json",
     }
+    template: dict = {
+        "name": template_name,
+        "language": {"code": language},
+    }
+    if body_params:
+        template["components"] = [
+            {
+                "type": "body",
+                "parameters": [{"type": "text", "text": p} for p in body_params],
+            }
+        ]
     payload = {
         "messaging_product": "whatsapp",
         "to": to,
         "type": "template",
-        "template": {
-            "name": template_name,
-            "language": {"code": language},
-        },
+        "template": template,
     }
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=payload, headers=headers)
-        return response.json()
+        data = response.json()
+        if response.status_code != 200:
+            raise Exception(f"WhatsApp template send failed: {data.get('error', {}).get('message', str(data))}")
+        return data
+
+
+async def send_otp_message(to: str, code: str) -> dict:
+    """Send OTP via approved template (bypasses 24h window). Falls back to free-form text."""
+    # Try template first — works even when user hasn't messaged in 24h
+    try:
+        return await send_template_message(
+            to=to,
+            template_name="reset_password_otp",
+            language="fr",
+            body_params=[code],
+        )
+    except Exception as template_err:
+        print(f"[OTP] Template failed ({template_err}), trying free-form text...")
+
+    # Fallback: plain text (only works within 24h window)
+    return await send_text_message(
+        to, f"Souk.AI - Code de reinitialisation: {code}\nCe code expire dans 10 minutes."
+    )
 
 
 async def send_document_message(to: str, document_bytes: bytes, filename: str, caption: str = "") -> dict:

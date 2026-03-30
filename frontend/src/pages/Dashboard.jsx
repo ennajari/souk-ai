@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FiPackage, FiDollarSign, FiShoppingCart, FiAlertTriangle,
   FiTrendingUp, FiPlus, FiArrowRight, FiCheckCircle, FiCircle,
-  FiMessageSquare, FiStar, FiZap
+  FiMessageSquare, FiStar, FiZap, FiSearch, FiX
 } from 'react-icons/fi'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -39,6 +39,9 @@ export default function Dashboard() {
   const [products, setProducts] = useState([])
   const [saleForm, setSaleForm] = useState({ product_id: '', quantity: 1 })
   const [savingSale, setSavingSale] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const searchRef = useRef(null)
 
   useEffect(() => {
     Promise.all([
@@ -60,10 +63,25 @@ export default function Dashboard() {
     productsAPI.list().then(r => {
       const priced = r.data.filter(p => p.unit_price > 0)
       setProducts(priced)
-      setSaleForm({ product_id: priced[0]?.id || '', quantity: 1 })
+      setSaleForm({ product_id: '', quantity: 1 })
+      setProductSearch('')
+      setShowDropdown(false)
       setShowSaleModal(true)
+      setTimeout(() => searchRef.current?.focus(), 100)
     }).catch(() => toast.error('Erreur chargement produits'))
   }
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return products.slice(0, 8)
+    const q = productSearch.toLowerCase()
+    return products.filter(p =>
+      (p.name_fr || '').toLowerCase().includes(q) ||
+      (p.name_ar || '').toLowerCase().includes(q) ||
+      (p.barcode || '').includes(q)
+    ).slice(0, 8)
+  }, [products, productSearch])
+
+  const selectedProduct = products.find(p => p.id === saleForm.product_id)
 
   const handleQuickSale = async (e) => {
     e.preventDefault()
@@ -91,7 +109,7 @@ export default function Dashboard() {
     { label: 'Compte créé', done: true },
     { label: 'Premier produit ajouté', done: (stats?.total_products || 0) > 0 },
     { label: 'Première vente enregistrée', done: (stats?.total_sales_month || 0) > 0 },
-    { label: 'Bot WhatsApp testé', done: false, link: 'https://wa.me/212751649010?text=سلام' },
+    { label: 'Bot WhatsApp testé', done: false, link: 'https://wa.me/212623572558?text=سلام' },
     { label: 'Stock configuré', done: (stats?.total_products || 0) >= 3 },
   ]
   const checklistDone = checklist.filter(c => c.done).length
@@ -104,7 +122,6 @@ export default function Dashboard() {
     : creditScore.score >= 700 ? 'Excellent'
     : creditScore.score >= 400 ? 'Bon' : 'À améliorer'
 
-  const selectedProduct = products.find(p => p.id === saleForm.product_id)
   const saleTotal = (Number(saleForm.quantity) * (selectedProduct?.unit_price || 0)).toFixed(2)
 
   if (loading) {
@@ -207,7 +224,7 @@ export default function Dashboard() {
             <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wide">WhatsApp</p>
           </div>
           <a
-            href="https://wa.me/212751649010?text=مرحبا"
+            href="https://wa.me/212623572558?text=مرحبا"
             target="_blank"
             rel="noreferrer"
             className="text-white text-xs font-bold hover:text-emerald-100 transition-colors flex items-center gap-1"
@@ -405,7 +422,7 @@ export default function Dashboard() {
                 { label: 'Vente', icon: FiShoppingCart, from: 'from-violet-500', to: 'to-purple-600', action: openSaleModal },
                 { label: 'Produits', icon: FiPackage, from: 'from-blue-500', to: 'to-cyan-600', action: () => navigate('/products') },
                 { label: 'Stock', icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/inventory') },
-                { label: 'WhatsApp', icon: FiMessageSquare, from: 'from-emerald-500', to: 'to-green-600', href: 'https://wa.me/212751649010?text=مرحبا' },
+                { label: 'WhatsApp', icon: FiMessageSquare, from: 'from-emerald-500', to: 'to-green-600', href: 'https://wa.me/212623572558?text=مرحبا' },
                 { label: 'Prévisions', icon: FiTrendingUp, from: 'from-indigo-500', to: 'to-blue-600', action: () => navigate('/forecasts') },
               ].map(({ label, icon: Icon, from, to, action, href }) => {
                 const cls = `flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors`
@@ -432,7 +449,7 @@ export default function Dashboard() {
                 { label: 'Enregistrer une vente', icon: FiShoppingCart, color: 'text-violet-600', bg: 'bg-violet-50', action: openSaleModal },
                 { label: 'Gérer les produits', icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', action: () => navigate('/products') },
                 { label: 'Vérifier le stock', icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/inventory') },
-                { label: 'Bot WhatsApp', icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212751649010?text=مرحبا' },
+                { label: 'Bot WhatsApp', icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212623572558?text=مرحبا' },
                 { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', action: () => navigate('/forecasts') },
               ].map(({ label, icon: Icon, color, bg, action, href }) => {
                 const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-gray-50 group text-left`
@@ -474,21 +491,73 @@ export default function Dashboard() {
               </button>
             </div>
             <form onSubmit={handleQuickSale} className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Produit</label>
-                <select
-                  value={saleForm.product_id}
-                  onChange={e => setSaleForm({ ...saleForm, product_id: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
-                  required
-                >
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name_fr || p.name_ar} — {Number(p.unit_price).toFixed(2)} MAD
-                    </option>
-                  ))}
-                  {products.length === 0 && <option disabled>Aucun produit avec prix</option>}
-                </select>
+
+                {/* Selected product pill */}
+                {selectedProduct ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-2 border-violet-400 rounded-xl bg-violet-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-violet-800 truncate">
+                        {selectedProduct.name_fr || selectedProduct.name_ar}
+                      </p>
+                      <p className="text-xs text-violet-500">{Number(selectedProduct.unit_price).toFixed(2)} MAD · stock: {selectedProduct.stock_quantity ?? '?'}</p>
+                    </div>
+                    <button type="button" onClick={() => { setSaleForm({ ...saleForm, product_id: '' }); setProductSearch(''); setTimeout(() => searchRef.current?.focus(), 50) }}
+                      className="p-1 rounded-lg hover:bg-violet-200 text-violet-500 transition-colors flex-shrink-0">
+                      <FiX className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      placeholder="Rechercher un produit..."
+                      value={productSearch}
+                      onChange={e => { setProductSearch(e.target.value); setShowDropdown(true) }}
+                      onFocus={() => setShowDropdown(true)}
+                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+
+                {/* Dropdown results */}
+                {!selectedProduct && showDropdown && filteredProducts.length > 0 && (
+                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto">
+                    {filteredProducts.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={() => {
+                          setSaleForm({ ...saleForm, product_id: p.id })
+                          setProductSearch('')
+                          setShowDropdown(false)
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-violet-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{p.name_fr || p.name_ar}</p>
+                          {p.name_ar && p.name_fr && <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="text-sm font-bold text-violet-600">{Number(p.unit_price).toFixed(2)} MAD</p>
+                          <p className="text-xs text-gray-400">stock: {p.stock_quantity ?? '?'}</p>
+                        </div>
+                      </button>
+                    ))}
+                    {products.length > 8 && !productSearch && (
+                      <p className="text-center text-xs text-gray-400 py-2">Tapez pour filtrer parmi {products.length} produits</p>
+                    )}
+                  </div>
+                )}
+                {!selectedProduct && showDropdown && productSearch && filteredProducts.length === 0 && (
+                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 text-center">
+                    Aucun produit trouvé pour "{productSearch}"
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Quantité</label>
