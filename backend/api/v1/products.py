@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+import base64
+import json
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from core.database import get_db
 from core.deps import get_current_merchant
+from app.config import settings
 from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
@@ -123,3 +126,63 @@ async def delete_product(
 
     product.is_active = False
     await db.flush()
+
+
+@router.post("/scan-invoice")
+async def scan_invoice(
+    file: UploadFile = File(...),
+    merchant: Merchant = Depends(get_current_merchant),
+):
+    """Upload a supplier invoice image → GPT-4o Vision extracts products with prices & quantities."""
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OpenAI non configuré")
+
+    image_bytes = await file.read()
+    b64 = base64.b64encode(image_bytes).decode()
+    mime = file.content_type or "image/jpeg"
+
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+    prompt = (
+        "You are analyzing a supplier delivery invoice (bon de livraison / facture fournisseur) from Morocco.\n"
+        "Extract ALL product lines from the invoice table.\n"
+        "Return ONLY a valid JSON array with this exact structure:\n"
+        '[{"name": "PRODUCT NAME", "quantity": 24, "unit_price": 4.60, "cost_price": 3.45}]\n'
+        "Rules:\n"
+        "- name: exact product name as written on the invoice (uppercase)\n"
+        "- quantity: integer quantity received (VNT or Qté column)\n"
+        "- unit_price: selling price TTC (PRIX column, or Prix TTC). Use 0 if missing.\n"
+        "- cost_price: purchase price HT (Net HT / Prix HT column). Use 0 if missing.\n"
+        "- Include ALL rows, even if price is missing (use 0)\n"
+        "- Respond ONLY with the JSON array, no markdown, no explanation."
+    )
+
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=1500,
+        temperature=0,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "high"}},
+            ],
+        }],
+    )
+
+    raw = response.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
+        if raw.startswith("json"):
+            raw = raw[4:].strip()
+
+    try:
+        items = json.loads(raw)
+        if not isinstance(items, list):
+            items = []
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Impossible d'extraire les données de la facture")
+
+    return {"items": items, "count": len(items)}

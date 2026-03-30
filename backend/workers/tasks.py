@@ -653,8 +653,15 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     "السلام", "سلام", "مرحبا", "صباح", "مساء", "ⵙⵍⴰⵎ",
                     "bsr", "bjr", "coucou", "yo ", "slt",
                 ]
+                password_reset_keywords = [
+                    "mot de passe", "password", "oublie", "oublié", "reset", "reinitialis",
+                    "mdp", "code reset", "code reinitialisation", "code réinitialisation",
+                    "كلمة السر", "نسيت", "باسوورد", "code", "كود",
+                ]
                 if any(kw in txt_lower or txt_lower == kw.strip() for kw in greeting_keywords):
                     intent = "GREETING"
+                elif any(kw in txt_lower for kw in password_reset_keywords):
+                    intent = "RESET_PASSWORD_BOT"
                 elif any(kw in txt_lower for kw in sales_keywords):
                     intent = "SALES_REPORT"
                 elif any(kw in txt_lower for kw in list_keywords):
@@ -992,6 +999,38 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     response_text = summary.get(lang, summary["fr"])
                     if missing:
                         response_text += "\n⚠️ Prix non trouvé pour: " + ", ".join(missing)
+
+            # ── RESET_PASSWORD_BOT: generate & send OTP inline ──────────────
+            # The user initiated this conversation → no 24h window restriction.
+            # Store code in Redis so the website /reset-confirm endpoint can verify it.
+            if intent == "RESET_PASSWORD_BOT":
+                import random as _random
+                import redis.asyncio as _aioredis
+                otp_code = str(_random.randint(100000, 999999))
+                _r = _aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+                await _r.setex(f"otp:{phone_number}", 600, otp_code)
+                await _r.aclose()
+                msgs = {
+                    "ar": (
+                        f"🔑 كود إعادة تعيين كلمة السر ديالك:\n\n"
+                        f"*{otp_code}*\n\n"
+                        f"⏱ صالح 10 دقائق فقط.\n"
+                        f"استخدمه في: {settings.FRONTEND_URL}/reset-password"
+                    ),
+                    "fr": (
+                        f"🔑 Votre code de réinitialisation:\n\n"
+                        f"*{otp_code}*\n\n"
+                        f"⏱ Valide 10 minutes.\n"
+                        f"Utilisez-le sur: {settings.FRONTEND_URL}/reset-password"
+                    ),
+                    "en": (
+                        f"🔑 Your password reset code:\n\n"
+                        f"*{otp_code}*\n\n"
+                        f"⏱ Valid for 10 minutes.\n"
+                        f"Use it at: {settings.FRONTEND_URL}/reset-password"
+                    ),
+                }
+                response_text = msgs.get(lang, msgs["fr"])
 
             # For GREETING: warm welcome with capabilities
             if intent == "GREETING":

@@ -90,6 +90,15 @@ services:
       - backend
       - frontend
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - backend
+    networks:
+      - default
+
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:1.24.4
     ports:
