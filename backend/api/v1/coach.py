@@ -4,14 +4,13 @@ from collections import Counter, defaultdict
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select
 
 from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
 from models.product import Product
 from models.transaction import Transaction, TransactionType
-from models.inventory import Inventory
 from app.config import settings
 
 router = APIRouter(prefix="/coach", tags=["coach"])
@@ -26,11 +25,11 @@ class CoachTip(BaseModel):
 
 
 class InsightsResponse(BaseModel):
-    best_seller: dict | None
-    worst_performer: dict | None
-    peak_day: dict | None
-    avg_basket: float
-    stock_days: list[dict]
+    best_seller: dict | None = None
+    worst_performer: dict | None = None
+    peak_day: dict | None = None
+    avg_basket: float = 0.0
+    stock_days: list[dict] = []
 
 
 # ---------- Endpoints ----------
@@ -62,7 +61,7 @@ async def get_tips(
     prod_result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant.id,
-            Product.is_active == True,
+            Product.is_active is True,
         )
     )
     products = prod_result.scalars().all()
@@ -159,7 +158,7 @@ async def get_insights(
     prod_result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant.id,
-            Product.is_active == True,
+            Product.is_active is True,
         )
     )
     products = prod_result.scalars().all()

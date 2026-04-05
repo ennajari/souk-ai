@@ -38,3 +38,6 @@ pitch-deck-souk-ai.html
 souk-ai-logo.svg
 .claude/settings.json
 .claude/settings.local.json
+.sonar/.sonar_lock
+ruff-report.json
+.sonar/report-task.txt

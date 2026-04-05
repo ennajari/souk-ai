@@ -11,7 +11,6 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant
 from models.product import Product
 from models.transaction import Transaction, TransactionType
-from models.inventory import Inventory
 
 router = APIRouter(prefix="/export", tags=["Export"])
 
@@ -22,7 +21,7 @@ async def export_products_csv(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+        select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
     )
     products = result.scalars().all()
 

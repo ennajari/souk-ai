@@ -22,7 +22,7 @@ async def list_customers(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Customer).where(Customer.merchant_id == merchant.id, Customer.is_active == True)
+        select(Customer).where(Customer.merchant_id == merchant.id, Customer.is_active is True)
         .order_by(Customer.name)
     )
     return result.scalars().all()
@@ -39,7 +39,7 @@ async def create_customer(
         select(Customer).where(
             Customer.merchant_id == merchant.id,
             Customer.name == data.name,
-            Customer.is_active == True,
+            Customer.is_active is True,
         )
     )
     if existing.scalar_one_or_none():

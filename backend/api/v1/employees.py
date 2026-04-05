@@ -32,11 +32,11 @@ class EmployeeResponse(BaseModel):
     id: str
     merchant_id: str
     name: str
-    phone: str | None
+    phone: str | None = None
     role: EmployeeRole
     is_active: bool
     created_at: datetime
-    last_login: datetime | None
+    last_login: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -62,7 +62,7 @@ async def list_employees(
 ):
     result = await db.execute(
         select(Employee)
-        .where(Employee.merchant_id == merchant.id, Employee.is_active == True)
+        .where(Employee.merchant_id == merchant.id, Employee.is_active is True)
         .order_by(Employee.name)
     )
     return result.scalars().all()
@@ -79,7 +79,7 @@ async def create_employee(
         select(Employee).where(
             Employee.merchant_id == merchant.id,
             Employee.name == data.name,
-            Employee.is_active == True,
+            Employee.is_active is True,
         )
     )
     if existing.scalar_one_or_none():
@@ -148,7 +148,7 @@ async def verify_pin(
         select(Employee).where(
             Employee.id == employee_id,
             Employee.merchant_id == merchant.id,
-            Employee.is_active == True,
+            Employee.is_active is True,
         )
     )
     employee = result.scalar_one_or_none()

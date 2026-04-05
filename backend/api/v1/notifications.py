@@ -22,7 +22,7 @@ class NotificationResponse(BaseModel):
     id: str
     type: str
     title: str
-    message: str | None
+    message: str | None = None
     is_read: bool
     created_at: datetime
 
@@ -89,7 +89,7 @@ async def mark_all_read(
 ):
     await db.execute(
         update(Notification)
-        .where(Notification.merchant_id == merchant.id, Notification.is_read == False)
+        .where(Notification.merchant_id == merchant.id, Notification.is_read is False)
         .values(is_read=True)
     )
     await db.flush()

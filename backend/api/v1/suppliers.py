@@ -22,7 +22,7 @@ async def list_suppliers(
 ):
     result = await db.execute(
         select(Supplier).where(
-            Supplier.is_active == True,
+            Supplier.is_active is True,
             Supplier.merchant_id == merchant.id,
         )
     )
@@ -40,7 +40,7 @@ async def create_supplier(
     existing = await db.execute(
         select(Supplier).where(
             Supplier.name == data.name,
-            Supplier.is_active == True,
+            Supplier.is_active is True,
             Supplier.merchant_id == merchant.id,
         )
     )
@@ -70,7 +70,7 @@ async def update_supplier(
         raise HTTPException(400, "La commande minimum ne peut pas etre negative")
     if data.name and data.name != supplier.name:
         dup = await db.execute(
-            select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True, Supplier.id != supplier_id)
+            select(Supplier).where(Supplier.name == data.name, Supplier.is_active is True, Supplier.id != supplier_id)
         )
         if dup.scalar_one_or_none():
             raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
@@ -120,7 +120,7 @@ async def place_order(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    sup_result = await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.is_active == True))
+    sup_result = await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.is_active is True))
     supplier = sup_result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")

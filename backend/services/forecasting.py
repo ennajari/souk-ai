@@ -107,7 +107,7 @@ async def calculate_forecast(
 async def get_restock_recommendations(db: AsyncSession, merchant_id: str) -> list[dict]:
     """For each active product, compare 7-day forecast demand vs current stock."""
     products_result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant_id, Product.is_active == True)
+        select(Product).where(Product.merchant_id == merchant_id, Product.is_active is True)
     )
     products = products_result.scalars().all()
 

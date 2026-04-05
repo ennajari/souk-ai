@@ -86,19 +86,20 @@ export default function CoachIA() {
             <InsightCard
               icon={FiStar} color="green"
               label={isRtl ? 'الأكثر مبيعاً' : 'Best seller'}
-              value={insights.best_seller?.name || '-'}
-              sub={insights.best_seller ? `${insights.best_seller.qty} ${isRtl ? 'وحدة' : 'vendus'}` : ''}
+              value={insights.best_seller?.product || '-'}
+              sub={insights.best_seller ? `${insights.best_seller.quantity_sold} ${isRtl ? 'وحدة' : 'vendus'}` : ''}
             />
             <InsightCard
               icon={FiAlertTriangle} color="red"
               label={isRtl ? 'أقل أداء' : 'Moins rentable'}
-              value={insights.worst_performer?.name || '-'}
-              sub={insights.worst_performer ? `${insights.worst_performer.margin}%` : ''}
+              value={insights.worst_performer?.product || '-'}
+              sub={insights.worst_performer ? `${insights.worst_performer.margin_pct}%` : ''}
             />
             <InsightCard
               icon={FiCalendar} color="blue"
               label={isRtl ? 'يوم الذروة' : 'Jour de pointe'}
-              value={insights.peak_day || '-'}
+              value={insights.peak_day?.day || '-'}
+              sub={insights.peak_day ? `${insights.peak_day.transactions} ${isRtl ? 'معاملة' : 'ventes'}` : ''}
             />
             <InsightCard
               icon={FiDollarSign} color="violet"
@@ -108,7 +109,8 @@ export default function CoachIA() {
             <InsightCard
               icon={FiPackage} color="amber"
               label={isRtl ? 'أيام المخزون' : 'Jours de stock'}
-              value={insights.stock_days ? `~${insights.stock_days}j` : '-'}
+              value={insights.stock_days?.length ? `~${Math.round(insights.stock_days.reduce((s, d) => s + d.estimated_days_left, 0) / insights.stock_days.length)}j` : '-'}
+              sub={insights.stock_days?.length ? `${insights.stock_days.length} ${isRtl ? 'منتج' : 'produits'}` : ''}
             />
           </>
         ) : (
