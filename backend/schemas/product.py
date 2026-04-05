@@ -10,6 +10,7 @@ class ProductCreate(BaseModel):
     unit_price: float = 0
     cost_price: float = 0
     expiry_date: date | None = None
+    initial_stock: float = 0  # Used on creation to pre-fill inventory
 
 
 class ProductUpdate(BaseModel):

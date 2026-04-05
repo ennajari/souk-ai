@@ -35,6 +35,8 @@ export default function Dashboard() {
   const [creditScore, setCreditScore] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const [chartDays, setChartDays] = useState(7)
+
   const [showSaleModal, setShowSaleModal] = useState(false)
   const [products, setProducts] = useState([])
   const [saleForm, setSaleForm] = useState({ product_id: '', quantity: 1 })
@@ -46,7 +48,7 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([
       analyticsAPI.dashboard().catch(() => ({ data: {} })),
-      analyticsAPI.salesChart(7).catch(() => ({ data: [] })),
+      analyticsAPI.salesChart(chartDays).catch(() => ({ data: [] })),
       transactionsAPI.list(null, 5).catch(() => ({ data: [] })),
       inventoryAPI.alerts().catch(() => ({ data: [] })),
       creditAPI.score().catch(() => ({ data: null })),
@@ -57,7 +59,7 @@ export default function Dashboard() {
       setAlerts(alertsRes.data)
       setCreditScore(creditRes.data)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [chartDays])
 
   const openSaleModal = () => {
     productsAPI.list().then(r => {
@@ -242,11 +244,22 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900">Évolution des ventes</h3>
-              <p className="text-xs text-gray-400 mt-0.5">7 derniers jours</p>
+              <p className="text-xs text-gray-400 mt-0.5">{chartDays} derniers jours</p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg font-medium">
-              <FiTrendingUp className="h-3.5 w-3.5" />
-              <span>7j</span>
+            <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+              {[7, 30, 90].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setChartDays(d)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    chartDays === d
+                      ? 'bg-white text-violet-600 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {d}j
+                </button>
+              ))}
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>

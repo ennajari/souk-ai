@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import String, Numeric, DateTime, Enum, Integer, Boolean, JSON
+from sqlalchemy import String, Numeric, DateTime, Enum, Integer, Boolean, JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -20,6 +20,7 @@ class Supplier(Base):
     __tablename__ = "suppliers"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    merchant_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("merchants.id"), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
     category: Mapped[SupplierCategory] = mapped_column(Enum(SupplierCategory), default=SupplierCategory.FMCG)
     contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)

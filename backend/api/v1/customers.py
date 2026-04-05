@@ -117,8 +117,15 @@ async def add_credit_entry(
     if not customer:
         raise HTTPException(404, "Client introuvable")
 
-    if data.amount <= 0:
-        raise HTTPException(400, "Le montant doit etre positif")
+    # Check credit limit (0 = no limit)
+    if data.type == "CREDIT" and customer.credit_limit > 0:
+        new_balance = float(customer.balance) + data.amount
+        if new_balance > float(customer.credit_limit):
+            remaining = float(customer.credit_limit) - float(customer.balance)
+            raise HTTPException(
+                400,
+                f"Plafond de crédit atteint — disponible: {remaining:.2f} MAD / limite: {customer.credit_limit:.2f} MAD"
+            )
 
     entry = CreditEntry(
         customer_id=customer_id,

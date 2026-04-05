@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiTrash2, FiAlertTriangle, FiDatabase, FiArrowRight,
-  FiStar, FiActivity, FiCreditCard,
-  FiUserCheck, FiShoppingCart, FiMonitor, FiPhone,
-  FiCalendar, FiCheckCircle, FiCpu
+  FiStar, FiCreditCard, FiShoppingCart, FiMonitor, FiPhone,
+  FiCalendar, FiCheckCircle
 } from 'react-icons/fi'
 import { merchantsAPI, authAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -195,12 +194,9 @@ export default function Settings() {
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-1">Outils & Modules avancés</h2>
             <p className="text-xs text-gray-400 mb-4">Utilisés occasionnellement — configuration initiale ou mensuelle.</p>
             <div className="grid grid-cols-1 gap-2">
-              <ToolCard to="/coach"               icon={FiCpu}          title="Coach IA"              desc="Conseils et recommandations personnalisés IA"  color="violet" />
-              <ToolCard to="/credit"             icon={FiStar}         title="Score de crédit"      desc="Score de crédit bancable basé sur vos ventes"  color="indigo" />
-              <ToolCard to="/market-intelligence" icon={FiActivity}    title="Intelligence Marché"  desc="Tendances et analyse concurrentielle locale"   color="cyan" />
+              <ToolCard to="/credit"             icon={FiStar}         title="Score de crédit"      desc="Score de crédit bancable basé sur vos ventes"  color="violet" />
               <ToolCard to="/my-catalogue"        icon={FiShoppingCart} title="Catalogue en ligne"  desc="Partagez votre catalogue produits public"      color="emerald" />
               <ToolCard to="/payments"            icon={FiCreditCard}   title="Paiements"           desc="Modes de règlement et suivi des paiements"     color="orange" />
-              <ToolCard to="/employees"           icon={FiUserCheck}    title="Employés"            desc="Gestion des équipes et des accès"               color="pink" />
               <ToolCard to="/sage-import"         icon={FiDatabase}     title="Import Sage 100"     desc="Import depuis votre logiciel comptable"         color="gray" />
               <ToolCard to="/admin"               icon={FiMonitor}      title="Administration"      desc="Monitoring système et gestion des comptes"      color="gray" />
             </div>

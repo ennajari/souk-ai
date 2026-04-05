@@ -10,6 +10,7 @@ from models.supplier_order import SupplierOrder, SupplierOrderStatus
 from models.product import Product
 from schemas.supplier import SupplierCreate, SupplierUpdate, SupplierResponse, SupplierOrderResponse
 from services.supplier_aggregation import create_aggregated_bulk_order
+from services.whatsapp import send_text_message
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 
@@ -19,7 +20,12 @@ async def list_suppliers(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Supplier).where(Supplier.is_active == True))
+    result = await db.execute(
+        select(Supplier).where(
+            Supplier.is_active == True,
+            Supplier.merchant_id == merchant.id,
+        )
+    )
     return result.scalars().all()
 
 
@@ -32,11 +38,15 @@ async def create_supplier(
     if data.minimum_order_value < 0:
         raise HTTPException(400, "La commande minimum ne peut pas etre negative")
     existing = await db.execute(
-        select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True)
+        select(Supplier).where(
+            Supplier.name == data.name,
+            Supplier.is_active == True,
+            Supplier.merchant_id == merchant.id,
+        )
     )
     if existing.scalar_one_or_none():
         raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
-    supplier = Supplier(**data.model_dump())
+    supplier = Supplier(merchant_id=merchant.id, **data.model_dump())
     db.add(supplier)
     await db.flush()
     await db.refresh(supplier)
@@ -50,7 +60,9 @@ async def update_supplier(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
+    result = await db.execute(
+        select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id)
+    )
     supplier = result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
@@ -75,7 +87,9 @@ async def delete_supplier(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
+    result = await db.execute(
+        select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id)
+    )
     supplier = result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
@@ -128,6 +142,21 @@ async def place_order(
     db.add(order)
     await db.flush()
     await db.refresh(order)
+
+    # Notify supplier via WhatsApp if phone number is set
+    if supplier.phone_number:
+        try:
+            msg = (
+                f"🛒 Nouvelle commande de {merchant.business_name}\n"
+                f"Produit: {product.name_fr or product.name_ar}\n"
+                f"Quantité: {quantity}\n"
+                f"Total: {total:.2f} MAD\n"
+                f"Référence: {order.id[:8].upper()}"
+            )
+            await send_text_message(supplier.phone_number, msg)
+        except Exception:
+            pass  # Don't fail the order if WhatsApp fails
+
     return order
 
 

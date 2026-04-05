@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp } from 'react-icons/fi'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink } from 'react-icons/fi'
 import { productsAPI, transactionsAPI } from '../api/client'
 import client from '../api/client'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -20,7 +20,11 @@ export default function POS() {
   const [customers, setCustomers] = useState([])
   const [selectedCustomer, setSelectedCustomer] = useState('')
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
+  const [linkModal, setLinkModal] = useState(null) // { barcode: string }
+  const [linkSearch, setLinkSearch] = useState('')
+  const [linking, setLinking] = useState(false)
   const searchRef = useRef()
+  const linkSearchRef = useRef()
 
   useEffect(() => {
     productsAPI.list()
@@ -49,7 +53,9 @@ export default function POS() {
           addToCart(product)
           toast.success(`${product.name_fr || product.name_ar} ✓`)
         } else {
-          toast.error(`${t('pos.noProduct')}: ${code}`)
+          setLinkSearch('')
+          setLinkModal({ barcode: code })
+          setTimeout(() => linkSearchRef.current?.focus(), 100)
         }
         buffer = ''
         return
@@ -93,8 +99,40 @@ export default function POS() {
       addToCart(product)
       toast.success(`${product.name_fr || product.name_ar} ✓`)
     } else {
-      setSearch(code)
-      toast.error(`${t('pos.noProduct')}: ${code}`)
+      // No product found → offer to link this barcode to an existing product
+      setLinkSearch('')
+      setLinkModal({ barcode: code })
+      setTimeout(() => linkSearchRef.current?.focus(), 100)
+    }
+  }
+
+  const linkSuggestions = useMemo(() => {
+    if (!linkSearch.trim()) return products.slice(0, 8)
+    const q = linkSearch.toLowerCase()
+    return products
+      .filter(p =>
+        (p.name_fr || '').toLowerCase().includes(q) ||
+        (p.name_ar || '').toLowerCase().includes(q) ||
+        (p.barcode || '').includes(q)
+      )
+      .slice(0, 8)
+  }, [linkSearch, products])
+
+  const handleLinkBarcode = async (product) => {
+    setLinking(true)
+    try {
+      await productsAPI.update(product.id, { barcode: linkModal.barcode })
+      // Update local products state
+      setProducts(prev => prev.map(p =>
+        p.id === product.id ? { ...p, barcode: linkModal.barcode } : p
+      ))
+      toast.success(`Code-barres lié à "${product.name_fr || product.name_ar}"`)
+      addToCart({ ...product, barcode: linkModal.barcode })
+      setLinkModal(null)
+    } catch {
+      toast.error('Erreur lors de la liaison du code-barres')
+    } finally {
+      setLinking(false)
     }
   }
 
@@ -348,7 +386,7 @@ ${receipt.items.map(c => `
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
             {filtered.map(p => {
               const inCart = cart.find(c => c.product.id === p.id)
-              const stock = p.inventory?.quantity || 0
+              const stock = p.stock_quantity ?? 0
               return (
                 <button
                   key={p.id}
@@ -440,6 +478,64 @@ ${receipt.items.map(c => `
           onScan={handleBarcodeScan}
           onClose={() => setShowScanner(false)}
         />
+      )}
+
+      {/* Link Barcode Modal */}
+      {linkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setLinkModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <button onClick={() => setLinkModal(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl">
+              <FiX className="h-5 w-5 text-gray-500" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <FiLink className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Code-barres non reconnu</h3>
+                <p className="text-xs text-gray-400 font-mono mt-0.5">{linkModal.barcode}</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-3">Associez ce code-barres à un produit existant :</p>
+            <div className="relative mb-3">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                ref={linkSearchRef}
+                value={linkSearch}
+                onChange={e => setLinkSearch(e.target.value)}
+                placeholder="Rechercher produit par nom..."
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 rounded-xl border border-gray-100">
+              {linkSuggestions.length === 0 ? (
+                <p className="text-center text-sm text-gray-400 py-6">Aucun produit trouvé</p>
+              ) : linkSuggestions.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => handleLinkBarcode(p)}
+                  disabled={linking}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-violet-50 transition-colors text-left disabled:opacity-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{p.name_fr || p.name_ar}</p>
+                    {p.name_ar && p.name_fr && p.name_ar !== p.name_fr && (
+                      <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>
+                    )}
+                  </div>
+                  <div className="text-right ml-3 flex-shrink-0">
+                    <p className="text-sm font-bold text-violet-600">{(p.unit_price || 0).toFixed(2)} MAD</p>
+                    {p.barcode && <p className="text-[10px] text-gray-400 font-mono">{p.barcode}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              Le code-barres sera enregistré définitivement sur ce produit
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Receipt Modal */}
