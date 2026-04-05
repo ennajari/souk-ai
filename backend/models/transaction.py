@@ -11,6 +11,7 @@ class TransactionType(str, enum.Enum):
     SALE = "SALE"
     PURCHASE = "PURCHASE"
     ADJUSTMENT = "ADJUSTMENT"
+    RETURN = "RETURN"
 
 
 class TransactionSource(str, enum.Enum):

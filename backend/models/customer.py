@@ -21,6 +21,7 @@ class Customer(Base):
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)  # positive = customer owes
+    credit_limit: Mapped[float] = mapped_column(Numeric(10, 2), default=0)  # 0 = no limit
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

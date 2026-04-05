@@ -36,6 +36,7 @@ export default function Sidebar({ onClose }) {
     },
     {
       label: t("nav.intelligence"),
+      desktopOnly: true, // hidden on mobile/tablet — use Settings for analytics on the go
       links: [
         { to: "/analytics", icon: FiBarChart2,  label: t("nav.analytics") },
         { to: "/profit",    icon: FiPercent,    label: t("nav.profit") },
@@ -51,6 +52,7 @@ export default function Sidebar({ onClose }) {
       ],
     },
   ]
+
 
   const initials = (merchant?.business_name || "S")
     .split(" ").slice(0, 2)
@@ -80,7 +82,7 @@ export default function Sidebar({ onClose }) {
       {/* ── Nav ── */}
       <nav className="flex-1 px-3 pb-4 overflow-y-auto space-y-5">
         {sections.map((section) => (
-          <div key={section.label}>
+          <div key={section.label} className={section.desktopOnly ? 'hidden md:block' : ''}>
             <p className="px-3 mb-1.5 text-[10px] font-bold text-gray-600 tracking-widest uppercase">
               {section.label}
             </p>

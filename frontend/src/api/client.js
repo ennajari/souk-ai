@@ -48,12 +48,15 @@ export const inventoryAPI = {
   adjust: (data) => client.post('/inventory/adjust', data),
   updateThreshold: (productId, threshold) =>
     client.patch(`/inventory/${productId}/threshold`, { reorder_threshold: threshold }),
+  logs: (productId = null, limit = 50) =>
+    client.get('/inventory/logs', { params: { product_id: productId, limit } }),
 }
 
 // ---- Transactions ----
 export const transactionsAPI = {
   list: (type = null, limit = 50) => client.get('/transactions/', { params: { type, limit } }),
   create: (data) => client.post('/transactions/', data),
+  returnSale: (transactionId) => client.post(`/transactions/${transactionId}/return`),
 }
 
 // ---- Analytics ----

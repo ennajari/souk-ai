@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
 from models.product import Product
-from models.inventory import Inventory
+from models.inventory import Inventory, InventoryLog
 from schemas.inventory import InventoryResponse, InventoryAdjust, ThresholdUpdate
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
@@ -62,6 +62,41 @@ async def get_alerts(
     return [_to_response(i) for i in low]
 
 
+@router.get("/logs")
+async def get_inventory_logs(
+    product_id: str | None = None,
+    limit: int = 50,
+    merchant: Merchant = Depends(get_current_merchant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Audit trail — historique de toutes les modifications de stock."""
+    query = (
+        select(InventoryLog)
+        .where(InventoryLog.merchant_id == merchant.id)
+        .order_by(desc(InventoryLog.created_at))
+        .limit(limit)
+    )
+    if product_id:
+        query = query.where(InventoryLog.product_id == product_id)
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    return [
+        {
+            "id": log.id,
+            "product_id": log.product_id,
+            "product_name": (log.product.name_fr or log.product.name_ar) if log.product else None,
+            "quantity_before": float(log.quantity_before),
+            "quantity_change": float(log.quantity_change),
+            "quantity_after": float(log.quantity_after),
+            "reason": log.reason,
+            "source": log.source,
+            "created_at": log.created_at.isoformat(),
+        }
+        for log in logs
+    ]
+
+
 @router.post("/adjust", response_model=InventoryResponse)
 async def adjust_inventory(
     req: InventoryAdjust,
@@ -83,14 +118,25 @@ async def adjust_inventory(
         db.add(inv)
         await db.flush()
 
-    inv.quantity = float(inv.quantity) + req.quantity_change
+    qty_before = float(inv.quantity)
+    inv.quantity = qty_before + req.quantity_change
     inv.updated_at = datetime.now(timezone.utc)
+
+    # Audit log
+    log = InventoryLog(
+        product_id=req.product_id,
+        merchant_id=merchant.id,
+        quantity_before=qty_before,
+        quantity_change=req.quantity_change,
+        quantity_after=float(inv.quantity),
+        reason=req.reason or "Ajustement manuel",
+        source="manual",
+    )
+    db.add(log)
+
     await db.flush()
 
-    # Reload with product
-    result = await db.execute(
-        select(Inventory).where(Inventory.id == inv.id)
-    )
+    result = await db.execute(select(Inventory).where(Inventory.id == inv.id))
     inv = result.scalar_one()
     return _to_response(inv)
 

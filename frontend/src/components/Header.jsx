@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiLogOut, FiBell, FiMenu, FiAlertTriangle } from 'react-icons/fi'
+import { FiLogOut, FiBell, FiMenu, FiAlertTriangle, FiCpu, FiActivity, FiUserCheck } from 'react-icons/fi'
 import { RiGlobalLine } from 'react-icons/ri'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -85,6 +85,28 @@ export default function Header({ onMenuClick }) {
           <RiGlobalLine className="h-3.5 w-3.5" />
           <span>{isAr ? 'FR' : 'AR'}</span>
         </button>
+
+        {/* Quick modules — hidden on mobile */}
+        <div className="hidden md:flex items-center gap-0.5">
+          {[
+            { to: '/coach',               icon: FiCpu,       label: 'Coach IA' },
+            { to: '/market-intelligence', icon: FiActivity,  label: 'Intelligence Marché' },
+            { to: '/employees',           icon: FiUserCheck, label: 'Employés' },
+          ].map(({ to, icon: Icon, label }) => (
+            <button
+              key={to}
+              onClick={() => navigate(to)}
+              title={label}
+              className={`p-2 rounded-xl transition-colors ${
+                location.pathname === to
+                  ? 'bg-violet-100 text-violet-600'
+                  : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
 
         {/* Notification bell */}
         <div className="relative">

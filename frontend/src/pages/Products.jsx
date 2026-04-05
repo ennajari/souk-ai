@@ -1,8 +1,30 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw } from 'react-icons/fi'
 import { RiScanLine } from 'react-icons/ri'
-import { productsAPI } from '../api/client'
+import { productsAPI, inventoryAPI } from '../api/client'
 import toast from 'react-hot-toast'
+
+/* ─── Helpers ─────────────────────────────────────────────────────────── */
+function normalizeName(name = '') {
+  return name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function extractPackSize(name = '') {
+  const m = name.match(/\*\s*(\d+)/i)
+  return m ? parseInt(m[1], 10) : 1
+}
+
+function namesAreSimilar(a, b) {
+  const na = normalizeName(a)
+  const nb = normalizeName(b)
+  if (!na || !nb) return false
+  if (na === nb) return true
+  const wa = na.split(' ').filter(w => w.length > 2)
+  const wb = nb.split(' ').filter(w => w.length > 2)
+  if (!wa.length || !wb.length) return na.includes(nb) || nb.includes(na)
+  const common = wa.filter(w => wb.includes(w))
+  return common.length >= Math.ceil(Math.min(wa.length, wb.length) * 0.6)
+}
 
 export default function Products() {
   const [products, setProducts]   = useState([])
@@ -120,30 +142,68 @@ export default function Products() {
     }
   }
 
+  // Compute match + pack size metadata for each scanned item
+  const scanItemMeta = useMemo(() => {
+    const map = {}
+    scanItems.forEach(it => {
+      const packSize = extractPackSize(it.name)
+      const effectiveQty = (it.quantity || 1) * packSize
+      const matchedProduct = products.find(p =>
+        namesAreSimilar(p.name_ar, it.name) ||
+        namesAreSimilar(p.name_fr, it.name)
+      ) || null
+      map[it._id] = { packSize, effectiveQty, matchedProduct, isNew: !matchedProduct }
+    })
+    return map
+  }, [scanItems, products])
+
   const handleImportSelected = async () => {
     const toImport = scanItems.filter(it => scanSelected[it._id])
     if (!toImport.length) return toast.error('Sélectionnez au moins un produit')
     setImporting(true)
-    let created = 0, skipped = 0
+    let created = 0, updated = 0, failed = 0
+
     for (const it of toImport) {
+      const { matchedProduct, effectiveQty } = scanItemMeta[it._id]
       try {
-        await productsAPI.create({
-          name_ar: it.name,
-          name_fr: it.name,
-          barcode: '',
-          unit: 'piece',
-          unit_price: it.unit_price || 0,
-          cost_price: it.cost_price || 0,
-        })
-        created++
+        if (matchedProduct) {
+          // Update prices
+          await productsAPI.update(matchedProduct.id, {
+            unit_price: it.unit_price || matchedProduct.unit_price,
+            cost_price: it.cost_price || matchedProduct.cost_price,
+          })
+          // Add stock received
+          await inventoryAPI.adjust({
+            product_id: matchedProduct.id,
+            quantity_change: effectiveQty,
+            reason: `Réception fournisseur (+${effectiveQty})`,
+          })
+          updated++
+        } else {
+          await productsAPI.create({
+            name_ar: it.name,
+            name_fr: it.name,
+            barcode: '',
+            unit: 'piece',
+            unit_price: it.unit_price || 0,
+            cost_price: it.cost_price || 0,
+            initial_stock: effectiveQty,
+          })
+          created++
+        }
       } catch {
-        skipped++
+        failed++
       }
     }
+
     setImporting(false)
     setShowScanModal(false)
     loadProducts()
-    toast.success(`${created} produit(s) importé(s)${skipped ? ` · ${skipped} ignoré(s)` : ''}`)
+    const parts = []
+    if (created) parts.push(`${created} créé(s)`)
+    if (updated) parts.push(`${updated} mis à jour`)
+    if (failed) parts.push(`${failed} échoué(s)`)
+    toast.success(parts.join(' · ') || 'Import terminé')
   }
 
   const toggleAll = (val) => {
@@ -400,32 +460,53 @@ export default function Products() {
 
                   {/* Product rows */}
                   <div className="space-y-2">
-                    {scanItems.map((it) => (
-                      <label
-                        key={it._id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                          scanSelected[it._id]
-                            ? 'border-emerald-300 bg-emerald-50'
-                            : 'border-gray-100 bg-gray-50 opacity-60'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!scanSelected[it._id]}
-                          onChange={e => setScanSelected({ ...scanSelected, [it._id]: e.target.checked })}
-                          className="rounded text-emerald-500 w-4 h-4 flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{it.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            Qté: {it.quantity} · Prix vente: {it.unit_price ? `${Number(it.unit_price).toFixed(2)} MAD` : '—'} · Prix achat: {it.cost_price ? `${Number(it.cost_price).toFixed(2)} MAD` : '—'}
-                          </p>
-                        </div>
-                        {scanSelected[it._id] && (
-                          <FiCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                        )}
-                      </label>
-                    ))}
+                    {scanItems.map((it) => {
+                      const meta = scanItemMeta[it._id] || {}
+                      const { packSize = 1, effectiveQty = it.quantity, matchedProduct, isNew = true } = meta
+                      return (
+                        <label
+                          key={it._id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                            scanSelected[it._id]
+                              ? 'border-emerald-300 bg-emerald-50'
+                              : 'border-gray-100 bg-gray-50 opacity-60'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!scanSelected[it._id]}
+                            onChange={e => setScanSelected({ ...scanSelected, [it._id]: e.target.checked })}
+                            className="rounded text-emerald-500 w-4 h-4 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{it.name}</p>
+                              {isNew ? (
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">NOUVEAU</span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 flex-shrink-0 flex items-center gap-1">
+                                  <FiRefreshCw className="h-2.5 w-2.5" /> MISE À JOUR
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {packSize > 1
+                                ? `${it.quantity} carton(s) × ${packSize} = `
+                                : 'Qté: '}
+                              <span className="font-semibold text-gray-600">{effectiveQty} unité(s)</span>
+                              {' · '}Prix vente: {it.unit_price ? `${Number(it.unit_price).toFixed(2)} MAD` : '—'}
+                              {' · '}Prix achat: {it.cost_price ? `${Number(it.cost_price).toFixed(2)} MAD` : '—'}
+                              {matchedProduct && (
+                                <span className="text-blue-500"> · correspond à "{matchedProduct.name_fr}"</span>
+                              )}
+                            </p>
+                          </div>
+                          {scanSelected[it._id] && (
+                            <FiCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          )}
+                        </label>
+                      )
+                    })}
                   </div>
                 </>
               )}
@@ -451,10 +532,19 @@ export default function Products() {
                       Import en cours...
                     </>
                   ) : (
-                    <>
-                      <FiCheck className="h-4 w-4" />
-                      Importer {Object.values(scanSelected).filter(Boolean).length} produit(s)
-                    </>
+                    (() => {
+                      const sel = scanItems.filter(it => scanSelected[it._id])
+                      const newCount = sel.filter(it => scanItemMeta[it._id]?.isNew).length
+                      const updCount = sel.filter(it => !scanItemMeta[it._id]?.isNew).length
+                      return (
+                        <>
+                          <FiCheck className="h-4 w-4" />
+                          {newCount > 0 && `${newCount} nouveau(x)`}
+                          {newCount > 0 && updCount > 0 && ' · '}
+                          {updCount > 0 && `${updCount} mise(s) à jour`}
+                        </>
+                      )
+                    })()
                   )}
                 </button>
               </div>

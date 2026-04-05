@@ -45,12 +45,14 @@ async def create_product(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    product = Product(merchant_id=merchant.id, **req.model_dump())
+    data = req.model_dump()
+    initial_stock = data.pop('initial_stock', 0) or 0
+    product = Product(merchant_id=merchant.id, **data)
     db.add(product)
     await db.flush()
 
-    # Create inventory entry
-    inventory = Inventory(product_id=product.id, quantity=0)
+    # Create inventory entry with initial stock
+    inventory = Inventory(product_id=product.id, quantity=initial_stock)
     db.add(inventory)
     await db.flush()
 
@@ -58,7 +60,7 @@ async def create_product(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
         name_fr=product.name_fr, barcode=product.barcode, unit=product.unit,
         unit_price=float(product.unit_price), cost_price=float(product.cost_price),
-        is_active=product.is_active, created_at=product.created_at, stock_quantity=0,
+        is_active=product.is_active, created_at=product.created_at, stock_quantity=initial_stock,
     )
 
 
