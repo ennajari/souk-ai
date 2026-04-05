@@ -1,6 +1,6 @@
 import re
 import random
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -10,7 +10,6 @@ from core.security import hash_password, verify_password, create_access_token
 from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory
 from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
-from schemas.merchant import MerchantResponse
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,7 +34,7 @@ def normalize_phone(phone: str) -> str:
     return phone
 
 
-async def _get_redis():
+def _get_redis():
     """Get async Redis connection for OTP storage."""
     import redis.asyncio as aioredis
     return aioredis.from_url(settings.REDIS_URL, decode_responses=True)

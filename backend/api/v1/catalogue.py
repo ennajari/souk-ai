@@ -44,7 +44,7 @@ async def get_public_catalogue(
 
     prod_result = await db.execute(
         select(Product)
-        .where(Product.merchant_id == merchant_id, Product.is_active == True)
+        .where(Product.merchant_id == merchant_id, Product.is_active is True)
         .options(selectinload(Product.inventory))
         .order_by(Product.name_fr)
     )

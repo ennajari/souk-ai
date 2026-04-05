@@ -1,7 +1,4 @@
 """Payment service for CMI and CashPlus integration (Morocco)."""
-import uuid
-import hashlib
-import hmac
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession

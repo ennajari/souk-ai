@@ -26,7 +26,7 @@ async def get_dashboard_stats(
     # Total products
     prod_result = await db.execute(
         select(func.count(Product.id)).where(
-            Product.merchant_id == merchant.id, Product.is_active == True
+            Product.merchant_id == merchant.id, Product.is_active is True
         )
     )
     total_products = prod_result.scalar() or 0
@@ -65,7 +65,7 @@ async def get_dashboard_stats(
     inv_result = await db.execute(
         select(Inventory)
         .join(Product)
-        .where(Product.merchant_id == merchant.id, Product.is_active == True)
+        .where(Product.merchant_id == merchant.id, Product.is_active is True)
     )
     inventories = inv_result.scalars().all()
     low_stock_count = sum(1 for i in inventories if float(i.quantity) <= i.reorder_threshold)

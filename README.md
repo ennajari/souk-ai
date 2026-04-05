@@ -76,3 +76,5 @@ certbot certonly --standalone -d votre-domaine.com
 ## Configuration WhatsApp
 
 Voir [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md)
+
+[![Quality gate](http://localhost:9000/api/project_badges/quality_gate?project=soukai&token=sqb_94fb3e5e795e07777189b358725f333425ef5543)](http://localhost:9000/dashboard?id=soukai)

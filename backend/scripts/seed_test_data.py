@@ -1,5 +1,4 @@
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone, timedelta
 import random
@@ -9,7 +8,6 @@ from models.merchant import Merchant
 from models.supplier import Supplier, SupplierCategory
 from models.transaction import Transaction, TransactionType, TransactionSource
 from models.product import Product
-from workers.tasks import process_whatsapp_message
 
 async def seed_data_for_test():
     """Seed the database with a test merchant, supplier, products, and transactions."""

@@ -18,7 +18,7 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
                 select(Product).where(
                     Product.id == product_id,
                     Product.merchant_id == merchant_id,
-                    Product.is_active == True
+                    Product.is_active is True
                 )
             )
             prod = result.scalar_one_or_none()
@@ -31,7 +31,7 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
     result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant_id,
-            Product.is_active == True,
+            Product.is_active is True,
             (Product.name_ar.ilike(f"%{name}%")) | (Product.name_fr.ilike(f"%{name}%")),
         )
     )
@@ -49,7 +49,7 @@ async def find_product_by_name(db: AsyncSession, merchant_id: str, name: str) ->
             r = await db.execute(
                 select(Product).where(
                     Product.merchant_id == merchant_id,
-                    Product.is_active == True,
+                    Product.is_active is True,
                     (Product.name_ar.ilike(f"%{alias}%")) | (Product.name_fr.ilike(f"%{alias}%")),
                 )
             )
@@ -101,7 +101,7 @@ async def get_low_stock_products(db: AsyncSession, merchant_id: str) -> list[dic
     result = await db.execute(
         select(Inventory)
         .join(Product)
-        .where(Product.merchant_id == merchant_id, Product.is_active == True)
+        .where(Product.merchant_id == merchant_id, Product.is_active is True)
     )
     items = result.scalars().all()
     low = []

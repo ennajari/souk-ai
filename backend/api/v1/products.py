@@ -21,7 +21,7 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)  # noqa: E712
     )
     products = result.scalars().all()
 

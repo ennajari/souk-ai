@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 
 from core.database import get_db
 from core.deps import get_current_merchant
@@ -74,7 +74,7 @@ async def admin_stats(
 
     # Total employees
     total_employees = (await db.execute(
-        select(func.count(Employee.id)).where(Employee.is_active == True)
+        select(func.count(Employee.id)).where(Employee.is_active is True)
     )).scalar() or 0
 
     # Active merchants (had a transaction in last 7 days)

@@ -206,7 +206,7 @@ def parse_sage_clients(content: str) -> list[dict]:
 
 def detect_sage_file_type(content: str) -> Optional[str]:
     """Auto-detect the type of Sage export file based on headers."""
-    delimiter = detect_delimiter(content)
+    detect_delimiter(content)
     first_line = content.split('\n')[0].lower()
     first_line = normalize_header(first_line)
 

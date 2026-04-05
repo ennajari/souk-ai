@@ -1,9 +1,8 @@
 import asyncio
 import base64
 import json
-import unicodedata
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from workers.celery_app import celery_app
@@ -146,14 +145,14 @@ def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str
     DARK = colors.HexColor("#1f2937")    # gray-800
     GREY = colors.HexColor("#6b7280")    # gray-500
     LIGHT_GREY = colors.HexColor("#f3f4f6")  # gray-100
-    GREEN = colors.HexColor("#059669")   # emerald-600
+    colors.HexColor("#059669")   # emerald-600
 
     # Styles
     h1 = ParagraphStyle("h1", fontSize=28, fontName="Helvetica-Bold", textColor=PRIMARY, alignment=TA_LEFT, spaceAfter=2)
     sub = ParagraphStyle("sub", fontSize=9, fontName="Helvetica", textColor=GREY, alignment=TA_LEFT, spaceAfter=0)
     normal = ParagraphStyle("normal", fontSize=10, fontName="Helvetica", textColor=DARK, spaceAfter=3, leading=14)
     label = ParagraphStyle("label", fontSize=8, fontName="Helvetica-Bold", textColor=GREY, spaceAfter=2)
-    right_s = ParagraphStyle("right", fontSize=10, fontName="Helvetica", alignment=TA_RIGHT, textColor=DARK)
+    ParagraphStyle("right", fontSize=10, fontName="Helvetica", alignment=TA_RIGHT, textColor=DARK)
     footer_s = ParagraphStyle("footer", fontSize=8, fontName="Helvetica", textColor=GREY, alignment=TA_CENTER)
 
     elements = []
@@ -180,8 +179,8 @@ def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str
     # ── Vendor & Client info ──
     info_data = [
         [
-            Paragraph(f"<font size=8 color='#6b7280'><b>VENDEUR</b></font>", label),
-            Paragraph(f"<font size=8 color='#6b7280'><b>CLIENT</b></font>", label),
+            Paragraph("<font size=8 color='#6b7280'><b>VENDEUR</b></font>", label),
+            Paragraph("<font size=8 color='#6b7280'><b>CLIENT</b></font>", label),
         ],
         [
             Paragraph(f"<b>{merchant_name}</b>", normal),
@@ -271,7 +270,7 @@ def _build_invoice_pdf(invoice_number: str, client_name: str, merchant_name: str
     # ── Footer ──
     elements.append(HRFlowable(width="100%", thickness=1, color=PRIMARY_LIGHT, spaceAfter=8))
     elements.append(Paragraph(
-        f"Merci pour votre confiance!",
+        "Merci pour votre confiance!",
         ParagraphStyle("thanks", fontSize=10, fontName="Helvetica-Bold", textColor=PRIMARY, alignment=TA_CENTER, spaceAfter=4),
     ))
     elements.append(Paragraph(
@@ -338,7 +337,7 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                 await send_text_message(phone_number, "Inscrivez-vous d'abord sur Souk.AI.")
                 return {"status": "unregistered"}
 
-            lang = detect_lang(caption) if caption else "fr"
+            detect_lang(caption) if caption else "fr"
 
             # Download image bytes
             try:
@@ -532,7 +531,7 @@ async def _process_document(phone_number: str, media_id: str, filename: str):
                         select(Product).where(
                             Product.merchant_id == merchant.id,
                             Product.barcode == art['barcode'],
-                            Product.is_active == True,
+                            Product.is_active is True,
                         )
                     )
                     existing = r.scalar_one_or_none()
@@ -542,7 +541,7 @@ async def _process_document(phone_number: str, media_id: str, filename: str):
                         select(Product).where(
                             Product.merchant_id == merchant.id,
                             (Product.name_fr == name) | (Product.name_ar == name),
-                            Product.is_active == True,
+                            Product.is_active is True,
                         )
                     )
                     existing = r.scalar_one_or_none()
@@ -730,7 +729,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         from models.product import Product as Prod
                         from models.inventory import Inventory as Inv
                         # Use name_fr for Latin-script names, name_ar for Arabic
-                        is_latin = all(not ('\u0600' <= c <= '\u06FF') for c in product_name if c.isalpha())
+                        all(not ('\u0600' <= c <= '\u06FF') for c in product_name if c.isalpha())
                         new_product = Prod(
                             merchant_id=merchant.id,
                             name_ar=product_name,
@@ -803,7 +802,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         from models.supplier import Supplier
                         from models.supplier_order import SupplierOrder, SupplierOrderStatus
                         sup_result = await db.execute(
-                            select(Supplier).where(Supplier.is_active == True)
+                            select(Supplier).where(Supplier.is_active is True)
                         )
                         suppliers = sup_result.scalars().all()
                         matching = None
@@ -890,7 +889,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
             elif intent == "LIST_PRODUCTS":
                 from models.inventory import Inventory
                 prod_result = await db.execute(
-                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
                 )
                 products = prod_result.scalars().all()
                 if not products:
@@ -1095,7 +1094,7 @@ async def _send_alerts():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
             merchants = result.scalars().all()
             for merchant in merchants:
                 lines = []
@@ -1114,8 +1113,8 @@ async def _send_alerts():
                 expiry_result = await db.execute(
                     select(Product).where(
                         Product.merchant_id == merchant.id,
-                        Product.is_active == True,
-                        Product.expiry_date != None,
+                        Product.is_active is True,
+                        Product.expiry_date is not None,
                         Product.expiry_date <= deadline,
                     )
                 )
@@ -1149,7 +1148,7 @@ async def _send_weekly_summary():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1224,7 +1223,7 @@ async def _send_daily_sales_report():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1298,7 +1297,7 @@ async def _update_credit_scores():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1331,12 +1330,12 @@ async def _update_forecasts():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
                 products_result = await db.execute(
-                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
                 )
                 for product in products_result.scalars().all():
                     forecasts = await calculate_forecast(db, merchant.id, product.id)

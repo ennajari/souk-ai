@@ -2,7 +2,7 @@
 from datetime import datetime, timezone, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, case, distinct
+from sqlalchemy import select, func, distinct
 
 from models.merchant import Merchant
 from models.product import Product
@@ -16,11 +16,11 @@ async def get_market_overview(db: AsyncSession) -> dict:
     thirty_days_ago = now - timedelta(days=30)
 
     # Total merchants
-    merchants_q = await db.execute(select(func.count(Merchant.id)).where(Merchant.is_active == True))
+    merchants_q = await db.execute(select(func.count(Merchant.id)).where(Merchant.is_active is True))
     total_merchants = merchants_q.scalar() or 0
 
     # Total products
-    products_q = await db.execute(select(func.count(Product.id)).where(Product.is_active == True))
+    products_q = await db.execute(select(func.count(Product.id)).where(Product.is_active is True))
     total_products = products_q.scalar() or 0
 
     # Transactions last 30 days
@@ -42,7 +42,7 @@ async def get_market_overview(db: AsyncSession) -> dict:
     # Top categories
     cat_q = await db.execute(
         select(Merchant.business_category, func.count(Merchant.id))
-        .where(Merchant.is_active == True)
+        .where(Merchant.is_active is True)
         .group_by(Merchant.business_category)
         .order_by(func.count(Merchant.id).desc())
         .limit(5)
@@ -101,7 +101,7 @@ async def get_merchant_benchmark(db: AsyncSession, merchant_id: str) -> dict:
     peers_q = await db.execute(
         select(Merchant.id).where(
             Merchant.business_category == category,
-            Merchant.is_active == True,
+            Merchant.is_active is True,
         )
     )
     peer_ids = [row[0] for row in peers_q.all()]
@@ -229,11 +229,11 @@ async def get_trending_products(db: AsyncSession, limit: int = 20) -> list[dict]
 async def get_price_benchmark(db: AsyncSession, merchant_id: str) -> list[dict]:
     """Compare merchant's prices with market averages."""
     now = datetime.now(timezone.utc)
-    thirty_days_ago = now - timedelta(days=30)
+    now - timedelta(days=30)
 
     # Get merchant's products
     products_q = await db.execute(
-        select(Product).where(Product.merchant_id == merchant_id, Product.is_active == True)
+        select(Product).where(Product.merchant_id == merchant_id, Product.is_active is True)
     )
     products = products_q.scalars().all()
 
@@ -247,7 +247,7 @@ async def get_price_benchmark(db: AsyncSession, merchant_id: str) -> list[dict]:
                 func.max(Product.unit_price),
             ).where(
                 Product.name_fr == product.name_fr,
-                Product.is_active == True,
+                Product.is_active is True,
             )
         )
         market_row = market_q.one()

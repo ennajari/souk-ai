@@ -2,9 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone
 
-from models.supplier import Supplier
 from models.supplier_order import SupplierOrder, SupplierOrderStatus
-from models.merchant import Merchant
 
 async def aggregate_supplier_orders(db: AsyncSession, supplier_id: str) -> list[SupplierOrder]:
     """
