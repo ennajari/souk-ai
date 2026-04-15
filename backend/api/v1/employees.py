@@ -62,7 +62,7 @@ async def list_employees(
 ):
     result = await db.execute(
         select(Employee)
-        .where(Employee.merchant_id == merchant.id, Employee.is_active is True)
+        .where(Employee.merchant_id == merchant.id, Employee.is_active == True)  # noqa: E712
         .order_by(Employee.name)
     )
     return result.scalars().all()
@@ -79,7 +79,7 @@ async def create_employee(
         select(Employee).where(
             Employee.merchant_id == merchant.id,
             Employee.name == data.name,
-            Employee.is_active is True,
+            Employee.is_active == True,  # noqa: E712
         )
     )
     if existing.scalar_one_or_none():
@@ -148,7 +148,7 @@ async def verify_pin(
         select(Employee).where(
             Employee.id == employee_id,
             Employee.merchant_id == merchant.id,
-            Employee.is_active is True,
+            Employee.is_active == True,  # noqa: E712
         )
     )
     employee = result.scalar_one_or_none()

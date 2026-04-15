@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
     BACKEND_CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000"]'
-    FRONTEND_URL: str = "http://51.77.145.117:8080"
+    FRONTEND_URL: str = "http://localhost:8080"
 
     @property
     def cors_origins(self) -> List[str]:
