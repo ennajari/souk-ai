@@ -337,7 +337,7 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                 await send_text_message(phone_number, "Inscrivez-vous d'abord sur Souk.AI.")
                 return {"status": "unregistered"}
 
-            detect_lang(caption) if caption else "fr"
+            lang = detect_lang(caption) if caption else "fr"  # noqa: F841
 
             # Download image bytes
             try:
