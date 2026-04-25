@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
 
     # Admin
-    ADMIN_PHONE: str = "212655798315"
+    ADMIN_PHONE: str = "212763576794"
 
     # App
     APP_ENV: str = "development"
