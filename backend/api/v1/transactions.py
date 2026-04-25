@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -19,8 +20,8 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 async def list_transactions(
     type: str | None = None,
     limit: int = Query(50, le=200),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     # Fix N+1: load Product in the same query via JOIN
     query = (
@@ -52,8 +53,8 @@ async def list_transactions(
 @router.post("/", response_model=TransactionResponse, status_code=201)
 async def create_transaction(
     req: TransactionCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Verify product belongs to merchant
     prod_result = await db.execute(
@@ -114,8 +115,8 @@ async def create_transaction(
 @router.post("/{transaction_id}/return", response_model=TransactionResponse, status_code=201)
 async def return_transaction(
     transaction_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Annuler/retourner une vente — recrédite le stock automatiquement."""
     result = await db.execute(

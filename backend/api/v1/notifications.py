@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, update
@@ -32,8 +33,8 @@ class NotificationResponse(BaseModel):
 
 @router.get("/", response_model=list[NotificationResponse])
 async def list_notifications(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Notification)
@@ -47,8 +48,8 @@ async def list_notifications(
 @router.post("/", response_model=NotificationResponse, status_code=201)
 async def create_notification(
     data: NotificationCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     notif = Notification(
         merchant_id=merchant.id,
@@ -65,8 +66,8 @@ async def create_notification(
 @router.patch("/{notification_id}/read")
 async def mark_read(
     notification_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Notification).where(
@@ -84,8 +85,8 @@ async def mark_read(
 
 @router.patch("/read-all")
 async def mark_all_read(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     await db.execute(
         update(Notification)
@@ -99,8 +100,8 @@ async def mark_all_read(
 @router.delete("/{notification_id}")
 async def delete_notification(
     notification_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Notification).where(

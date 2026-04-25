@@ -1,6 +1,7 @@
 import csv
 import io
 from datetime import datetime, timezone, timedelta
+from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,11 +15,13 @@ from models.transaction import Transaction, TransactionType
 
 router = APIRouter(prefix="/export", tags=["Export"])
 
+CSV_CONTENT_TYPE = "text/csv"
+
 
 @router.get("/products")
 async def export_products_csv(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
@@ -40,7 +43,7 @@ async def export_products_csv(
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
-        media_type="text/csv",
+        media_type=CSV_CONTENT_TYPE,
         headers={"Content-Disposition": f"attachment; filename=produits_{datetime.now().strftime('%Y%m%d')}.csv"},
     )
 
@@ -48,8 +51,8 @@ async def export_products_csv(
 @router.get("/transactions")
 async def export_transactions_csv(
     days: int = Query(30, le=365),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
@@ -77,7 +80,7 @@ async def export_transactions_csv(
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
-        media_type="text/csv",
+        media_type=CSV_CONTENT_TYPE,
         headers={"Content-Disposition": f"attachment; filename=transactions_{datetime.now().strftime('%Y%m%d')}.csv"},
     )
 
@@ -85,8 +88,8 @@ async def export_transactions_csv(
 @router.get("/profit")
 async def export_profit_csv(
     days: int = Query(30, le=365),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
@@ -126,6 +129,6 @@ async def export_profit_csv(
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
-        media_type="text/csv",
+        media_type=CSV_CONTENT_TYPE,
         headers={"Content-Disposition": f"attachment; filename=profit_{datetime.now().strftime('%Y%m%d')}.csv"},
     )

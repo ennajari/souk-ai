@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -19,8 +20,8 @@ router = APIRouter(prefix="/sage", tags=["sage"])
 @router.post("/import/articles")
 async def import_sage_articles(
     file: UploadFile = File(...),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Import products from a Sage 100 articles CSV export."""
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):
@@ -124,8 +125,8 @@ async def import_sage_articles(
 @router.post("/import/sales")
 async def import_sage_sales(
     file: UploadFile = File(...),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Import sales/invoices from a Sage 100 sales CSV export."""
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):
@@ -205,8 +206,8 @@ async def import_sage_sales(
 @router.post("/import/auto")
 async def import_sage_auto(
     file: UploadFile = File(...),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Auto-detect Sage 100 file type and import accordingly."""
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):

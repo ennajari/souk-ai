@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,8 +16,8 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 @router.post("/", response_model=PaymentResponse)
 async def initiate_payment(
     data: PaymentCreate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Initiate a payment (CMI redirect, CashPlus voucher, or cash)."""
     valid_methods = ["CMI", "CASH_PLUS", "BANK_TRANSFER", "CASH"]
@@ -39,8 +40,8 @@ async def initiate_payment(
 async def list_payments(
     status: str = None,
     limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """List merchant's payments."""
     q = select(Payment).where(Payment.merchant_id == merchant.id)
@@ -71,8 +72,8 @@ async def list_payments(
 @router.get("/{payment_id}")
 async def get_payment(
     payment_id: str,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Get payment details."""
     result = await db.execute(
@@ -101,8 +102,8 @@ async def get_payment(
 
 @router.get("/config/me", response_model=PaymentConfigResponse)
 async def my_payment_config(
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Get my payment configuration."""
     return await get_payment_config(db, merchant.id)
@@ -111,8 +112,8 @@ async def my_payment_config(
 @router.patch("/config/me", response_model=PaymentConfigResponse)
 async def update_my_payment_config(
     data: PaymentConfigUpdate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Update my payment configuration."""
     return await update_payment_config(db, merchant.id, data.model_dump(exclude_unset=True))
@@ -123,7 +124,7 @@ async def update_my_payment_config(
 @router.post("/callback/cmi")
 async def cmi_callback(
     data: CMICallbackData,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """CMI payment gateway callback (called by CMI servers)."""
     payment = await process_cmi_callback(db, data.model_dump())

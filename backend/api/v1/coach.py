@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone, timedelta
 from collections import Counter, defaultdict
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,8 +37,8 @@ class InsightsResponse(BaseModel):
 
 @router.get("/tips", response_model=list[CoachTip])
 async def get_tips(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Generate 3 personalized tips based on merchant data using AI."""
     from openai import AsyncOpenAI
@@ -137,8 +138,8 @@ async def get_tips(
 
 @router.get("/insights", response_model=InsightsResponse)
 async def get_insights(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Quick stats-based insights — no AI, pure calculation."""
     now = datetime.now(timezone.utc)

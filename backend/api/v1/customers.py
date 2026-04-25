@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,11 +16,13 @@ from schemas.customer import (
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
+CLIENT_NOT_FOUND = "Client introuvable"
+
 
 @router.get("/", response_model=list[CustomerListResponse])
 async def list_customers(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Customer).where(Customer.merchant_id == merchant.id, Customer.is_active is True)
@@ -31,8 +34,8 @@ async def list_customers(
 @router.post("/", response_model=CustomerResponse, status_code=201)
 async def create_customer(
     data: CustomerCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Check duplicate by name
     existing = await db.execute(
@@ -55,15 +58,15 @@ async def create_customer(
 @router.get("/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
     customer_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise HTTPException(404, "Client introuvable")
+        raise HTTPException(404, CLIENT_NOT_FOUND)
     return customer
 
 
@@ -71,15 +74,15 @@ async def get_customer(
 async def update_customer(
     customer_id: str,
     data: CustomerUpdate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise HTTPException(404, "Client introuvable")
+        raise HTTPException(404, CLIENT_NOT_FOUND)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(customer, key, value)
     await db.flush()
@@ -90,15 +93,15 @@ async def update_customer(
 @router.delete("/{customer_id}", status_code=204)
 async def delete_customer(
     customer_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise HTTPException(404, "Client introuvable")
+        raise HTTPException(404, CLIENT_NOT_FOUND)
     customer.is_active = False
     await db.flush()
 
@@ -107,15 +110,15 @@ async def delete_customer(
 async def add_credit_entry(
     customer_id: str,
     data: CreditEntryCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise HTTPException(404, "Client introuvable")
+        raise HTTPException(404, CLIENT_NOT_FOUND)
 
     # Check credit limit (0 = no limit)
     if data.type == "CREDIT" and customer.credit_limit > 0:
@@ -150,15 +153,15 @@ async def add_credit_entry(
 @router.get("/{customer_id}/purchases")
 async def get_customer_purchases(
     customer_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Verify customer belongs to merchant
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
     )
     if not result.scalar_one_or_none():
-        raise HTTPException(404, "Client introuvable")
+        raise HTTPException(404, CLIENT_NOT_FOUND)
 
     # Get transactions for this customer
     txn_result = await db.execute(

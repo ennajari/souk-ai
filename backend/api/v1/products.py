@@ -1,5 +1,6 @@
 import base64
 import json
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("/", response_model=list[ProductResponse])
 async def list_products(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)  # noqa: E712
@@ -42,8 +43,8 @@ async def list_products(
 @router.post("/", response_model=ProductResponse, status_code=201)
 async def create_product(
     req: ProductCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     data = req.model_dump()
     initial_stock = data.pop('initial_stock', 0) or 0
@@ -67,8 +68,8 @@ async def create_product(
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
     product_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Product).where(Product.id == product_id, Product.merchant_id == merchant.id)
@@ -90,8 +91,8 @@ async def get_product(
 async def update_product(
     product_id: str,
     req: ProductUpdate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Product).where(Product.id == product_id, Product.merchant_id == merchant.id)
@@ -116,8 +117,8 @@ async def update_product(
 @router.delete("/{product_id}", status_code=204)
 async def delete_product(
     product_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Product).where(Product.id == product_id, Product.merchant_id == merchant.id)
@@ -133,7 +134,7 @@ async def delete_product(
 @router.post("/scan-invoice")
 async def scan_invoice(
     file: UploadFile = File(...),
-    merchant: Merchant = Depends(get_current_merchant),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """Upload a supplier invoice image → GPT-4o Vision extracts products with prices & quantities."""
     if not settings.OPENAI_API_KEY:

@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 
 @router.get("/", response_model=list[SupplierResponse])
 async def list_suppliers(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Supplier).where(
@@ -32,8 +33,8 @@ async def list_suppliers(
 @router.post("/", response_model=SupplierResponse, status_code=201)
 async def create_supplier(
     data: SupplierCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     if data.minimum_order_value < 0:
         raise HTTPException(400, "La commande minimum ne peut pas etre negative")
@@ -57,8 +58,8 @@ async def create_supplier(
 async def update_supplier(
     supplier_id: str,
     data: SupplierUpdate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id)
@@ -84,8 +85,8 @@ async def update_supplier(
 @router.delete("/{supplier_id}", status_code=204)
 async def delete_supplier(
     supplier_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id)
@@ -100,8 +101,8 @@ async def delete_supplier(
 @router.get("/{supplier_id}/orders", response_model=list[SupplierOrderResponse])
 async def list_supplier_orders(
     supplier_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(SupplierOrder).where(
@@ -117,8 +118,8 @@ async def place_order(
     supplier_id: str,
     product_id: str,
     quantity: int,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     sup_result = await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.is_active is True))
     supplier = sup_result.scalar_one_or_none()
@@ -163,8 +164,8 @@ async def place_order(
 @router.post("/{supplier_id}/aggregate")
 async def aggregate_orders(
     supplier_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
     supplier = result.scalar_one_or_none()

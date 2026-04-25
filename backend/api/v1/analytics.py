@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -13,11 +14,14 @@ from schemas.analytics import DashboardStats, SalesChartPoint, ProductProfit, Pr
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
+MAX_SALES_CHART_DAYS = 90
+MAX_PROFIT_DAYS = 365
+
 
 @router.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -82,12 +86,13 @@ async def get_dashboard_stats(
 
 @router.get("/sales-chart", response_model=list[SalesChartPoint])
 async def get_sales_chart(
-    days: int = Query(7, le=90),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    days: int = Query(7, le=MAX_SALES_CHART_DAYS),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
+    safe_days = min(days, MAX_SALES_CHART_DAYS)
     now = datetime.now(timezone.utc)
-    start = now - timedelta(days=days)
+    start = now - timedelta(days=safe_days)
 
     result = await db.execute(
         select(Transaction).where(
@@ -109,7 +114,7 @@ async def get_sales_chart(
 
     # Fill missing days
     points = []
-    for i in range(days):
+    for i in range(safe_days):
         d = (start + timedelta(days=i + 1)).strftime("%Y-%m-%d")
         data = daily.get(d, {"revenue": 0, "count": 0})
         points.append(SalesChartPoint(date=d, revenue=data["revenue"], count=data["count"]))
@@ -119,11 +124,12 @@ async def get_sales_chart(
 
 @router.get("/profit", response_model=ProfitSummary)
 async def get_profit_analysis(
-    days: int = Query(30, le=365),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    days: int = Query(30, le=MAX_PROFIT_DAYS),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    safe_days = min(days, MAX_PROFIT_DAYS)
+    since = datetime.now(timezone.utc) - timedelta(days=safe_days)
 
     result = await db.execute(
         select(Transaction).where(
