@@ -50,9 +50,9 @@ async def export_products_csv(
 
 @router.get("/transactions")
 async def export_transactions_csv(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     days: int = Query(30, le=365),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
@@ -87,9 +87,9 @@ async def export_transactions_csv(
 
 @router.get("/profit")
 async def export_profit_csv(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     days: int = Query(30, le=365),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(

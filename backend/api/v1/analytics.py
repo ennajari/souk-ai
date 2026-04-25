@@ -86,9 +86,9 @@ async def get_dashboard_stats(
 
 @router.get("/sales-chart", response_model=list[SalesChartPoint])
 async def get_sales_chart(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     days: int = Query(7, le=MAX_SALES_CHART_DAYS),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     safe_days = min(days, MAX_SALES_CHART_DAYS)
     now = datetime.now(timezone.utc)
@@ -124,9 +124,9 @@ async def get_sales_chart(
 
 @router.get("/profit", response_model=ProfitSummary)
 async def get_profit_analysis(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     days: int = Query(30, le=MAX_PROFIT_DAYS),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     safe_days = min(days, MAX_PROFIT_DAYS)
     since = datetime.now(timezone.utc) - timedelta(days=safe_days)

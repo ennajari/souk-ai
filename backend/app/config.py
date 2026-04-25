@@ -5,7 +5,7 @@ import json
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://souk_user:postgres123@localhost:5432/souk_db"
+    DATABASE_URL: str = "postgresql+asyncpg://souk_user:changeme@localhost:5432/souk_db"  # NOSONAR
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

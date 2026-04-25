@@ -133,8 +133,8 @@ async def delete_product(
 
 @router.post("/scan-invoice")
 async def scan_invoice(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
     file: UploadFile = File(...),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """Upload a supplier invoice image → GPT-4o Vision extracts products with prices & quantities."""
     if not settings.OPENAI_API_KEY:

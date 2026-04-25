@@ -36,9 +36,9 @@ async def my_benchmark(
 
 @router.get("/trending-products")
 async def trending_products(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
     limit: int = Query(20, ge=1, le=50),
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """Get trending products across the marketplace."""
     return await get_trending_products(db, limit)
@@ -55,9 +55,9 @@ async def price_benchmark(
 
 @router.get("/trends")
 async def market_trends(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
     weeks: int = Query(8, ge=1, le=52),
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """Get weekly market trends."""
     return await get_market_trends(db, weeks)

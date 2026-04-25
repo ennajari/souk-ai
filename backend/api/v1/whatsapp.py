@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from typing import Annotated
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import Response
 
@@ -10,9 +11,9 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
 @router.get("/webhook")
 async def verify_webhook(
-    hub_mode: str = Query(None, alias="hub.mode"),
-    hub_verify_token: str = Query(None, alias="hub.verify_token"),
-    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_mode: Annotated[str | None, Query(alias="hub.mode")] = None,
+    hub_verify_token: Annotated[str | None, Query(alias="hub.verify_token")] = None,
+    hub_challenge: Annotated[str | None, Query(alias="hub.challenge")] = None,
 ):
     """WhatsApp webhook verification (GET)."""
     if hub_mode == "subscribe" and hub_verify_token == settings.WHATSAPP_VERIFY_TOKEN:

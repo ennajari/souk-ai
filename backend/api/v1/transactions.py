@@ -18,10 +18,10 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 @router.get("/", response_model=list[TransactionResponse])
 async def list_transactions(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     type: str | None = None,
     limit: int = Query(50, le=200),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     # Fix N+1: load Product in the same query via JOIN
     query = (

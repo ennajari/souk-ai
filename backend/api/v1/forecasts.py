@@ -26,9 +26,9 @@ async def list_forecasts(
 @router.get("/{product_id}", response_model=ProductForecast)
 async def get_product_forecast(
     product_id: str,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     days: int = Query(7, ge=1, le=90),
-    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Get detailed demand forecast for a specific product."""
     result = await db.execute(
