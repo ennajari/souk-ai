@@ -23,6 +23,7 @@ export default function POS() {
   const [linkModal, setLinkModal] = useState(null) // { barcode: string }
   const [linkSearch, setLinkSearch] = useState('')
   const [linking, setLinking] = useState(false)
+  const [qtyPopup, setQtyPopup] = useState(null) // { productId, name, qty }
   const searchRef = useRef()
   const linkSearchRef = useRef()
 
@@ -50,7 +51,7 @@ export default function POS() {
         const code = buffer.trim()
         const product = products.find(p => p.barcode === code)
         if (product) {
-          addToCart(product)
+          addToCart(product, true)
           toast.success(`${product.name_fr || product.name_ar} ✓`)
         } else {
           setLinkSearch('')
@@ -82,10 +83,15 @@ export default function POS() {
            (p.barcode || '').includes(q)
   })
 
-  const addToCart = (product) => {
+  const addToCart = (product, fromScan = false) => {
     setCart(prev => {
       const existing = prev.find(c => c.product.id === product.id)
       if (existing) {
+        if (fromScan) {
+          // Re-scan → show qty popup instead of blindly incrementing
+          setTimeout(() => setQtyPopup({ productId: product.id, name: product.name_fr || product.name_ar, qty: existing.qty + 1 }), 0)
+          return prev
+        }
         return prev.map(c => c.product.id === product.id ? { ...c, qty: c.qty + 1 } : c)
       }
       return [...prev, { product, qty: 1, price: product.unit_price || 0 }]
@@ -96,7 +102,7 @@ export default function POS() {
     setShowScanner(false)
     const product = products.find(p => p.barcode === code)
     if (product) {
-      addToCart(product)
+      addToCart(product, true)
       toast.success(`${product.name_fr || product.name_ar} ✓`)
     } else {
       // No product found → offer to link this barcode to an existing product
@@ -142,6 +148,13 @@ export default function POS() {
       const newQty = c.qty + delta
       return newQty > 0 ? { ...c, qty: newQty } : c
     }))
+  }
+
+  const setQtyDirect = (productId, qty) => {
+    const n = parseInt(qty, 10)
+    if (isNaN(n) || n < 0) return
+    if (n === 0) { removeFromCart(productId); return }
+    setCart(prev => prev.map(c => c.product.id === productId ? { ...c, qty: n } : c))
   }
 
   const updatePrice = (productId, price) => {
@@ -300,7 +313,14 @@ ${receipt.items.map(c => `
                 >
                   <FiMinus className="h-4 w-4" />
                 </button>
-                <span className="w-10 text-center text-sm font-bold">{item.qty}</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={item.qty}
+                  onChange={e => setQtyDirect(item.product.id, e.target.value)}
+                  onFocus={e => e.target.select()}
+                  className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-violet-400 bg-white py-1"
+                />
                 <button
                   onClick={() => updateQty(item.product.id, 1)}
                   className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95"
@@ -534,6 +554,33 @@ ${receipt.items.map(c => `
             <p className="text-xs text-gray-400 mt-3 text-center">
               Le code-barres sera enregistré définitivement sur ce produit
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Qty Popup (re-scan) */}
+      {qtyPopup && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setQtyPopup(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-bold text-gray-900 truncate mb-1">{qtyPopup.name}</p>
+            <p className="text-xs text-gray-400 mb-4">Combien d'unités ?</p>
+            <input
+              type="number"
+              min="1"
+              autoFocus
+              value={qtyPopup.qty}
+              onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))}
+              onFocus={e => e.target.select()}
+              className="w-full text-center text-3xl font-black border-2 border-violet-300 rounded-xl py-3 outline-none focus:border-violet-500"
+            />
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setQtyPopup(null)}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">Annuler</button>
+              <button onClick={() => {
+                setQtyDirect(qtyPopup.productId, qtyPopup.qty)
+                setQtyPopup(null)
+              }} className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold">OK</button>
+            </div>
           </div>
         </div>
       )}
