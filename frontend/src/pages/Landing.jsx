@@ -319,7 +319,7 @@ export default function Landing() {
               <RiArrowRightLine className="text-xl group-hover:translate-x-1 transition-transform" />
             </Link>
             <a
-              href="https://wa.me/212623572558"
+              href="https://wa.me/212763576794"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 bg-white/[0.04] border border-white/[0.1] hover:border-white/[0.25] hover:bg-white/[0.08] text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300"
@@ -604,13 +604,13 @@ export default function Landing() {
               </p>
               <div className="mt-5 flex items-center gap-3">
                 <a
-                  href="https://wa.me/212623572558"
+                  href="https://wa.me/212763576794"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm px-4 py-2 rounded-xl hover:bg-emerald-500/20 transition-colors"
                 >
                   <RiWhatsappLine className="text-base" />
-                  +212 623 572 558
+                  +212 763 576 794
                 </a>
               </div>
             </div>
@@ -660,7 +660,7 @@ export default function Landing() {
             <div className="flex items-center gap-4 text-xs text-gray-600">
               <span>Boulevard Mohammed V, Casablanca</span>
               <span className="w-1 h-1 rounded-full bg-gray-700" />
-              <span>souk-ai.duckdns.org</span>
+              <span>soukai.duckdns.org</span>
             </div>
           </div>
         </div>

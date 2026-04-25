@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from core.database import get_db
 from core.deps import get_current_merchant
+from core.security import hash_password, verify_password
 from models.merchant import Merchant
 from models.employee import Employee, EmployeeRole
 
@@ -89,7 +90,7 @@ async def create_employee(
         merchant_id=merchant.id,
         name=data.name,
         phone=data.phone,
-        pin_code=data.pin_code,
+        pin_code=hash_password(data.pin_code),
         role=data.role,
     )
     db.add(employee)
@@ -112,7 +113,10 @@ async def update_employee(
     if not employee:
         raise HTTPException(404, "Employe introuvable")
 
-    for key, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    if "pin_code" in updates:
+        updates["pin_code"] = hash_password(updates["pin_code"])
+    for key, value in updates.items():
         setattr(employee, key, value)
 
     await db.flush()
@@ -155,7 +159,7 @@ async def verify_pin(
     if not employee:
         raise HTTPException(404, "Employe introuvable")
 
-    if employee.pin_code != data.pin_code:
+    if not verify_password(data.pin_code, employee.pin_code):
         raise HTTPException(401, "Code PIN incorrect")
 
     # Update last login

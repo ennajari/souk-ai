@@ -260,7 +260,7 @@ export default function Login() {
 
           {/* WhatsApp CTA */}
           <a
-            href="https://wa.me/212623572558?text=سلام"
+            href="https://wa.me/212763576794?text=سلام"
             target="_blank"
             rel="noreferrer"
             className="mt-5 flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 hover:bg-emerald-100/70 transition-colors group"
@@ -270,7 +270,7 @@ export default function Login() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-emerald-900">Tester le bot WhatsApp</p>
-              <p className="text-xs text-emerald-600 mt-0.5">+212 623 572558 · Gratuit</p>
+              <p className="text-xs text-emerald-600 mt-0.5">+212 763 576794 · Gratuit</p>
             </div>
             <span className="text-emerald-400 group-hover:translate-x-1 transition-transform font-bold">→</span>
           </a>
@@ -319,7 +319,7 @@ export default function Login() {
 
                 {/* Primary: WhatsApp bot (always works, no 24h restriction) */}
                 <a
-                  href={`https://wa.me/212623572558?text=code`}
+                  href={`https://wa.me/212763576794?text=code`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors text-sm"

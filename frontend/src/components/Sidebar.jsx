@@ -119,14 +119,14 @@ export default function Sidebar({ onClose }) {
 
         {/* WhatsApp Bot */}
         <a
-          href="https://wa.me/212623572558"
+          href="https://wa.me/212763576794"
           target="_blank" rel="noreferrer"
           className="flex items-center gap-2.5 px-3 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
         >
           <FiMessageSquare className="h-4 w-4 text-emerald-400 flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-emerald-400 leading-none">{t("common.whatsappBot")}</p>
-            <p className="text-xs text-gray-500 mt-0.5">+212 623 572558</p>
+            <p className="text-xs text-gray-500 mt-0.5">+212 763 576794</p>
           </div>
         </a>
 
