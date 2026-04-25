@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ class CatalogueResponse(BaseModel):
 @router.get("/{merchant_id}", response_model=CatalogueResponse)
 async def get_public_catalogue(
     merchant_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Public endpoint — no auth required. Returns active products for a merchant."""
     result = await db.execute(

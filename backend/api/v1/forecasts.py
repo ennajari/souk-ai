@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,8 +16,8 @@ router = APIRouter(prefix="/forecasts", tags=["Forecasts"])
 
 @router.get("/", response_model=list[ProductForecast])
 async def list_forecasts(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Get 7-day demand forecasts and restock recommendations for all products."""
     return await get_restock_recommendations(db, merchant.id)
@@ -26,8 +27,8 @@ async def list_forecasts(
 async def get_product_forecast(
     product_id: str,
     days: int = Query(7, ge=1, le=90),
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Get detailed demand forecast for a specific product."""
     result = await db.execute(

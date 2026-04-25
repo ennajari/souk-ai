@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/stats")
 async def admin_stats(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Global stats for the founder/admin monitoring dashboard."""
     if merchant.phone_number != settings.ADMIN_PHONE:

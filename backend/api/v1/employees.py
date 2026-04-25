@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,8 @@ from models.merchant import Merchant
 from models.employee import Employee, EmployeeRole
 
 router = APIRouter(prefix="/employees", tags=["employees"])
+
+EMPLOYEE_NOT_FOUND = "Employe introuvable"
 
 
 # ---------- Schemas ----------
@@ -58,8 +61,8 @@ class PinVerifyResponse(BaseModel):
 
 @router.get("/", response_model=list[EmployeeResponse])
 async def list_employees(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Employee)
@@ -72,8 +75,8 @@ async def list_employees(
 @router.post("/", response_model=EmployeeResponse, status_code=201)
 async def create_employee(
     data: EmployeeCreate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Check duplicate name
     existing = await db.execute(
@@ -103,15 +106,15 @@ async def create_employee(
 async def update_employee(
     employee_id: str,
     data: EmployeeUpdate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Employee).where(Employee.id == employee_id, Employee.merchant_id == merchant.id)
     )
     employee = result.scalar_one_or_none()
     if not employee:
-        raise HTTPException(404, "Employe introuvable")
+        raise HTTPException(404, EMPLOYEE_NOT_FOUND)
 
     updates = data.model_dump(exclude_unset=True)
     if "pin_code" in updates:
@@ -127,15 +130,15 @@ async def update_employee(
 @router.delete("/{employee_id}", status_code=204)
 async def delete_employee(
     employee_id: str,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Employee).where(Employee.id == employee_id, Employee.merchant_id == merchant.id)
     )
     employee = result.scalar_one_or_none()
     if not employee:
-        raise HTTPException(404, "Employe introuvable")
+        raise HTTPException(404, EMPLOYEE_NOT_FOUND)
 
     employee.is_active = False
     await db.flush()
@@ -145,8 +148,8 @@ async def delete_employee(
 async def verify_pin(
     employee_id: str,
     data: PinVerifyRequest,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Employee).where(
@@ -157,7 +160,7 @@ async def verify_pin(
     )
     employee = result.scalar_one_or_none()
     if not employee:
-        raise HTTPException(404, "Employe introuvable")
+        raise HTTPException(404, EMPLOYEE_NOT_FOUND)
 
     if not verify_password(data.pin_code, employee.pin_code):
         raise HTTPException(401, "Code PIN incorrect")

@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -28,8 +29,8 @@ async def browse_listings(
     max_price: float = None,
     page: int = 1,
     limit: int = 20,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
 ):
     """Browse all active marketplace listings (excludes own)."""
     q = select(MarketplaceListing).where(
@@ -57,11 +58,11 @@ async def browse_listings(
     listings = result.scalars().all()
 
     items = []
-    for l in listings:
-        seller_q = await db.execute(select(Merchant.business_name).where(Merchant.id == l.merchant_id))
+    for listing_item in listings:
+        seller_q = await db.execute(select(Merchant.business_name).where(Merchant.id == listing_item.merchant_id))
         seller_name = seller_q.scalar()
         items.append({
-            **ListingResponse.model_validate(l).model_dump(),
+            **ListingResponse.model_validate(listing_item).model_dump(),
             "seller_name": seller_name,
         })
 
@@ -70,8 +71,8 @@ async def browse_listings(
 
 @router.get("/my-listings")
 async def my_listings(
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Get merchant's own listings."""
     q = await db.execute(
@@ -79,14 +80,14 @@ async def my_listings(
         .where(MarketplaceListing.merchant_id == merchant.id)
         .order_by(MarketplaceListing.created_at.desc())
     )
-    return [ListingResponse.model_validate(l).model_dump() for l in q.scalars().all()]
+    return [ListingResponse.model_validate(listing_item).model_dump() for listing_item in q.scalars().all()]
 
 
 @router.post("/listings", response_model=ListingResponse)
 async def create_listing(
     data: ListingCreate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Create a new marketplace listing."""
     listing = MarketplaceListing(
@@ -112,8 +113,8 @@ async def create_listing(
 async def update_listing(
     listing_id: str,
     data: ListingUpdate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Update own listing."""
     result = await db.execute(
@@ -141,8 +142,8 @@ async def update_listing(
 @router.delete("/listings/{listing_id}", status_code=204)
 async def delete_listing(
     listing_id: str,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Delete own listing."""
     result = await db.execute(
@@ -163,8 +164,8 @@ async def delete_listing(
 @router.post("/orders", response_model=MarketplaceOrderResponse)
 async def create_order(
     data: MarketplaceOrderCreate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Place an order on a marketplace listing."""
     listing_q = await db.execute(
@@ -209,8 +210,8 @@ async def create_order(
 
 @router.get("/orders/buying")
 async def my_buying_orders(
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Orders where I am the buyer."""
     q = await db.execute(
@@ -224,8 +225,8 @@ async def my_buying_orders(
 
 @router.get("/orders/selling")
 async def my_selling_orders(
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Orders where I am the seller."""
     q = await db.execute(
@@ -241,8 +242,8 @@ async def my_selling_orders(
 async def update_order_status(
     order_id: str,
     data: OrderStatusUpdate,
-    db: AsyncSession = Depends(get_db),
-    merchant: Merchant = Depends(get_current_merchant),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Update order status (seller accepts/ships, buyer confirms delivery)."""
     result = await db.execute(select(MarketplaceOrder).where(MarketplaceOrder.id == order_id))

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -29,8 +30,8 @@ def _to_response(inv: Inventory) -> InventoryResponse:
 @router.get("/", response_model=list[InventoryResponse])
 async def get_inventory(
     low_stock_only: bool = False,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     query = (
         select(Inventory)
@@ -48,8 +49,8 @@ async def get_inventory(
 
 @router.get("/alerts", response_model=list[InventoryResponse])
 async def get_alerts(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     query = (
         select(Inventory)
@@ -66,8 +67,8 @@ async def get_alerts(
 async def get_inventory_logs(
     product_id: str | None = None,
     limit: int = 50,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Audit trail — historique de toutes les modifications de stock."""
     query = (
@@ -100,8 +101,8 @@ async def get_inventory_logs(
 @router.post("/adjust", response_model=InventoryResponse)
 async def adjust_inventory(
     req: InventoryAdjust,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     # Verify product belongs to merchant
     prod_result = await db.execute(
@@ -145,8 +146,8 @@ async def adjust_inventory(
 async def update_threshold(
     product_id: str,
     req: ThresholdUpdate,
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
         select(Inventory).join(Product).where(

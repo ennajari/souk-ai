@@ -1,5 +1,6 @@
 import re
 import random
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,7 @@ def _get_redis():
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get_db)]):
     phone = normalize_phone(req.phone_number)
     existing = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     if existing.scalar_one_or_none():
@@ -68,7 +69,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)]):
     phone = normalize_phone(req.phone_number)
     result = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     merchant = result.scalar_one_or_none()
@@ -86,7 +87,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/me")
-async def get_me(merchant: Merchant = Depends(get_current_merchant)):
+async def get_me(merchant: Annotated[Merchant, Depends(get_current_merchant)]):
     from schemas.merchant import MerchantResponse
     data = MerchantResponse.model_validate(merchant).model_dump()
     data["is_admin"] = merchant.phone_number == settings.ADMIN_PHONE
@@ -94,7 +95,7 @@ async def get_me(merchant: Merchant = Depends(get_current_merchant)):
 
 
 @router.post("/reset-request")
-async def reset_request(body: ResetRequestBody, db: AsyncSession = Depends(get_db)):
+async def reset_request(body: ResetRequestBody, db: Annotated[AsyncSession, Depends(get_db)]):
     """Send a 6-digit OTP to the merchant's WhatsApp number."""
     phone = normalize_phone(body.phone_number)
     result = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
@@ -120,7 +121,7 @@ async def reset_request(body: ResetRequestBody, db: AsyncSession = Depends(get_d
 
 
 @router.post("/reset-confirm", response_model=TokenResponse)
-async def reset_confirm(body: ResetConfirmBody, db: AsyncSession = Depends(get_db)):
+async def reset_confirm(body: ResetConfirmBody, db: Annotated[AsyncSession, Depends(get_db)]):
     """Verify OTP code and set new password."""
     phone = normalize_phone(body.phone_number)
 
@@ -157,8 +158,8 @@ async def reset_confirm(body: ResetConfirmBody, db: AsyncSession = Depends(get_d
 
 @router.delete("/account", status_code=204)
 async def delete_account(
-    merchant: Merchant = Depends(get_current_merchant),
-    db: AsyncSession = Depends(get_db),
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Permanently delete merchant account and all associated data."""
     from models.product import Product
@@ -177,13 +178,13 @@ async def delete_account(
 
     # Delete credit entries (FK to customers)
     customers_q = await db.execute(select(Customer.id).where(Customer.merchant_id == mid))
-    customer_ids = [c for c in customers_q.scalars().all()]
+    customer_ids = list(customers_q.scalars().all())
     if customer_ids:
         await db.execute(delete(CreditEntry).where(CreditEntry.customer_id.in_(customer_ids)))
 
     # Delete inventory (FK to products)
     products_q = await db.execute(select(Product.id).where(Product.merchant_id == mid))
-    product_ids = [p for p in products_q.scalars().all()]
+    product_ids = list(products_q.scalars().all())
     if product_ids:
         await db.execute(delete(Inventory).where(Inventory.product_id.in_(product_ids)))
 
