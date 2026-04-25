@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw } from 'react-icons/fi'
-import { RiScanLine } from 'react-icons/ri'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap } from 'react-icons/fi'
+import { RiScanLine, RiBarcodeLine } from 'react-icons/ri'
 import { productsAPI, inventoryAPI } from '../api/client'
 import toast from 'react-hot-toast'
 
@@ -41,6 +41,15 @@ export default function Products() {
   const [scanSelected, setScanSelected]    = useState({})   // id → bool
   const [importing, setImporting]           = useState(false)
   const fileInputRef = useRef(null)
+
+  /* ── Barcode camera scanner state ── */
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [scannerError, setScannerError]             = useState('')
+  const [scannerDetected, setScannerDetected]       = useState(null)
+  const videoRef        = useRef(null)
+  const streamRef       = useRef(null)
+  const detectorRef     = useRef(null)
+  const scanIntervalRef = useRef(null)
 
   const loadProducts = () => {
     productsAPI.list()
@@ -107,6 +116,65 @@ export default function Products() {
       toast.error('Erreur suppression')
     }
   }
+
+  /* ── Barcode camera scanner handlers ── */
+  const openBarcodeScanner = useCallback(async () => {
+    setScannerError('')
+    setScannerDetected(null)
+    setShowBarcodeScanner(true)
+
+    if (!('BarcodeDetector' in window)) {
+      setScannerError('Votre navigateur ne supporte pas le scan. Utilisez Chrome sur Android.')
+      return
+    }
+
+    try {
+      detectorRef.current = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] })
+    } catch {
+      setScannerError('Impossible de créer le détecteur de code-barres.')
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+    } catch {
+      setScannerError('Accès caméra refusé. Autorisez la caméra dans les paramètres du navigateur.')
+      return
+    }
+
+    scanIntervalRef.current = setInterval(async () => {
+      if (!videoRef.current || videoRef.current.readyState < 2) return
+      try {
+        const codes = await detectorRef.current.detect(videoRef.current)
+        if (codes.length > 0) {
+          const code = codes[0].rawValue
+          setScannerDetected(code)
+          closeBarcodeScanner()
+          setForm(prev => ({ ...prev, barcode: code }))
+          toast.success(`Code-barres détecté: ${code}`)
+        }
+      } catch { /* ignore frame errors */ }
+    }, 300)
+  }, []) // eslint-disable-line
+
+  const closeBarcodeScanner = useCallback(() => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current)
+      scanIntervalRef.current = null
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) videoRef.current.srcObject = null
+    setShowBarcodeScanner(false)
+    setScannerError('')
+  }, [])
 
   /* ── Scan invoice handlers ── */
   const handleScanFile = async (e) => {
@@ -374,8 +442,14 @@ export default function Products() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Code-barres</label>
-                  <input name="barcode" value={form.barcode} onChange={handleChange} placeholder="Optionnel"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                  <div className="flex gap-1.5">
+                    <input name="barcode" value={form.barcode} onChange={handleChange} placeholder="Optionnel"
+                      className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    <button type="button" onClick={openBarcodeScanner} title="Scanner avec la caméra"
+                      className="flex-shrink-0 px-2.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors">
+                      <RiBarcodeLine className="h-4 w-4 text-emerald-600" />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -401,6 +475,60 @@ export default function Products() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Barcode Scanner Modal ── */}
+      {showBarcodeScanner && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <RiBarcodeLine className="h-5 w-5 text-emerald-600" />
+                <span className="font-bold text-gray-900 text-sm">Scanner code-barres</span>
+              </div>
+              <button onClick={closeBarcodeScanner} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                <FiX className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {scannerError ? (
+                <div className="text-center py-6">
+                  <FiAlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+                  <p className="text-sm text-red-600 font-medium mb-1">Scanner non disponible</p>
+                  <p className="text-xs text-gray-500 mb-4">{scannerError}</p>
+                  <p className="text-xs text-gray-400">Entrez le code manuellement ci-dessus</p>
+                </div>
+              ) : (
+                <>
+                  <div className="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Aiming reticle */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-48 h-24 border-2 border-emerald-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+                        <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-emerald-300 rounded-tl" />
+                        <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-emerald-300 rounded-tr" />
+                        <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-emerald-300 rounded-bl" />
+                        <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-emerald-300 rounded-br" />
+                        <div className="absolute inset-x-0 top-1/2 h-0.5 bg-emerald-400/60 animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-center text-xs text-gray-500 mt-3 flex items-center justify-center gap-1.5">
+                    <FiZap className="h-3.5 w-3.5 text-emerald-500" />
+                    Pointez la caméra vers le code-barres
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

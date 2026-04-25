@@ -357,7 +357,7 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
             try:
                 response = await client.chat.completions.create(
                     model="gpt-4o",
-                    max_tokens=1000,
+                    max_tokens=2000,
                     messages=[{
                         "role": "user",
                         "content": [
@@ -368,16 +368,35 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                             {
                                 "type": "text",
                                 "text": (
-                                    "You are analyzing a wholesale invoice or purchase receipt for a Moroccan merchant.\n"
-                                    "Extract ALL products listed in this image.\n"
-                                    "For each product return a JSON array (no markdown, no explanation):\n"
-                                    '[{"name": "product name", "quantity": 10, "unit_price": 5.50, "unit": "piece"}]\n'
-                                    "Rules:\n"
-                                    "- Keep the product name exactly as written (Arabic or French)\n"
-                                    "- quantity must be a number (default 1 if not found)\n"
-                                    "- unit_price must be a number in MAD (0 if not found)\n"
-                                    "- unit: piece, kg, litre, or carton\n"
-                                    "- Respond ONLY with the JSON array."
+                                    "You are analyzing a wholesale invoice or delivery note (Bon de Livraison) for a Moroccan merchant.\n"
+                                    "Extract ALL products listed in this image.\n\n"
+                                    "CRITICAL PARSING RULES for Moroccan wholesale invoices:\n"
+                                    "1. Product names often contain pack format: 'NAME VOL*N' where *N = N units per carton\n"
+                                    "   - 'COCA-COLA PET 1L*8' → name='COCA-COLA PET 1L', pack_size=8, unit='piece'\n"
+                                    "   - 'FANTA 1.5L*6' → name='FANTA 1.5L', pack_size=6, unit='piece'\n"
+                                    "   - 'POM S PET 1L*8' → name='POM S PET 1L', pack_size=8\n"
+                                    "2. Quantity in invoice = number of CARTONS ordered\n"
+                                    "   Total stock to add = cartons × pack_size\n"
+                                    "   - '1L*8 x1' → 1 carton × 8 pieces = 8 total pieces\n"
+                                    "   - '1.5L*6 x5' → 5 cartons × 6 pieces = 30 total pieces\n"
+                                    "3. Price extraction:\n"
+                                    "   - If carton price shown (e.g. 56.22 MAD for 8 pieces): unit_price = 56.22 / 8 = 7.03\n"
+                                    "   - If unit price shown directly: use it as-is\n"
+                                    "4. Unit detection from product name:\n"
+                                    "   - Contains 'L' or 'ml' → 'piece' (it's a bottle)\n"
+                                    "   - Contains 'KG' or 'G' → 'kg'\n"
+                                    "   - No volume/weight → 'piece'\n"
+                                    "5. Clean product name: REMOVE the '*N' pack notation from the name\n\n"
+                                    "Return ONLY a JSON array, no markdown:\n"
+                                    '[{"name": "COCA-COLA PET 1L", "quantity": 8, "unit_price": 7.03, "unit": "piece", "pack_size": 8, "carton_price": 56.22}]\n\n'
+                                    "Fields:\n"
+                                    "- name: clean product name WITHOUT *N suffix\n"
+                                    "- quantity: TOTAL units = cartons × pack_size (integer)\n"
+                                    "- unit_price: price per single unit in MAD (carton_price / pack_size), 0 if unknown\n"
+                                    "- unit: 'piece', 'kg', or 'litre'\n"
+                                    "- pack_size: units per carton (1 if not applicable)\n"
+                                    "- carton_price: price per carton in MAD (0 if unknown)\n"
+                                    "Respond ONLY with the JSON array."
                                 ),
                             },
                         ],
@@ -406,12 +425,17 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                 qty = float(item.get("quantity", 1) or 1)
                 unit_price = float(item.get("unit_price", 0) or 0)
                 unit = str(item.get("unit", "piece") or "piece")
+                pack_size = int(item.get("pack_size", 1) or 1)
+                carton_price = float(item.get("carton_price", 0) or 0)
                 if not name:
                     continue
 
+                # If unit_price not given but carton_price and pack_size are, calculate it
+                if unit_price == 0 and carton_price > 0 and pack_size > 1:
+                    unit_price = round(carton_price / pack_size, 2)
+
                 existing = await find_product_by_name(db, merchant.id, name)
                 if existing:
-                    # Restock existing product
                     inv_result = await db.execute(select(Inventory).where(Inventory.product_id == existing.id))
                     inv = inv_result.scalars().first()
                     if inv:
@@ -422,11 +446,9 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                         new_inv = Inventory(product_id=existing.id, quantity=qty)
                         db.add(new_inv)
                         updated.append(f"📦 {name} +{qty:.0f}")
-                    # Update price if provided
                     if unit_price > 0:
                         existing.cost_price = unit_price
                 else:
-                    # Create new product
                     new_prod = Prod(
                         merchant_id=merchant.id,
                         name_ar=name,
@@ -439,8 +461,9 @@ async def _process_image_message(phone_number: str, media_id: str, caption: str)
                     await db.flush()
                     new_inv = Inventory(product_id=new_prod.id, quantity=qty)
                     db.add(new_inv)
-                    price_str = f" | {unit_price:.2f} MAD" if unit_price > 0 else " | 💰 Prix?"
-                    added.append(f"✅ {name} x{qty:.0f}{price_str}")
+                    pack_str = f" (carton×{pack_size})" if pack_size > 1 else ""
+                    price_str = f" | {unit_price:.2f} MAD/u" if unit_price > 0 else " | ⚠️ Prix manquant"
+                    added.append(f"✅ {name}{pack_str} x{qty:.0f}{price_str}")
 
             await db.commit()
 
