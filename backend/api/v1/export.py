@@ -24,7 +24,7 @@ async def export_products_csv(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
+        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
     )
     products = result.scalars().all()
 

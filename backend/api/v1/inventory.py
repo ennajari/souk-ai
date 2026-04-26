@@ -36,7 +36,7 @@ async def get_inventory(
     query = (
         select(Inventory)
         .join(Product)
-        .where(Product.merchant_id == merchant.id, Product.is_active is True)
+        .where(Product.merchant_id == merchant.id, Product.is_active == True)
     )
     result = await db.execute(query)
     items = result.scalars().all()
@@ -55,7 +55,7 @@ async def get_alerts(
     query = (
         select(Inventory)
         .join(Product)
-        .where(Product.merchant_id == merchant.id, Product.is_active is True)
+        .where(Product.merchant_id == merchant.id, Product.is_active == True)
     )
     result = await db.execute(query)
     items = result.scalars().all()

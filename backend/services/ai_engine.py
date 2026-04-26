@@ -177,6 +177,54 @@ async def process_message(text: str, conversation_history: list[dict] | None = N
         }
 
 
+async def generate_natural_response(
+    user_text: str,
+    data_context: str,
+    lang: str,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    """Generate a natural, conversational reply using real DB data as context."""
+    if not settings.OPENAI_API_KEY:
+        return data_context
+
+    lang_instruction = {
+        "ar": "darija marocaine (arabe dialectal marocain). Utilise des mots Darija naturels.",
+        "fr": "français naturel et amical (style SMS marocain accepté).",
+        "en": "natural friendly English.",
+    }.get(lang, "français naturel.")
+
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+    messages: list[dict] = [
+        {
+            "role": "system",
+            "content": (
+                f"Tu es Souk.AI, l'assistant intelligent pour les commerçants marocains. "
+                f"Réponds TOUJOURS en {lang_instruction} "
+                f"Sois chaleureux, direct et concis. Utilise des emojis. "
+                f"Tu as accès aux vraies données du stock du commerçant ci-dessous. "
+                f"Réponds naturellement à la question — ne recopie pas les données brutes."
+            ),
+        }
+    ]
+
+    if conversation_history:
+        messages.extend(conversation_history[-4:])
+
+    messages.append({
+        "role": "user",
+        "content": f"{user_text}\n\n[Données réelles du système:\n{data_context}]",
+    })
+
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=500,
+        temperature=0.4,
+        messages=messages,
+    )
+    return response.choices[0].message.content.strip()
+
+
 async def extract_invoice_data(text: str) -> dict:
     """Extract client name and product list from an invoice message."""
     if not settings.OPENAI_API_KEY:

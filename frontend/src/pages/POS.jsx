@@ -99,16 +99,18 @@ export default function POS() {
   }
 
   const handleBarcodeScan = (code) => {
-    setShowScanner(false)
     const product = products.find(p => p.barcode === code)
     if (product) {
       addToCart(product, true)
       toast.success(`${product.name_fr || product.name_ar} ✓`)
+      return { name: product.name_fr || product.name_ar }
     } else {
-      // No product found → offer to link this barcode to an existing product
+      // No product found → close scanner and offer to link this barcode
+      setShowScanner(false)
       setLinkSearch('')
       setLinkModal({ barcode: code })
       setTimeout(() => linkSearchRef.current?.focus(), 100)
+      return null
     }
   }
 
@@ -497,6 +499,7 @@ ${receipt.items.map(c => `
         <BarcodeScanner
           onScan={handleBarcodeScan}
           onClose={() => setShowScanner(false)}
+          continuous={true}
         />
       )}
 

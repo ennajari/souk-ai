@@ -79,13 +79,13 @@ export default function Products() {
 
   const openAdd = () => {
     setEditId(null)
-    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: 0, cost_price: 0 })
+    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: 0, cost_price: 0, stock_quantity: 0 })
     setShowModal(true)
   }
 
   const openEdit = (p) => {
     setEditId(p.id)
-    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price, cost_price: p.cost_price })
+    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price, cost_price: p.cost_price, stock_quantity: p.stock_quantity ?? 0 })
     setShowModal(true)
   }
 
@@ -93,10 +93,21 @@ export default function Products() {
     e.preventDefault()
     try {
       if (editId) {
-        await productsAPI.update(editId, form)
+        const product = products.find(p => p.id === editId)
+        const { stock_quantity, ...productData } = form
+        await productsAPI.update(editId, productData)
+        const delta = Math.round(stock_quantity) - Math.round(product?.stock_quantity ?? 0)
+        if (delta !== 0) {
+          await inventoryAPI.adjust({
+            product_id: editId,
+            quantity_change: delta,
+            reason: `Ajustement manuel (${delta > 0 ? '+' : ''}${delta})`,
+          })
+        }
         toast.success('Produit mis à jour')
       } else {
-        await productsAPI.create(form)
+        const { stock_quantity, ...productData } = form
+        await productsAPI.create({ ...productData, initial_stock: stock_quantity })
         toast.success('Produit ajouté')
       }
       setShowModal(false)
@@ -462,6 +473,26 @@ export default function Products() {
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat (MAD)</label>
                   <input name="cost_price" type="number" step="0.01" min="0" value={form.cost_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    {editId ? 'Stock actuel' : 'Stock initial'}
+                  </label>
+                  <input name="stock_quantity" type="number" step="1" min="0"
+                    value={form.stock_quantity} onChange={handleChange}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                  {editId && (() => {
+                    const orig = products.find(p => p.id === editId)?.stock_quantity ?? 0
+                    const delta = Math.round(form.stock_quantity) - Math.round(orig)
+                    if (delta === 0) return null
+                    return (
+                      <p className={`text-xs mt-1 font-medium ${delta > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {delta > 0 ? '+' : ''}{delta} unité(s)
+                      </p>
+                    )
+                  })()}
                 </div>
               </div>
               <div className="flex gap-3 pt-2">

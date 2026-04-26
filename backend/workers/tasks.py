@@ -11,7 +11,7 @@ from models.merchant import Merchant
 from models.product import Product
 from models.transaction import Transaction, TransactionType, TransactionSource
 from models.conversation import MessageRole, MessageType
-from services.ai_engine import process_message, extract_invoice_data
+from services.ai_engine import process_message, extract_invoice_data, generate_natural_response
 from services.whatsapp import send_text_message
 from services.inventory import find_product_by_name, record_sale, get_stock_level, get_low_stock_products
 from services.conversation import get_conversation_history, save_message
@@ -19,19 +19,19 @@ from services.speech_to_text import download_whatsapp_media, transcribe_audio
 
 
 def detect_lang(text: str) -> str:
-    """Return 'ar' if message is mostly Arabic/Darija, 'en' if English, 'fr' otherwise."""
-    arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    """Return 'ar' if mostly Arabic/Darija, 'en' if clearly English, 'fr' otherwise."""
+    arabic_chars = sum(1 for c in text if '؀' <= c <= 'ۿ')
     latin_chars = sum(1 for c in text if c.isalpha() and c.isascii())
     if arabic_chars > latin_chars:
         return "ar"
-    # Simple English detection: common English words
     lower = text.lower()
-    en_words = {"i ", "i'", "sold", "received", "bought", "how much", "report", "stock", "price", "add", "set", "the ", " of ", " a "}
-    if any(w in lower for w in en_words):
+    # Only distinctly English phrases -- avoid words shared with French (stock, report, price...)
+    en_phrases = {"i sold", "i received", "i bought", "how much do i", "i have in stock",
+                  "show me all", "give me today", "my sales this", "hello i"}
+    if any(phrase in lower for phrase in en_phrases):
         return "en"
+    # Default to French -- Moroccan merchants primarily use French or Darija
     return "fr"
-
-
 def t(key: str, lang: str, **kwargs) -> str:
     """Simple translation helper."""
     translations = {
@@ -554,7 +554,7 @@ async def _process_document(phone_number: str, media_id: str, filename: str):
                         select(Product).where(
                             Product.merchant_id == merchant.id,
                             Product.barcode == art['barcode'],
-                            Product.is_active is True,
+                            Product.is_active == True,
                         )
                     )
                     existing = r.scalar_one_or_none()
@@ -564,7 +564,7 @@ async def _process_document(phone_number: str, media_id: str, filename: str):
                         select(Product).where(
                             Product.merchant_id == merchant.id,
                             (Product.name_fr == name) | (Product.name_ar == name),
-                            Product.is_active is True,
+                            Product.is_active == True,
                         )
                     )
                     existing = r.scalar_one_or_none()
@@ -717,7 +717,15 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     if product:
                         stock = await get_stock_level(db, product.id)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
-                        response_text = t("stock_level", lang, name=display_name, stock=stock, unit=product.unit)
+                        price_str = f"{float(product.unit_price):.2f} MAD" if product.unit_price else "prix non défini"
+                        data_ctx = (
+                            f"Produit: {display_name}
+"
+                            f"Stock actuel: {stock} {product.unit}
+"
+                            f"Prix de vente: {price_str}"
+                        )
+                        response_text = await generate_natural_response(text, data_ctx, lang, history)
                     else:
                         response_text = t("product_not_found", lang, name=product_name)
 
@@ -808,14 +816,18 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                 low_stock = await get_low_stock_products(db, merchant.id)
                 dashboard_url = settings.FRONTEND_URL
                 if low_stock:
-                    lines = [t("low_stock_header", lang)]
+                    data_ctx = f"Stock bas detecte ({len(low_stock)} produit(s)):
+"
                     for item in low_stock:
-                        lines.append(f"- {item['product_name']}: {item['quantity']} (seuil: {item['threshold']})")
-                    lines.append(f"\n{t('dashboard_link', lang, url=dashboard_url)}")
-                    response_text = "\n".join(lines)
+                        data_ctx += f"- {item['product_name']}: {item['quantity']} (seuil minimum: {item['threshold']})
+"
+                    data_ctx += f"
+Dashboard: {dashboard_url}"
+                    response_text = await generate_natural_response(text, data_ctx, lang, history)
                 else:
-                    response_text = t("stock_ok", lang) + f"\n{t('dashboard_link', lang, url=dashboard_url)}"
-
+                    data_ctx = f"Tous les stocks sont OK, aucun produit en alerte.
+Dashboard: {dashboard_url}"
+                    response_text = await generate_natural_response(text, data_ctx, lang, history)
             elif intent == "PLACE_ORDER":
                 product_name = entities.get("product_name", "")
                 quantity = entities.get("quantity", 0)
@@ -825,7 +837,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         from models.supplier import Supplier
                         from models.supplier_order import SupplierOrder, SupplierOrderStatus
                         sup_result = await db.execute(
-                            select(Supplier).where(Supplier.is_active is True)
+                            select(Supplier).where(Supplier.is_active == True)
                         )
                         suppliers = sup_result.scalars().all()
                         matching = None
@@ -912,33 +924,46 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
             elif intent == "LIST_PRODUCTS":
                 from models.inventory import Inventory
                 prod_result = await db.execute(
-                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
+                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
                 )
-                products = prod_result.scalars().all()
-                if not products:
+                all_products = prod_result.scalars().all()
+                if not all_products:
                     msgs = {
-                        "ar": "📦 ما عندك حتى منتج. أرسل 'جيت ليما 10 سكر' لإضافة منتج.",
-                        "fr": "📦 Vous n'avez aucun produit. Envoyez 'j'ai recu 10 sucre' pour ajouter un produit.",
+                        "ar": "📦 ما عندك حتى منتج. أرسل 'جيت ليما 10 سكر' لإضافته.",
+                        "fr": "📦 Vous n'avez encore aucun produit. Envoyez 'j'ai recu 10 sucre' pour en ajouter un.",
                         "en": "📦 No products yet. Send 'I received 10 sugar' to add one.",
                     }
                     response_text = msgs.get(lang, msgs["fr"])
                 else:
-                    header = {"ar": "📦 *منتجاتك:*", "fr": "📦 *Vos produits:*", "en": "📦 *Your products:*"}
-                    lines = [header.get(lang, header["fr"])]
-                    for p in products[:20]:
+                    data_lines = []
+                    low_count = 0
+                    for p in all_products[:25]:
                         inv_r = await db.execute(select(Inventory).where(Inventory.product_id == p.id))
                         inv = inv_r.scalar_one_or_none()
                         stock = float(inv.quantity) if inv else 0
+                        threshold = float(inv.reorder_threshold) if inv and inv.reorder_threshold else 10
                         name = p.name_fr if lang in ("fr", "en") and p.name_fr else p.name_ar
-                        threshold = inv.reorder_threshold if inv else 10
+                        price_str = f", {float(p.unit_price):.2f} MAD" if p.unit_price else ""
                         alert = " ⚠️" if stock <= threshold else ""
-                        price_str = f" | {float(p.unit_price):.2f} MAD" if p.unit_price else ""
-                        lines.append(f"  • {name}: {stock:.0f} {p.unit}{price_str}{alert}")
-                    if len(products) > 20:
-                        lines.append(f"  ... +{len(products) - 20} autres")
-                    lines.append(f"\n{t('dashboard_link', lang, url=settings.FRONTEND_URL)}")
-                    response_text = "\n".join(lines)
+                        data_lines.append(f"- {name}: {stock:.0f} {p.unit}{price_str}{alert}")
+                        if stock <= threshold:
+                            low_count += 1
+                    total = len(all_products)
+                    data_ctx = f"Nombre total de produits: {total}
+"
+                    data_ctx += "
+".join(data_lines)
+                    if total > 25:
+                        data_ctx += f"
+... et {total - 25} autres produits"
+                    if low_count:
+                        data_ctx += f"
 
+ATTENTION: {low_count} produit(s) ont un stock bas."
+                    data_ctx += f"
+
+Dashboard: {settings.FRONTEND_URL}"
+                    response_text = await generate_natural_response(text, data_ctx, lang, history)
             # For DASHBOARD_LINK: send direct URL
             if intent == "DASHBOARD_LINK":
                 dashboard_url = settings.FRONTEND_URL
@@ -1117,7 +1142,7 @@ async def _send_alerts():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
             for merchant in merchants:
                 lines = []
@@ -1136,8 +1161,8 @@ async def _send_alerts():
                 expiry_result = await db.execute(
                     select(Product).where(
                         Product.merchant_id == merchant.id,
-                        Product.is_active is True,
-                        Product.expiry_date is not None,
+                        Product.is_active == True,
+                        Product.expiry_date != None,
                         Product.expiry_date <= deadline,
                     )
                 )
@@ -1171,7 +1196,7 @@ async def _send_weekly_summary():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1246,7 +1271,7 @@ async def _send_daily_sales_report():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1320,7 +1345,7 @@ async def _update_credit_scores():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
@@ -1353,12 +1378,12 @@ async def _update_forecasts():
     engine, SessionLocal = get_async_session()
     try:
         async with SessionLocal() as db:
-            result = await db.execute(select(Merchant).where(Merchant.is_active is True))
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
             merchants = result.scalars().all()
 
             for merchant in merchants:
                 products_result = await db.execute(
-                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active is True)
+                    select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
                 )
                 for product in products_result.scalars().all():
                     forecasts = await calculate_forecast(db, merchant.id, product.id)

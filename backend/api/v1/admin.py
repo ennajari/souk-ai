@@ -75,7 +75,7 @@ async def admin_stats(
 
     # Total employees
     total_employees = (await db.execute(
-        select(func.count(Employee.id)).where(Employee.is_active is True)
+        select(func.count(Employee.id)).where(Employee.is_active == True)
     )).scalar() or 0
 
     # Active merchants (had a transaction in last 7 days)

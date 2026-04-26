@@ -56,7 +56,7 @@ async def import_sage_articles(
                 select(Product).where(
                     Product.merchant_id == merchant.id,
                     Product.barcode == art['barcode'],
-                    Product.is_active is True,
+                    Product.is_active == True,
                 )
             )
             existing = result.scalar_one_or_none()
@@ -66,7 +66,7 @@ async def import_sage_articles(
                 select(Product).where(
                     Product.merchant_id == merchant.id,
                     (Product.name_fr == name) | (Product.name_ar == name),
-                    Product.is_active is True,
+                    Product.is_active == True,
                 )
             )
             existing = result.scalar_one_or_none()
@@ -160,7 +160,7 @@ async def import_sage_sales(
             select(Product).where(
                 Product.merchant_id == merchant.id,
                 (Product.name_fr == product_name) | (Product.name_ar == product_name),
-                Product.is_active is True,
+                Product.is_active == True,
             )
         )
         product = result.scalar_one_or_none()
@@ -170,7 +170,7 @@ async def import_sage_sales(
             result = await db.execute(
                 select(Product).where(
                     Product.merchant_id == merchant.id,
-                    Product.is_active is True,
+                    Product.is_active == True,
                     Product.name_fr.ilike(f"%{product_name}%"),
                 )
             )
@@ -240,7 +240,7 @@ async def import_sage_auto(
                 select(Product).where(
                     Product.merchant_id == merchant.id,
                     (Product.name_fr == name) | (Product.name_ar == name),
-                    Product.is_active is True,
+                    Product.is_active == True,
                 )
             )
             existing = result.scalar_one_or_none()
@@ -284,7 +284,7 @@ async def import_sage_auto(
             product_name = sale.get('product_name') or sale.get('product_ref', '')
             result = await db.execute(
                 select(Product).where(
-                    Product.merchant_id == merchant.id, Product.is_active is True,
+                    Product.merchant_id == merchant.id, Product.is_active == True,
                     (Product.name_fr == product_name) | (Product.name_ar == product_name),
                 )
             )

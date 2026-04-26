@@ -62,7 +62,7 @@ async def get_tips(
     prod_result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant.id,
-            Product.is_active is True,
+            Product.is_active == True,
         )
     )
     products = prod_result.scalars().all()
@@ -159,7 +159,7 @@ async def get_insights(
     prod_result = await db.execute(
         select(Product).where(
             Product.merchant_id == merchant.id,
-            Product.is_active is True,
+            Product.is_active == True,
         )
     )
     products = prod_result.scalars().all()
