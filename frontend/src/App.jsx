@@ -27,6 +27,7 @@ import CataloguePublic from "./pages/CataloguePublic"
 import Marketplace from "./pages/Marketplace"
 import Payments from "./pages/Payments"
 import MarketIntelligence from "./pages/MarketIntelligence"
+import PayInvoice from "./pages/PayInvoice"
 import { useAuth } from "./context/AuthContext"
 
 function AdminRoute({ children }) {
@@ -42,6 +43,7 @@ export default function App() {
         {/* ── Public pages ── */}
         <Route path="/" element={<Landing />} />
         <Route path="/catalogue/:merchantId" element={<CataloguePublic />} />
+        <Route path="/pay/:token" element={<PayInvoice />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 

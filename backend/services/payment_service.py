@@ -60,6 +60,14 @@ async def create_payment(
     elif method == "CASH":
         payment.status = PaymentStatus.COMPLETED
         result["status"] = "COMPLETED"
+    elif method == "NFC_BANK":
+        result["external_ref"] = f"NFC-{payment.id[:8].upper()}"
+        payment.external_ref = result["external_ref"]
+        payment.status = PaymentStatus.COMPLETED
+        result["status"] = "COMPLETED"
+    elif method == "NFC_SOUKCARD":
+        result["external_ref"] = f"SK-{payment.id[:8].upper()}"
+        payment.external_ref = result["external_ref"]
 
     await db.flush()
     return result

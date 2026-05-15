@@ -3,7 +3,7 @@ import json
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 
 from core.database import get_db
 from core.deps import get_current_merchant
@@ -48,6 +48,35 @@ async def create_product(
 ):
     data = req.model_dump()
     initial_stock = data.pop('initial_stock', 0) or 0
+
+    name_fr = (data.get("name_fr") or "").strip().lower()
+    name_ar = (data.get("name_ar") or "").strip().lower()
+    dup_conditions = []
+    if name_fr:
+        dup_conditions.extend([
+            func.lower(Product.name_fr) == name_fr,
+            func.lower(Product.name_ar) == name_fr,
+        ])
+    if name_ar:
+        dup_conditions.extend([
+            func.lower(Product.name_fr) == name_ar,
+            func.lower(Product.name_ar) == name_ar,
+        ])
+    if dup_conditions:
+        dup_result = await db.execute(
+            select(Product).where(
+                Product.merchant_id == merchant.id,
+                Product.is_active == True,
+                or_(*dup_conditions),
+            ).limit(1)
+        )
+        existing = dup_result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Produit similaire existe deja: {existing.name_fr} / {existing.name_ar} (ID: {existing.id})"
+            )
+
     product = Product(merchant_id=merchant.id, **data)
     db.add(product)
     await db.flush()
@@ -129,6 +158,69 @@ async def delete_product(
 
     product.is_active = False
     await db.flush()
+
+
+@router.post("/{keep_id}/merge/{remove_id}", response_model=ProductResponse)
+async def merge_products(
+    keep_id: str,
+    remove_id: str,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Merge two duplicate products: keep one, transfer stock + transactions from the other."""
+    keep_result = await db.execute(
+        select(Product).where(Product.id == keep_id, Product.merchant_id == merchant.id)
+    )
+    keep = keep_result.scalar_one_or_none()
+    if not keep:
+        raise HTTPException(404, "Produit principal introuvable")
+
+    remove_result = await db.execute(
+        select(Product).where(Product.id == remove_id, Product.merchant_id == merchant.id)
+    )
+    remove = remove_result.scalar_one_or_none()
+    if not remove:
+        raise HTTPException(404, "Produit doublon introuvable")
+
+    if not keep.name_ar and remove.name_ar:
+        keep.name_ar = remove.name_ar
+    if not keep.name_fr and remove.name_fr:
+        keep.name_fr = remove.name_fr
+    if not keep.barcode and remove.barcode:
+        keep.barcode = remove.barcode
+    if float(keep.unit_price or 0) == 0 and float(remove.unit_price or 0) > 0:
+        keep.unit_price = remove.unit_price
+    if float(keep.cost_price or 0) == 0 and float(remove.cost_price or 0) > 0:
+        keep.cost_price = remove.cost_price
+
+    from models.transaction import Transaction
+    await db.execute(
+        Transaction.__table__.update()
+        .where(Transaction.product_id == remove_id)
+        .values(product_id=keep_id)
+    )
+
+    keep_inv = keep.inventory
+    remove_inv_result = await db.execute(select(Inventory).where(Inventory.product_id == remove_id))
+    remove_inv = remove_inv_result.scalar_one_or_none()
+    if remove_inv:
+        if keep_inv:
+            keep_inv.quantity = float(keep_inv.quantity) + float(remove_inv.quantity)
+        else:
+            remove_inv.product_id = keep_id
+        if remove_inv and keep_inv:
+            await db.delete(remove_inv)
+
+    remove.is_active = False
+    await db.flush()
+
+    stock = float(keep.inventory.quantity) if keep.inventory else None
+    return ProductResponse(
+        id=keep.id, merchant_id=keep.merchant_id, name_ar=keep.name_ar,
+        name_fr=keep.name_fr, barcode=keep.barcode, unit=keep.unit,
+        unit_price=float(keep.unit_price), cost_price=float(keep.cost_price),
+        is_active=keep.is_active, created_at=keep.created_at, stock_quantity=stock,
+    )
 
 
 @router.post("/scan-invoice")

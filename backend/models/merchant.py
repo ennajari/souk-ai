@@ -36,5 +36,5 @@ class Merchant(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    products = relationship("Product", back_populates="merchant", lazy="selectin")
-    transactions = relationship("Transaction", back_populates="merchant", lazy="selectin")
+    products = relationship("Product", back_populates="merchant", lazy="select")
+    transactions = relationship("Transaction", back_populates="merchant", lazy="select")

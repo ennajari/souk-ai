@@ -14,11 +14,13 @@ from models.employee import Employee
 from models.marketplace import MarketplaceListing, MarketplaceOrder
 from models.payment import Payment, MerchantPaymentConfig
 from models.market_benchmark import MarketBenchmark
+from models.souk_card import SoukCard, CardTransaction
+from models.invoice import Invoice
 
 __all__ = [
     "Merchant", "Product", "Inventory", "Transaction", "Order",
     "Supplier", "SupplierOrder", "ConversationMessage", "Forecast", "CreditHistory",
     "Customer", "CreditEntry", "Notification", "Employee",
     "MarketplaceListing", "MarketplaceOrder", "Payment", "MerchantPaymentConfig",
-    "MarketBenchmark",
+    "MarketBenchmark", "SoukCard", "CardTransaction", "Invoice",
 ]

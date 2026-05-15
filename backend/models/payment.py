@@ -12,6 +12,8 @@ class PaymentMethod(str, enum.Enum):
     CASH_PLUS = "CASH_PLUS"
     BANK_TRANSFER = "BANK_TRANSFER"
     CASH = "CASH"
+    NFC_BANK = "NFC_BANK"
+    NFC_SOUKCARD = "NFC_SOUKCARD"
 
 
 class PaymentStatus(str, enum.Enum):

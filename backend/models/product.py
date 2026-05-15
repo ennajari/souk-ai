@@ -23,4 +23,4 @@ class Product(Base):
 
     merchant = relationship("Merchant", back_populates="products")
     inventory = relationship("Inventory", back_populates="product", uselist=False, lazy="selectin")
-    transactions = relationship("Transaction", back_populates="product", lazy="selectin")
+    transactions = relationship("Transaction", back_populates="product", lazy="select")

@@ -11,7 +11,7 @@ from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
 from models.transaction import Transaction, TransactionType, TransactionSource
-from schemas.transaction import TransactionCreate, TransactionResponse
+from schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -110,6 +110,68 @@ async def create_transaction(
         quantity=txn.quantity, unit_price=float(txn.unit_price),
         total_amount=float(txn.total_amount), created_at=txn.created_at,
     )
+
+
+@router.post("/bulk", response_model=list[TransactionResponse], status_code=201)
+async def create_transactions_bulk(
+    req: BulkTransactionCreate,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Create multiple transactions in one request (POS checkout)."""
+    product_ids = list({item.product_id for item in req.items})
+    prod_result = await db.execute(
+        select(Product)
+        .where(Product.id.in_(product_ids), Product.merchant_id == merchant.id)
+    )
+    products_map = {p.id: p for p in prod_result.scalars().all()}
+
+    inv_result = await db.execute(
+        select(Inventory).where(Inventory.product_id.in_(product_ids))
+    )
+    inv_map = {i.product_id: i for i in inv_result.scalars().all()}
+
+    responses = []
+    for item in req.items:
+        product = products_map.get(item.product_id)
+        if not product:
+            raise HTTPException(404, f"Produit introuvable: {item.product_id}")
+
+        inv = inv_map.get(item.product_id)
+        if item.type == "SALE" and inv and float(inv.quantity) < item.quantity:
+            raise HTTPException(400, f"Stock insuffisant pour {product.name_fr or product.name_ar}")
+
+        total = item.quantity * item.unit_price
+        txn = Transaction(
+            merchant_id=merchant.id,
+            product_id=item.product_id,
+            customer_id=req.customer_id or item.customer_id,
+            type=TransactionType(item.type),
+            source=TransactionSource(item.source),
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            total_amount=total,
+        )
+        db.add(txn)
+
+        if inv:
+            if item.type == "SALE":
+                inv.quantity = float(inv.quantity) - item.quantity
+            elif item.type in ("PURCHASE", "RETURN"):
+                inv.quantity = float(inv.quantity) + item.quantity
+            inv.updated_at = datetime.now(timezone.utc)
+
+        responses.append(TransactionResponse(
+            id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
+            customer_id=txn.customer_id,
+            product_name_ar=product.name_ar, product_name_fr=product.name_fr,
+            type=txn.type.value, source=txn.source.value,
+            quantity=txn.quantity, unit_price=float(txn.unit_price),
+            total_amount=float(txn.total_amount), created_at=txn.created_at,
+        ))
+
+    await db.flush()
+    return responses
 
 
 @router.post("/{transaction_id}/return", response_model=TransactionResponse, status_code=201)

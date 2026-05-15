@@ -11,6 +11,11 @@ class TransactionCreate(BaseModel):
     unit_price: float
 
 
+class BulkTransactionCreate(BaseModel):
+    items: list[TransactionCreate]
+    customer_id: str | None = None
+
+
 class TransactionResponse(BaseModel):
     id: str
     merchant_id: str

@@ -226,11 +226,14 @@ def t(key: str, lang: str, **kwargs) -> str:
     return tmpl.format(**kwargs) if kwargs else tmpl
 
 
+_celery_engine = create_async_engine(
+    settings.DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=3,
+)
+_celery_session_factory = async_sessionmaker(_celery_engine, class_=AsyncSession, expire_on_commit=False)
+
+
 def get_async_session():
-    """Create a fresh async engine and session for each Celery task."""
-    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    return engine, session_factory
+    return _celery_engine, _celery_session_factory
 
 
 def run_async(coro):

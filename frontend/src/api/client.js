@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-const client = axios.create({ baseURL: API_URL })
+const client = axios.create({ baseURL: API_URL, timeout: 20000 })
 
 // Attach JWT token to every request
 client.interceptors.request.use((config) => {
@@ -39,6 +39,7 @@ export const productsAPI = {
   create: (data) => client.post('/products/', data),
   update: (id, data) => client.patch(`/products/${id}`, data),
   delete: (id) => client.delete(`/products/${id}`),
+  merge: (keepId, removeId) => client.post(`/products/${keepId}/merge/${removeId}`),
 }
 
 // ---- Inventory ----
@@ -56,6 +57,7 @@ export const inventoryAPI = {
 export const transactionsAPI = {
   list: (type = null, limit = 50) => client.get('/transactions/', { params: { type, limit } }),
   create: (data) => client.post('/transactions/', data),
+  createBulk: (items, customer_id = null) => client.post('/transactions/bulk', { items, customer_id }),
   returnSale: (transactionId) => client.post(`/transactions/${transactionId}/return`),
 }
 

@@ -20,7 +20,7 @@ async def initiate_payment(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Initiate a payment (CMI redirect, CashPlus voucher, or cash)."""
-    valid_methods = ["CMI", "CASH_PLUS", "BANK_TRANSFER", "CASH"]
+    valid_methods = ["CMI", "CASH_PLUS", "BANK_TRANSFER", "CASH", "NFC_BANK", "NFC_SOUKCARD"]
     if data.method not in valid_methods:
         raise HTTPException(400, f"Methode invalide. Valides: {valid_methods}")
 
