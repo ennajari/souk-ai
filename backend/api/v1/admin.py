@@ -9,7 +9,7 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant
 from app.config import settings
 from models.product import Product
-from models.transaction import Transaction
+from models.transaction import Transaction, TransactionType
 from models.customer import Customer
 from models.employee import Employee
 
@@ -61,13 +61,13 @@ async def admin_stats(
     # Revenue today (all merchants)
     revenue_today = (await db.execute(
         select(func.coalesce(func.sum(Transaction.total_amount), 0))
-        .where(Transaction.created_at >= today, Transaction.type == "SALE")
+        .where(Transaction.created_at >= today, Transaction.type == TransactionType.SALE)
     )).scalar() or 0
 
     # Revenue this month (all merchants)
     revenue_month = (await db.execute(
         select(func.coalesce(func.sum(Transaction.total_amount), 0))
-        .where(Transaction.created_at >= month_ago, Transaction.type == "SALE")
+        .where(Transaction.created_at >= month_ago, Transaction.type == TransactionType.SALE)
     )).scalar() or 0
 
     # Total customers
@@ -91,23 +91,30 @@ async def admin_stats(
             func.sum(Transaction.total_amount).label("revenue"),
             func.count(Transaction.id).label("tx_count"),
         )
-        .where(Transaction.created_at >= month_ago, Transaction.type == "SALE")
+        .where(Transaction.created_at >= month_ago, Transaction.type == TransactionType.SALE)
         .group_by(Transaction.merchant_id)
         .order_by(func.sum(Transaction.total_amount).desc())
         .limit(5)
     )
     top_merchants_rows = top_merchants_q.all()
 
-    # Get merchant names for top merchants
-    top_merchants = []
-    for row in top_merchants_rows:
-        m = (await db.execute(select(Merchant).where(Merchant.id == row.merchant_id))).scalar_one_or_none()
-        top_merchants.append({
+    # Get merchant names in a single query
+    top_merchant_ids = [row.merchant_id for row in top_merchants_rows]
+    merchants_map: dict = {}
+    if top_merchant_ids:
+        m_rows = (await db.execute(
+            select(Merchant.id, Merchant.business_name).where(Merchant.id.in_(top_merchant_ids))
+        )).all()
+        merchants_map = {r.id: r.business_name for r in m_rows}
+    top_merchants = [
+        {
             "merchant_id": row.merchant_id,
-            "business_name": m.business_name if m else "—",
+            "business_name": merchants_map.get(row.merchant_id, "—"),
             "revenue": float(row.revenue),
             "transactions": row.tx_count,
-        })
+        }
+        for row in top_merchants_rows
+    ]
 
     # Transactions per day (last 7 days)
     daily_activity = []
@@ -120,7 +127,7 @@ async def admin_stats(
         )).scalar() or 0
         day_revenue = (await db.execute(
             select(func.coalesce(func.sum(Transaction.total_amount), 0))
-            .where(Transaction.created_at >= day_start, Transaction.created_at < day_end, Transaction.type == "SALE")
+            .where(Transaction.created_at >= day_start, Transaction.created_at < day_end, Transaction.type == TransactionType.SALE)
         )).scalar() or 0
         daily_activity.append({
             "date": day_start.strftime("%d/%m"),

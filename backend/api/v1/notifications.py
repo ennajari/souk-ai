@@ -90,7 +90,7 @@ async def mark_all_read(
 ):
     await db.execute(
         update(Notification)
-        .where(Notification.merchant_id == merchant.id, Notification.is_read is False)
+        .where(Notification.merchant_id == merchant.id, Notification.is_read == False)
         .values(is_read=True)
     )
     await db.flush()

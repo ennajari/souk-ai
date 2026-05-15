@@ -32,7 +32,7 @@ export default function Products() {
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId]       = useState(null)
   const [search, setSearch]       = useState('')
-  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: 0, cost_price: 0 })
+  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '' })
 
   /* ── Scan invoice state ── */
   const [showScanModal, setShowScanModal]   = useState(false)
@@ -73,19 +73,29 @@ export default function Products() {
   const noPriceCount = products.filter(p => !p.unit_price || p.unit_price === 0).length
 
   const handleChange = (e) => {
-    const val = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
-    setForm({ ...form, [e.target.name]: val })
+    const { name, value, type } = e.target
+    if (['unit_price', 'cost_price', 'stock_quantity'].includes(name)) {
+      // Allow empty, digits, and one decimal point — prevent browser blocking "0" deletion
+      const cleaned = value.replace(',', '.')
+      if (cleaned === '' || /^\d*\.?\d*$/.test(cleaned)) {
+        setForm({ ...form, [name]: cleaned })
+      }
+    } else if (type === 'number') {
+      setForm({ ...form, [name]: value === '' ? '' : parseFloat(value) })
+    } else {
+      setForm({ ...form, [name]: value })
+    }
   }
 
   const openAdd = () => {
     setEditId(null)
-    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: 0, cost_price: 0, stock_quantity: 0 })
+    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', stock_quantity: '' })
     setShowModal(true)
   }
 
   const openEdit = (p) => {
     setEditId(p.id)
-    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price, cost_price: p.cost_price, stock_quantity: p.stock_quantity ?? 0 })
+    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price || '', cost_price: p.cost_price || '', stock_quantity: p.stock_quantity ?? '' })
     setShowModal(true)
   }
 
@@ -95,8 +105,9 @@ export default function Products() {
       if (editId) {
         const product = products.find(p => p.id === editId)
         const { stock_quantity, ...productData } = form
-        await productsAPI.update(editId, productData)
-        const delta = Math.round(stock_quantity) - Math.round(product?.stock_quantity ?? 0)
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0 }
+        await productsAPI.update(editId, cleanData)
+        const delta = Math.round(parseFloat(stock_quantity) || 0) - Math.round(product?.stock_quantity ?? 0)
         if (delta !== 0) {
           await inventoryAPI.adjust({
             product_id: editId,
@@ -107,7 +118,8 @@ export default function Products() {
         toast.success('Produit mis à jour')
       } else {
         const { stock_quantity, ...productData } = form
-        await productsAPI.create({ ...productData, initial_stock: stock_quantity })
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0 }
+        await productsAPI.create({ ...cleanData, initial_stock: parseFloat(stock_quantity) || 0 })
         toast.success('Produit ajouté')
       }
       setShowModal(false)
@@ -466,12 +478,12 @@ export default function Products() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Prix vente (MAD)</label>
-                  <input name="unit_price" type="number" step="0.01" min="0" value={form.unit_price} onChange={handleChange}
+                  <input name="unit_price" type="text" inputMode="decimal" placeholder="0.00" value={form.unit_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat (MAD)</label>
-                  <input name="cost_price" type="number" step="0.01" min="0" value={form.cost_price} onChange={handleChange}
+                  <input name="cost_price" type="text" inputMode="decimal" placeholder="0.00" value={form.cost_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
                 </div>
               </div>
@@ -480,12 +492,12 @@ export default function Products() {
                   <label className="text-xs font-medium text-gray-600 mb-1 block">
                     {editId ? 'Stock actuel' : 'Stock initial'}
                   </label>
-                  <input name="stock_quantity" type="number" step="1" min="0"
+                  <input name="stock_quantity" type="text" inputMode="numeric" placeholder="0"
                     value={form.stock_quantity} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
                   {editId && (() => {
                     const orig = products.find(p => p.id === editId)?.stock_quantity ?? 0
-                    const delta = Math.round(form.stock_quantity) - Math.round(orig)
+                    const delta = Math.round(parseFloat(form.stock_quantity) || 0) - Math.round(orig)
                     if (delta === 0) return null
                     return (
                       <p className={`text-xs mt-1 font-medium ${delta > 0 ? 'text-emerald-600' : 'text-red-500'}`}>

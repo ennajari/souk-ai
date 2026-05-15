@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import redis as redis_lib
 from typing import Annotated
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import Response
@@ -7,6 +8,20 @@ from fastapi.responses import Response
 from app.config import settings
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
+
+def _is_duplicate(message_id: str) -> bool:
+    """Return True if this WhatsApp message ID was already processed (dedup via Redis)."""
+    if not message_id:
+        return False
+    try:
+        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=1)
+        key = f"wamid:{message_id}"
+        if r.get(key):
+            return True
+        r.setex(key, 3600, "1")  # 1-hour TTL — WhatsApp may retry after delays
+        return False
+    except Exception:
+        return False  # If Redis is down, don't block messages
 
 
 @router.get("/webhook")
@@ -46,6 +61,10 @@ async def receive_webhook(request: Request):
             for message in messages:
                 from_number = message.get("from", "")
                 msg_type = message.get("type", "")
+
+                message_id = message.get("id", "")
+                if _is_duplicate(message_id):
+                    continue  # WhatsApp duplicate delivery — skip silently
 
                 if msg_type == "text":
                     text = message.get("text", {}).get("body", "")

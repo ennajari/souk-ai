@@ -201,5 +201,5 @@ async def delete_account(
     await db.execute(delete(Conversation).where(Conversation.merchant_id == mid))
 
     # Delete merchant
-    await db.delete(merchant)
+    await db.execute(delete(Merchant).where(Merchant.id == mid))
     await db.flush()

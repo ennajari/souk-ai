@@ -172,16 +172,27 @@ async def get_customer_purchases(
     )
     txns = txn_result.scalars().all()
 
-    purchases = []
-    for t in txns:
-        prod_r = await db.execute(select(Product).where(Product.id == t.product_id))
-        prod = prod_r.scalar_one_or_none()
-        purchases.append({
+    # Batch fetch all products in one query
+    product_ids = [t.product_id for t in txns if t.product_id]
+    products_map: dict = {}
+    if product_ids:
+        prod_rows = (await db.execute(
+            select(Product).where(Product.id.in_(product_ids))
+        )).scalars().all()
+        products_map = {p.id: p for p in prod_rows}
+
+    purchases = [
+        {
             "id": t.id,
-            "product_name": (prod.name_fr or prod.name_ar) if prod else "Inconnu",
+            "product_name": (
+                (products_map[t.product_id].name_fr or products_map[t.product_id].name_ar)
+                if t.product_id and t.product_id in products_map else "Inconnu"
+            ),
             "quantity": t.quantity,
             "unit_price": float(t.unit_price),
             "total": float(t.total_amount),
             "date": t.created_at.isoformat(),
-        })
+        }
+        for t in txns
+    ]
     return purchases

@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -13,9 +14,11 @@ from models.transaction import Transaction, TransactionType, TransactionSource
 from models.conversation import MessageRole, MessageType
 from services.ai_engine import process_message, extract_invoice_data, generate_natural_response
 from services.whatsapp import send_text_message
-from services.inventory import find_product_by_name, record_sale, get_stock_level, get_low_stock_products
+from services.inventory import find_product_by_name, find_most_similar_product, record_sale, get_stock_level, get_low_stock_products
 from services.conversation import get_conversation_history, save_message
 from services.speech_to_text import download_whatsapp_media, transcribe_audio
+
+logger = logging.getLogger("souk_ai")
 
 
 def detect_lang(text: str) -> str:
@@ -25,13 +28,136 @@ def detect_lang(text: str) -> str:
     if arabic_chars > latin_chars:
         return "ar"
     lower = text.lower()
-    # Only distinctly English phrases -- avoid words shared with French (stock, report, price...)
     en_phrases = {"i sold", "i received", "i bought", "how much do i", "i have in stock",
                   "show me all", "give me today", "my sales this", "hello i"}
     if any(phrase in lower for phrase in en_phrases):
         return "en"
-    # Default to French -- Moroccan merchants primarily use French or Darija
     return "fr"
+
+
+def detect_social_intent(text: str) -> str | None:
+    """Detect social/casual messages that need warm human responses, not actions.
+    Returns a social intent string or None if the message is task-oriented."""
+    txt = text.strip().lower()
+    txt_clean = txt.rstrip("!.?؟ ")
+
+    thanks_patterns = [
+        "merci", "mercy", "thanks", "thank you", "شكرا", "بارك الله",
+        "choukran", "chokran", "sahit", "صحيت",
+    ]
+    ok_patterns = [
+        "ok", "okay", "d'accord", "daccord", "parfait", "bien reçu",
+        "bien recu", "c'est bon", "cbon", "top", "super", "cool",
+        "واخا", "مزيان", "تمام", "حسنا", "ماشي مشكل",
+        "entendu", "compris", "noté", "note", "got it", "alright",
+    ]
+    goodbye_patterns = [
+        "bonne journée", "bonne journee", "bonne soirée", "bonne soiree",
+        "bonne nuit", "au revoir", "à bientôt", "a bientot", "bye",
+        "good night", "good bye", "goodbye", "تصبح على خير",
+        "الله يحفظك", "بسلامة", "نهارك سعيد",
+    ]
+    encouragement_patterns = [
+        "bravo", "génial", "genial", "excellent", "magnifique", "nickel",
+        "formidable", "incroyable", "amazing", "great", "awesome",
+    ]
+
+    for p in thanks_patterns:
+        if p in txt:
+            return "SOCIAL_THANKS"
+    for p in ok_patterns:
+        if txt_clean == p or txt.startswith(p + " ") or txt.endswith(" " + p):
+            return "SOCIAL_OK"
+    for p in goodbye_patterns:
+        if p in txt:
+            return "SOCIAL_GOODBYE"
+    for p in encouragement_patterns:
+        if p in txt:
+            return "SOCIAL_ENCOURAGEMENT"
+    return None
+
+
+def get_social_response(social_intent: str, lang: str, merchant_name: str = "") -> str:
+    """Return a warm, human response for social/casual messages."""
+    import random
+    first_name = merchant_name.split()[0] if merchant_name.strip() else ""
+
+    responses = {
+        "SOCIAL_THANKS": {
+            "fr": [
+                "Avec plaisir ! N'hésitez pas si vous avez besoin de quoi que ce soit.",
+                "De rien ! Bonne continuation et bonnes ventes !",
+                "Je vous en prie ! Je suis là si besoin.",
+            ],
+            "ar": [
+                "بلا جميل! أنا هنا إلا احتجتي شي حاجة.",
+                "لا شكر على واجب! بالتوفيق في المبيعات!",
+                "العفو! ديما هنا باش نعاونك.",
+            ],
+            "en": [
+                "You're welcome! Let me know if you need anything.",
+                "No problem! Happy selling!",
+                "My pleasure! I'm here whenever you need me.",
+            ],
+        },
+        "SOCIAL_OK": {
+            "fr": [
+                "Parfait ! Dites-moi quand vous voulez, je suis disponible.",
+                "Super ! N'hésitez pas si vous avez besoin d'autre chose.",
+                "Bien noté ! Je suis là.",
+            ],
+            "ar": [
+                "تمام! غير قولي فاش تحتاجني.",
+                "مزيان! أنا هنا ديما.",
+                "واخا! إلا بغيتي شي حاجة أنا موجود.",
+            ],
+            "en": [
+                "Great! Just let me know when you need me.",
+                "Got it! I'm here whenever you're ready.",
+                "Perfect! Don't hesitate to reach out.",
+            ],
+        },
+        "SOCIAL_GOODBYE": {
+            "fr": [
+                "Bonne journée et bonnes ventes !",
+                "À bientôt ! Prenez soin de vous.",
+                "Bonne continuation ! Je suis là demain aussi.",
+            ],
+            "ar": [
+                "نهارك سعيد! بالتوفيق في البيع!",
+                "الله يعطيك الخير! نتلاقاو.",
+                "بسلامة! غدا أنا هنا تاني.",
+            ],
+            "en": [
+                "Have a great day! Happy selling!",
+                "See you soon! Take care.",
+                "Goodbye! I'll be here whenever you need me.",
+            ],
+        },
+        "SOCIAL_ENCOURAGEMENT": {
+            "fr": [
+                "Merci ! On continue comme ça !",
+                "C'est gentil ! Ensemble on avance !",
+            ],
+            "ar": [
+                "شكرا! كنكملو هكا!",
+                "الله يبارك! ديما للأمام!",
+            ],
+            "en": [
+                "Thanks! Let's keep it going!",
+                "Appreciate it! Onward and upward!",
+            ],
+        },
+    }
+
+    lang_responses = responses.get(social_intent, {}).get(lang, responses.get(social_intent, {}).get("fr", ["Bien reçu !"]))
+    resp = random.choice(lang_responses)
+    if first_name and random.random() < 0.4:
+        if lang == "ar":
+            resp = first_name + "، " + resp
+        else:
+            resp = first_name + ", " + resp[0].lower() + resp[1:]
+    return resp
 def t(key: str, lang: str, **kwargs) -> str:
     """Simple translation helper."""
     translations = {
@@ -46,9 +172,9 @@ def t(key: str, lang: str, **kwargs) -> str:
             "en": "❌ '{name}' not found. Send 'I received X {name}' to add it.",
         },
         "stock_level": {
-            "ar": "📦 {name}: {stock} {unit}",
-            "fr": "📦 {name}: {stock} {unit}",
-            "en": "📦 {name}: {stock} {unit}",
+            "ar": "{name}: {stock} {unit}",
+            "fr": "{name}: {stock} {unit}",
+            "en": "{name}: {stock} {unit}",
         },
         "product_added_with_price": {
             "ar": "✅ {name} | {qty} {unit} | {price:.2f} درهم",
@@ -56,9 +182,9 @@ def t(key: str, lang: str, **kwargs) -> str:
             "en": "✅ {name} | {qty} {unit} | {price:.2f} MAD",
         },
         "product_added_no_price": {
-            "ar": "✅ {name} | {qty} {unit}\n💰 Prix? Ex: '10 DH'",
-            "fr": "✅ {name} | {qty} {unit}\n💰 Prix? Ex: '10 DH'",
-            "en": "✅ {name} | {qty} {unit}\n💰 Price? Ex: '10 DH'",
+            "ar": "✅ {name} | {qty} {unit}\nPrix? Ex: '10 DH'",
+            "fr": "✅ {name} | {qty} {unit}\nPrix? Ex: '10 DH'",
+            "en": "✅ {name} | {qty} {unit}\nPrice? Ex: '10 DH'",
         },
         "stock_updated": {
             "ar": "✅ {name} +{qty} → {total}",
@@ -91,9 +217,9 @@ def t(key: str, lang: str, **kwargs) -> str:
             "en": "❓ Product name and quantity?",
         },
         "dashboard_link": {
-            "ar": "🔗 لوحة التحكم: {url}",
-            "fr": "🔗 Tableau de bord: {url}",
-            "en": "🔗 Dashboard: {url}",
+            "ar": "لوحة التحكم: {url}",
+            "fr": "Tableau de bord: {url}",
+            "en": "Dashboard: {url}",
         },
     }
     tmpl = translations.get(key, {}).get(lang) or translations.get(key, {}).get("fr", key)
@@ -303,12 +429,13 @@ async def _process_voice_message(phone_number: str, media_id: str):
     try:
         audio_bytes = await download_whatsapp_media(media_id)
         text = await transcribe_audio(audio_bytes)
-    except Exception:
-        await send_text_message(phone_number, "Desole, je n'ai pas pu comprendre le message vocal.")
+    except Exception as e:
+        logger.error(f"Voice download/transcription failed for {phone_number}: {e}")
+        await send_text_message(phone_number, "Désolé, je n'ai pas pu comprendre le message vocal. Réessayez ou envoyez un texte.")
         return {"status": "transcription_failed"}
 
     if not text:
-        await send_text_message(phone_number, "Desole, je n'ai pas pu comprendre le message vocal.")
+        await send_text_message(phone_number, "Désolé, je n'ai pas pu comprendre le message vocal. Réessayez ou envoyez un texte.")
         return {"status": "transcription_failed"}
 
     return await _process_message(phone_number, text, MessageType.VOICE)
@@ -627,6 +754,19 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                 await send_text_message(phone_number, "Bienvenue! Inscrivez-vous sur notre plateforme pour commencer.")
                 return {"status": "unregistered"}
 
+            lang = detect_lang(text)
+            merchant_name = merchant.owner_name or merchant.business_name or ""
+
+            # SOCIAL INTENT: detect casual messages before calling AI
+            social = detect_social_intent(text)
+            if social:
+                response_text = get_social_response(social, lang, merchant_name)
+                await save_message(db, merchant.id, MessageRole.USER, text, message_type)
+                await save_message(db, merchant.id, MessageRole.ASSISTANT, response_text, intent=social)
+                await db.commit()
+                await send_text_message(phone_number, response_text)
+                return {"status": "processed", "intent": social}
+
             # Load conversation context
             history = await get_conversation_history(db, merchant.id)
 
@@ -634,14 +774,21 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
             await save_message(db, merchant.id, MessageRole.USER, text, message_type)
 
             # Analyze with AI (with context)
-            ai_result = await process_message(text, conversation_history=history)
+            try:
+                ai_raw = await process_message(text, conversation_history=history)
+            except Exception as e:
+                logger.error(f"AI engine failed for {phone_number}: {e}")
+                await send_text_message(phone_number, "Désolé, un problème technique est survenu. Réessayez dans un instant.")
+                return {"status": "ai_error"}
+
+            ai_results = ai_raw if isinstance(ai_raw, list) else [ai_raw]
+
+            ai_result = ai_results[0]
             intent = ai_result.get("intent", "UNKNOWN")
             entities = ai_result.get("entities", {})
             response_text = ai_result.get("response_text", "")
 
-            # Determine transaction source
             source = TransactionSource.VOICE if message_type == MessageType.VOICE else TransactionSource.WHATSAPP
-            lang = detect_lang(text)
 
             # Keyword fallback: if UNKNOWN but message is about stock alerts/report, force GET_REPORT
             if intent == "UNKNOWN":
@@ -701,14 +848,43 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
 
                 if product_name and quantity:
                     product = await find_product_by_name(db, merchant.id, product_name)
+                    if not product:
+                        # Smart fallback: auto-match closest product if confident enough
+                        similar, score = await find_most_similar_product(db, merchant.id, product_name)
+                        if similar and score >= 0.35:
+                            product = similar
                     if product:
                         price = float(product.unit_price)
                         await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
                         stock = await get_stock_level(db, product.id)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
-                        response_text = t("sale_ok", lang, qty=quantity, name=display_name, total=quantity * price, stock=stock)
+                        data_ctx = (
+                            "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
+                            " de " + str(display_name) + " — " + str(round(quantity * price, 2)) + " MAD." +
+                            " Stock restant: " + str(stock) + " " + str(product.unit) + "."
+                        )
+                        response_text = await generate_natural_response(text, data_ctx, lang, history)
                     else:
-                        response_text = t("product_not_found", lang, name=product_name)
+                        # No match at all — list available products to help user
+                        from sqlalchemy import select as sa_select
+                        from models.product import Product as ProductModel
+                        all_r = await db.execute(
+                            sa_select(ProductModel).where(
+                                ProductModel.merchant_id == merchant.id,
+                                ProductModel.is_active == True,
+                            ).limit(8)
+                        )
+                        avail = all_r.scalars().all()
+                        if avail:
+                            names = ", ".join(p.name_fr or p.name_ar for p in avail)
+                            msgs_nf = {
+                                "fr": "Produit introuvable. Produits disponibles: " + names,
+                                "en": "Product not found. Available: " + names,
+                                "ar": "المنتج غير موجود. المنتجات المتاحة: " + names,
+                            }
+                            response_text = msgs_nf.get(lang, msgs_nf["fr"])
+                        else:
+                            response_text = t("product_not_found", lang, name=product_name)
 
             elif intent == "CHECK_STOCK":
                 product_name = entities.get("product_name", "")
@@ -717,18 +893,11 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                     if product:
                         stock = await get_stock_level(db, product.id)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
-                        price_str = f"{float(product.unit_price):.2f} MAD" if product.unit_price else "prix non défini"
-                        data_ctx = (
-                            f"Produit: {display_name}
-"
-                            f"Stock actuel: {stock} {product.unit}
-"
-                            f"Prix de vente: {price_str}"
-                        )
+                        price_str = f"{float(product.unit_price):.2f} MAD" if product.unit_price else "prix non defini"
+                        data_ctx = "Produit: " + str(display_name) + chr(10) + "Stock: " + str(stock) + " " + str(product.unit) + chr(10) + "Prix: " + price_str
                         response_text = await generate_natural_response(text, data_ctx, lang, history)
                     else:
                         response_text = t("product_not_found", lang, name=product_name)
-
             elif intent == "ADD_PRODUCT":
                 product_name = entities.get("product_name", "")
                 quantity = entities.get("quantity", 0)
@@ -743,7 +912,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                             inv_result = await db.execute(select(Inventory).where(Inventory.product_id == existing.id))
                             inv = inv_result.scalar_one_or_none()
                             if inv:
-                                inv.quantity = float(inv.quantity) + int(quantity)
+                                inv.quantity = float(inv.quantity) + float(quantity)
                                 new_total = float(inv.quantity)
                             else:
                                 from models.inventory import Inventory as Inv
@@ -751,7 +920,13 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                                 db.add(new_inv)
                                 new_total = float(quantity)
                             display_name = existing.name_fr if lang in ("fr", "en") and existing.name_fr else existing.name_ar
-                            response_text = t("stock_updated", lang, name=display_name, qty=quantity, total=new_total)
+                            price_info = (f", prix: {float(existing.unit_price):.2f} MAD/{existing.unit}") if existing.unit_price else ""
+                            data_ctx = (
+                                "Reapprovisionnement enregistre: +" + str(quantity) + " " + str(existing.unit) +
+                                " de " + str(display_name) + price_info +
+                                ". Stock total: " + str(new_total) + " " + str(existing.unit) + "."
+                            )
+                            response_text = await generate_natural_response(text, data_ctx, lang, history)
                         else:
                             response_text = ai_result.get("response_text", "")
                     else:
@@ -759,12 +934,11 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         price_val = float(entities.get("price") or 0.0)
                         from models.product import Product as Prod
                         from models.inventory import Inventory as Inv
-                        # Use name_fr for Latin-script names, name_ar for Arabic
-                        all(not ('\u0600' <= c <= '\u06FF') for c in product_name if c.isalpha())
+                        is_arabic = any("؀" <= c <= "ۿ" for c in product_name if c.isalpha())
                         new_product = Prod(
                             merchant_id=merchant.id,
-                            name_ar=product_name,
-                            name_fr=product_name,
+                            name_ar=product_name if is_arabic else "",
+                            name_fr="" if is_arabic else product_name,
                             unit=unit,
                             unit_price=price_val,
                             cost_price=price_val,
@@ -773,10 +947,12 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         await db.flush()
                         new_inv = Inv(product_id=new_product.id, quantity=float(quantity) if quantity else 0.0)
                         db.add(new_inv)
-                        if price_val > 0:
-                            response_text = t("product_added_with_price", lang, name=product_name, qty=quantity or 0, unit=unit, price=price_val)
-                        else:
-                            response_text = t("product_added_no_price", lang, name=product_name, qty=quantity or 0, unit=unit)
+                        price_info = f", prix: {price_val:.2f} MAD/{unit}" if price_val > 0 else " (prix a definir)"
+                        data_ctx = (
+                            "Nouveau produit cree: " + product_name +
+                            " — " + str(quantity or 0) + " " + unit + price_info + "."
+                        )
+                        response_text = await generate_natural_response(text, data_ctx, lang, history)
                 else:
                     response_text = t("ask_product_name", lang)
 
@@ -816,17 +992,14 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                 low_stock = await get_low_stock_products(db, merchant.id)
                 dashboard_url = settings.FRONTEND_URL
                 if low_stock:
-                    data_ctx = f"Stock bas detecte ({len(low_stock)} produit(s)):
-"
+                    data_lines = ["Stock bas detecte (" + str(len(low_stock)) + " produit(s)):"]
                     for item in low_stock:
-                        data_ctx += f"- {item['product_name']}: {item['quantity']} (seuil minimum: {item['threshold']})
-"
-                    data_ctx += f"
-Dashboard: {dashboard_url}"
+                        data_lines.append("- " + item["product_name"] + ": " + str(item["quantity"]) + " (seuil: " + str(item["threshold"]) + ")")
+                    data_lines.append("Dashboard: " + dashboard_url)
+                    data_ctx = chr(10).join(data_lines)
                     response_text = await generate_natural_response(text, data_ctx, lang, history)
                 else:
-                    data_ctx = f"Tous les stocks sont OK, aucun produit en alerte.
-Dashboard: {dashboard_url}"
+                    data_ctx = "Tous les stocks sont OK, aucun produit en alerte. Dashboard: " + dashboard_url
                     response_text = await generate_natural_response(text, data_ctx, lang, history)
             elif intent == "PLACE_ORDER":
                 product_name = entities.get("product_name", "")
@@ -929,8 +1102,8 @@ Dashboard: {dashboard_url}"
                 all_products = prod_result.scalars().all()
                 if not all_products:
                     msgs = {
-                        "ar": "📦 ما عندك حتى منتج. أرسل 'جيت ليما 10 سكر' لإضافته.",
-                        "fr": "📦 Vous n'avez encore aucun produit. Envoyez 'j'ai recu 10 sucre' pour en ajouter un.",
+                        "ar": "📦 ما عندك حتى منتج.",
+                        "fr": "📦 Vous n'avez encore aucun produit. Envoyez 'j'ai recu 10 sucre' pour en ajouter.",
                         "en": "📦 No products yet. Send 'I received 10 sugar' to add one.",
                     }
                     response_text = msgs.get(lang, msgs["fr"])
@@ -945,24 +1118,17 @@ Dashboard: {dashboard_url}"
                         name = p.name_fr if lang in ("fr", "en") and p.name_fr else p.name_ar
                         price_str = f", {float(p.unit_price):.2f} MAD" if p.unit_price else ""
                         alert = " ⚠️" if stock <= threshold else ""
-                        data_lines.append(f"- {name}: {stock:.0f} {p.unit}{price_str}{alert}")
+                        data_lines.append("- " + str(name) + ": " + str(int(stock)) + " " + str(p.unit) + price_str + alert)
                         if stock <= threshold:
                             low_count += 1
                     total = len(all_products)
-                    data_ctx = f"Nombre total de produits: {total}
-"
-                    data_ctx += "
-".join(data_lines)
+                    data_ctx = "Nombre total de produits: " + str(total) + chr(10)
+                    data_ctx += chr(10).join(data_lines)
                     if total > 25:
-                        data_ctx += f"
-... et {total - 25} autres produits"
+                        data_ctx += chr(10) + "... et " + str(total - 25) + " autres"
                     if low_count:
-                        data_ctx += f"
-
-ATTENTION: {low_count} produit(s) ont un stock bas."
-                    data_ctx += f"
-
-Dashboard: {settings.FRONTEND_URL}"
+                        data_ctx += chr(10) + "ATTENTION: " + str(low_count) + " produit(s) en stock bas."
+                    data_ctx += chr(10) + "Dashboard: " + settings.FRONTEND_URL
                     response_text = await generate_natural_response(text, data_ctx, lang, history)
             # For DASHBOARD_LINK: send direct URL
             if intent == "DASHBOARD_LINK":
@@ -1079,45 +1245,115 @@ Dashboard: {settings.FRONTEND_URL}"
                 }
                 response_text = msgs.get(lang, msgs["fr"])
 
-            # For GREETING: warm welcome with capabilities
+            # For GREETING: warm welcome — show full menu only for first interaction
             if intent == "GREETING":
                 dashboard_url = settings.FRONTEND_URL
-                greetings = {
-                    "ar": (
-                        f"مرحبا! انا Souk.AI، المساعد الذكي ديالك 🤖\n\n"
-                        f"واش تعرف شنو نقدر ندير ليك?\n"
-                        f"🎤 غير سيفط ليا vocal وانا نفهمك\n"
-                        f"📦 'شحال بقى عندي فالسكر' → نشوف ليك المخزون\n"
-                        f"🛒 'بعت 5 كيلو طماطم' → نسجل ليك البيع\n"
-                        f"📊 'شحال بعت هاد الأسبوع' → نعطيك الملخص\n"
-                        f"📋 'عطيني ليست ديال المنتجات' → نبعت ليك كلشي\n"
-                        f"🧾 'فاتورة لعميل أحمد' → نخدم ليك PDF\n\n"
-                        f"🔗 لوحة التحكم: {dashboard_url}"
-                    ),
-                    "fr": (
-                        f"Bonjour! Je suis Souk.AI, votre assistant intelligent 🤖\n\n"
-                        f"Voici ce que je peux faire pour vous:\n"
-                        f"🎤 Envoyez un vocal, je comprends!\n"
-                        f"📦 'combien de sucre' → je verifie le stock\n"
-                        f"🛒 'j'ai vendu 5 kg tomates' → j'enregistre la vente\n"
-                        f"📊 'mes ventes cette semaine' → resume complet\n"
-                        f"📋 'liste de produits' → tout votre stock\n"
-                        f"🧾 'facture pour client Ahmed' → PDF genere\n\n"
-                        f"🔗 Tableau de bord: {dashboard_url}"
-                    ),
-                    "en": (
-                        f"Hello! I'm Souk.AI, your smart assistant 🤖\n\n"
-                        f"Here's what I can do:\n"
-                        f"🎤 Send a voice message, I understand!\n"
-                        f"📦 'how much sugar' → I check your stock\n"
-                        f"🛒 'I sold 5 kg tomatoes' → I record the sale\n"
-                        f"📊 'my sales this week' → full summary\n"
-                        f"📋 'list products' → all your stock\n"
-                        f"🧾 'invoice for client Ahmed' → PDF generated\n\n"
-                        f"🔗 Dashboard: {dashboard_url}"
-                    ),
-                }
-                response_text = greetings.get(lang, greetings["fr"])
+                first_name = merchant_name.split()[0] if merchant_name.strip() else ""
+                NL = chr(10)
+                is_returning = len(history) > 2
+
+                if is_returning:
+                    # Short warm greeting for returning users
+                    if lang == "ar":
+                        response_text = "مرحبا" + (" " + first_name if first_name else "") + "! كيداير اليوم؟ شنو نقدر ندير ليك؟"
+                    elif lang == "en":
+                        response_text = "Hey" + (" " + first_name if first_name else "") + "! How's it going? What can I help you with?"
+                    else:
+                        response_text = "Bonjour" + (" " + first_name if first_name else "") + " ! Comment ça va ? Qu'est-ce que je peux faire pour vous ?"
+                else:
+                    # Full welcome with capabilities for new users
+                    if lang == "ar":
+                        response_text = (
+                            "مرحبا" + (" " + first_name if first_name else "") + "! انا Souk.AI، المساعد الذكي ديالك." + NL + NL +
+                            "شنو نقدر ندير ليك:" + NL +
+                            "- سيفط vocal وانا نفهمك" + NL +
+                            "- 'شحال بقى عندي فالسكر' - نشوف ليك المخزون" + NL +
+                            "- 'بعت 5 كيلو طماطم' - نسجل ليك البيع" + NL +
+                            "- 'عطيني ليست ديال المنتجات' - نبعت ليك كلشي" + NL +
+                            "- 'فاتورة لعميل أحمد' - نخدم ليك PDF" + NL + NL +
+                            "لوحة التحكم: " + dashboard_url
+                        )
+                    elif lang == "en":
+                        response_text = (
+                            "Hello" + (" " + first_name if first_name else "") + "! I'm Souk.AI, your smart assistant." + NL + NL +
+                            "Here's what I can do:" + NL +
+                            "- Send a voice message, I understand!" + NL +
+                            "- 'how much sugar' - check your stock" + NL +
+                            "- 'I sold 5 kg tomatoes' - record the sale" + NL +
+                            "- 'my sales this week' - full summary" + NL +
+                            "- 'list products' - all your stock" + NL +
+                            "- 'invoice for client Ahmed' - PDF generated" + NL + NL +
+                            "Dashboard: " + dashboard_url
+                        )
+                    else:
+                        response_text = (
+                            "Bonjour" + (" " + first_name if first_name else "") + " ! Je suis Souk.AI, votre assistant intelligent." + NL + NL +
+                            "Voici ce que je peux faire :" + NL +
+                            "- Envoyez un vocal, je comprends" + NL +
+                            "- 'combien de sucre' - je vérifie le stock" + NL +
+                            "- 'j'ai vendu 5 kg tomates' - j'enregistre la vente" + NL +
+                            "- 'mes ventes cette semaine' - résumé complet" + NL +
+                            "- 'liste de produits' - tout votre stock" + NL +
+                            "- 'facture pour client Ahmed' - PDF généré" + NL + NL +
+                            "Tableau de bord : " + dashboard_url
+                        )
+            # Handle additional products from multi-product messages (ai_results[1:])
+            extra_parts = []
+            for extra_ai in ai_results[1:]:
+                ex_intent = extra_ai.get("intent", "UNKNOWN")
+                ex_ent = extra_ai.get("entities", {})
+                ex_pname = ex_ent.get("product_name", "")
+                ex_qty = ex_ent.get("quantity", 0)
+                ex_unit = ex_ent.get("unit", "piece") or "piece"
+                ex_price_val = float(ex_ent.get("price") or 0.0)
+                if not ex_pname:
+                    continue
+                if ex_intent == "ADD_PRODUCT":
+                    ex_existing = await find_product_by_name(db, merchant.id, ex_pname)
+                    if ex_existing:
+                        if ex_qty:
+                            from models.inventory import Inventory as _Inv
+                            ex_inv_r = await db.execute(select(_Inv).where(_Inv.product_id == ex_existing.id))
+                            ex_inv = ex_inv_r.scalar_one_or_none()
+                            if ex_inv:
+                                ex_inv.quantity = float(ex_inv.quantity) + float(ex_qty)
+                                ex_total = float(ex_inv.quantity)
+                            else:
+                                ex_new_inv = _Inv(product_id=ex_existing.id, quantity=float(ex_qty))
+                                db.add(ex_new_inv)
+                                ex_total = float(ex_qty)
+                            ex_dname = ex_existing.name_fr if lang in ("fr", "en") and ex_existing.name_fr else ex_existing.name_ar
+                            ex_parts_ctx = "Reapprovisionnement: +" + str(ex_qty) + " " + str(ex_existing.unit) + " de " + str(ex_dname) + ". Stock total: " + str(ex_total) + " " + str(ex_existing.unit) + "."
+                            ex_resp = await generate_natural_response(text, ex_parts_ctx, lang, history)
+                            extra_parts.append(ex_resp)
+                    else:
+                        from models.product import Product as _Prod
+                        from models.inventory import Inventory as _Inv2
+                        ex_is_ar = any("؀" <= c <= "ۿ" for c in ex_pname if c.isalpha())
+                        ex_prod = _Prod(merchant_id=merchant.id, name_ar=ex_pname if ex_is_ar else "", name_fr="" if ex_is_ar else ex_pname, unit=ex_unit, unit_price=ex_price_val, cost_price=ex_price_val)
+                        db.add(ex_prod)
+                        await db.flush()
+                        db.add(_Inv2(product_id=ex_prod.id, quantity=float(ex_qty) if ex_qty else 0.0))
+                        ex_pinfo = f", prix: {ex_price_val:.2f} MAD/{ex_unit}" if ex_price_val > 0 else " (prix a definir)"
+                        ex_ctx = "Nouveau produit cree: " + ex_pname + " — " + str(ex_qty or 0) + " " + ex_unit + ex_pinfo + "."
+                        ex_resp = await generate_natural_response(text, ex_ctx, lang, history)
+                        extra_parts.append(ex_resp)
+                elif ex_intent == "RECORD_SALE" and ex_qty:
+                    ex_prod = await find_product_by_name(db, merchant.id, ex_pname)
+                    if not ex_prod:
+                        ex_sim, ex_sc = await find_most_similar_product(db, merchant.id, ex_pname)
+                        if ex_sim and ex_sc >= 0.35:
+                            ex_prod = ex_sim
+                    if ex_prod:
+                        ex_price = float(ex_prod.unit_price)
+                        await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
+                        ex_stock = await get_stock_level(db, ex_prod.id)
+                        ex_dname = ex_prod.name_fr if lang in ("fr", "en") and ex_prod.name_fr else ex_prod.name_ar
+                        ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
+                        ex_resp = await generate_natural_response(text, ex_ctx, lang, history)
+                        extra_parts.append(ex_resp)
+            if extra_parts:
+                response_text = response_text + chr(10) + chr(10) + (chr(10) + chr(10)).join(extra_parts)
 
             # Save assistant response
             await save_message(db, merchant.id, MessageRole.ASSISTANT, response_text, intent=intent)
@@ -1125,6 +1361,13 @@ Dashboard: {settings.FRONTEND_URL}"
 
         if response_text:
             await send_text_message(phone_number, response_text)
+    except Exception as e:
+        logger.error(f"Message processing failed for {phone_number}: {e}", exc_info=True)
+        try:
+            await send_text_message(phone_number, "Désolé, une erreur est survenue. Réessayez dans un instant.")
+        except Exception:
+            pass
+        return {"status": "error", "error": str(e)}
     finally:
         await engine.dispose()
 
@@ -1152,7 +1395,11 @@ async def _send_alerts():
                 if low_stock:
                     lines.append("⚠️ *Stock bas:*")
                     for item in low_stock:
-                        lines.append(f"  • {item['product_name']}: {item['quantity']}")
+                        qty = item['quantity']
+                        if qty <= 0:
+                            lines.append(f"  🔴 {item['product_name']}: Rupture de stock")
+                        else:
+                            lines.append(f"  🟡 {item['product_name']}: {qty:.0f} restant(s) — pensez à réapprovisionner")
 
                 # Expiry date alerts (within 7 days)
                 from datetime import date as date_cls
@@ -1275,8 +1522,9 @@ async def _send_daily_sales_report():
             merchants = result.scalars().all()
 
             for merchant in merchants:
-                now = datetime.now(timezone.utc)
-                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                morocco_tz = timezone(timedelta(hours=1))
+                now_morocco = datetime.now(morocco_tz)
+                today_start = now_morocco.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
 
                 txn_result = await db.execute(
                     select(Transaction).where(
@@ -1288,7 +1536,7 @@ async def _send_daily_sales_report():
                 txns = txn_result.scalars().all()
 
                 if not txns:
-                    continue  # No sales today — skip merchant
+                    continue
 
                 total_revenue = sum(float(t.total_amount) for t in txns)
                 nb_sales = len(txns)
@@ -1309,7 +1557,7 @@ async def _send_daily_sales_report():
 
                 low_stock = await get_low_stock_products(db, merchant.id)
 
-                date_str = today_start.strftime("%d/%m/%Y")
+                date_str = now_morocco.strftime("%d/%m/%Y")
                 lines = [
                     f"📊 *Rapport quotidien — {date_str}*",
                     "",
@@ -1322,9 +1570,14 @@ async def _send_daily_sales_report():
                 if low_stock:
                     lines += ["", f"⚠️ Stock bas ({len(low_stock)}):"]
                     for item in low_stock[:3]:
-                        lines.append(f"  • {item['product_name']}: {item['quantity']}")
+                        qty = item['quantity']
+                        if qty <= 0:
+                            lines.append(f"  🔴 {item['product_name']}: Rupture de stock")
+                        else:
+                            lines.append(f"  🟡 {item['product_name']}: {qty:.0f} restant(s)")
 
-                lines.append(f"\n🔗 {settings.FRONTEND_URL}")
+                lines.append(f"\n💪 Bonne continuation et bonnes ventes demain !")
+                lines.append(f"🔗 {settings.FRONTEND_URL}")
                 await send_text_message(merchant.phone_number, "\n".join(lines))
     finally:
         await engine.dispose()

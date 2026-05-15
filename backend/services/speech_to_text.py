@@ -4,7 +4,7 @@ import os
 from openai import AsyncOpenAI
 from app.config import settings
 
-WHATSAPP_API_URL = "https://graph.facebook.com/v21.0"
+WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 
 async def download_whatsapp_media(media_id: str) -> bytes:
@@ -22,7 +22,7 @@ async def download_whatsapp_media(media_id: str) -> bytes:
 
 
 async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.ogg") -> str:
-    """Transcribe audio using OpenAI Whisper API."""
+    """Transcribe audio using OpenAI Whisper API with auto language detection."""
     if not settings.OPENAI_API_KEY:
         return ""
 
@@ -39,9 +39,13 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.ogg") -> s
             transcript = await client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                language="ar",
+                prompt="Darija, Français, العربية. Merchant parle de stock, vente, produits.",
             )
         return transcript.text
+    except Exception as e:
+        import logging
+        logging.getLogger("souk_ai").error(f"Whisper transcription failed: {e}")
+        return ""
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)

@@ -57,14 +57,22 @@ async def browse_listings(
     result = await db.execute(q)
     listings = result.scalars().all()
 
-    items = []
-    for listing_item in listings:
-        seller_q = await db.execute(select(Merchant.business_name).where(Merchant.id == listing_item.merchant_id))
-        seller_name = seller_q.scalar()
-        items.append({
+    # Batch fetch seller names in one query
+    seller_ids = [listing.merchant_id for listing in listings]
+    sellers_map: dict = {}
+    if seller_ids:
+        s_rows = (await db.execute(
+            select(Merchant.id, Merchant.business_name).where(Merchant.id.in_(seller_ids))
+        )).all()
+        sellers_map = {r.id: r.business_name for r in s_rows}
+
+    items = [
+        {
             **ListingResponse.model_validate(listing_item).model_dump(),
-            "seller_name": seller_name,
-        })
+            "seller_name": sellers_map.get(listing_item.merchant_id, "—"),
+        }
+        for listing_item in listings
+    ]
 
     return {"items": items, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 

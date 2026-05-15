@@ -32,6 +32,12 @@ Respond ONLY in valid JSON with this structure:
   "response_text": "natural response in the SAME language as the user"
 }
 
+MULTI-PRODUCT RULE:
+- If a message mentions TWO OR MORE distinct products with separate quantities/prices, return a JSON ARRAY: [{...}, {...}]
+- "j'ai recu 13 cartons de sucré et 1 Bloc de sucre à 4 DH" → [{ADD_PRODUCT, sucré, 13, carton}, {ADD_PRODUCT, "Bloc de sucre", 1, piece, price:4}]
+- "بعت 5 طماطم وجيت ليما 10 سردين" → [{RECORD_SALE, طماطم, 5}, {ADD_PRODUCT, سردين, 10}]
+- Single product/action → single object (not wrapped in array)
+
 Examples — Arabic/Darija:
 - "بعت 5 كيلو طماطم" -> RECORD_SALE, product=طماطم, qty=5, unit=kg
 - "شحال بقى عندي فالسكر" -> CHECK_STOCK, product=سكر
@@ -162,11 +168,16 @@ async def process_message(text: str, conversation_history: list[dict] | None = N
 
     response_text = response.choices[0].message.content
 
-    # Use raw_decode to extract the FIRST valid JSON object only
-    # (handles cases where AI accidentally returns multiple JSON blocks)
     decoder = json.JSONDecoder()
     try:
-        result, _ = decoder.raw_decode(response_text.strip())
+        cleaned = response_text.strip()
+        if cleaned.startswith("```"):
+            parts = cleaned.split("```")
+            cleaned = parts[1] if len(parts) > 1 else cleaned
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+        result, _ = decoder.raw_decode(cleaned)
         return result
     except json.JSONDecodeError:
         return {
@@ -201,9 +212,11 @@ async def generate_natural_response(
             "content": (
                 f"Tu es Souk.AI, l'assistant intelligent pour les commerçants marocains. "
                 f"Réponds TOUJOURS en {lang_instruction} "
-                f"Sois chaleureux, direct et concis. Utilise des emojis. "
+                f"Sois chaleureux, direct et concis comme un ami commerçant. "
+                f"Utilise 1-2 emojis maximum par réponse, pas plus. "
                 f"Tu as accès aux vraies données du stock du commerçant ci-dessous. "
-                f"Réponds naturellement à la question — ne recopie pas les données brutes."
+                f"Réponds naturellement — ne recopie pas les données brutes. "
+                f"NE RÉPÈTE JAMAIS le menu ou la liste des fonctionnalités."
             ),
         }
     ]
