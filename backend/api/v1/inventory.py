@@ -117,7 +117,7 @@ async def adjust_inventory(
     if not inv:
         inv = Inventory(product_id=req.product_id, quantity=0)
         db.add(inv)
-        await db.flush()
+        await db.commit()
 
     qty_before = float(inv.quantity)
     inv.quantity = qty_before + req.quantity_change
@@ -135,7 +135,7 @@ async def adjust_inventory(
     )
     db.add(log)
 
-    await db.flush()
+    await db.commit()
 
     result = await db.execute(select(Inventory).where(Inventory.id == inv.id))
     inv = result.scalar_one()
@@ -159,5 +159,5 @@ async def update_threshold(
         raise HTTPException(status_code=404, detail="Inventaire introuvable")
 
     inv.reorder_threshold = req.reorder_threshold
-    await db.flush()
+    await db.commit()
     return _to_response(inv)

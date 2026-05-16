@@ -112,7 +112,7 @@ async def create_listing(
         delivery_zones=data.delivery_zones,
     )
     db.add(listing)
-    await db.flush()
+    await db.commit()
     await db.refresh(listing)
     return ListingResponse.model_validate(listing)
 
@@ -142,7 +142,7 @@ async def update_listing(
     for key, value in update_data.items():
         setattr(listing, key, value)
 
-    await db.flush()
+    await db.commit()
     await db.refresh(listing)
     return ListingResponse.model_validate(listing)
 
@@ -164,7 +164,7 @@ async def delete_listing(
     if not listing:
         raise HTTPException(404, "Annonce introuvable")
     await db.delete(listing)
-    await db.flush()
+    await db.commit()
 
 
 # ─── Orders ───
@@ -210,7 +210,7 @@ async def create_order(
     if listing.available_quantity <= 0:
         listing.status = ListingStatus.SOLD
 
-    await db.flush()
+    await db.commit()
     await db.refresh(order)
 
     return _enrich_order(order, listing.title, merchant.business_name, None)
@@ -285,7 +285,7 @@ async def update_order_status(
             if listing.status == ListingStatus.SOLD:
                 listing.status = ListingStatus.ACTIVE
 
-    await db.flush()
+    await db.commit()
     return await _load_order_details(db, order)
 
 

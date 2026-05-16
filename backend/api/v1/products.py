@@ -79,12 +79,12 @@ async def create_product(
 
     product = Product(merchant_id=merchant.id, **data)
     db.add(product)
-    await db.flush()
+    await db.commit()
 
     # Create inventory entry with initial stock
     inventory = Inventory(product_id=product.id, quantity=initial_stock)
     db.add(inventory)
-    await db.flush()
+    await db.commit()
 
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
@@ -133,7 +133,7 @@ async def update_product(
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
 
-    await db.flush()
+    await db.commit()
     stock = float(product.inventory.quantity) if product.inventory else None
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
@@ -157,7 +157,7 @@ async def delete_product(
         raise HTTPException(status_code=404, detail="Produit introuvable")
 
     product.is_active = False
-    await db.flush()
+    await db.commit()
 
 
 @router.post("/{keep_id}/merge/{remove_id}", response_model=ProductResponse)
@@ -212,7 +212,7 @@ async def merge_products(
             await db.delete(remove_inv)
 
     remove.is_active = False
-    await db.flush()
+    await db.commit()
 
     stock = float(keep.inventory.quantity) if keep.inventory else None
     return ProductResponse(

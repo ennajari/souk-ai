@@ -97,7 +97,7 @@ async def create_employee(
         role=data.role,
     )
     db.add(employee)
-    await db.flush()
+    await db.commit()
     await db.refresh(employee)
     return employee
 
@@ -122,7 +122,7 @@ async def update_employee(
     for key, value in updates.items():
         setattr(employee, key, value)
 
-    await db.flush()
+    await db.commit()
     await db.refresh(employee)
     return employee
 
@@ -141,7 +141,7 @@ async def delete_employee(
         raise HTTPException(404, EMPLOYEE_NOT_FOUND)
 
     employee.is_active = False
-    await db.flush()
+    await db.commit()
 
 
 @router.post("/{employee_id}/verify-pin", response_model=PinVerifyResponse)
@@ -167,6 +167,6 @@ async def verify_pin(
 
     # Update last login
     employee.last_login = datetime.now(timezone.utc)
-    await db.flush()
+    await db.commit()
 
     return PinVerifyResponse(id=employee.id, name=employee.name, role=employee.role)

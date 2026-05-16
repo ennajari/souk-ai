@@ -50,7 +50,7 @@ async def create_customer(
 
     customer = Customer(merchant_id=merchant.id, **data.model_dump())
     db.add(customer)
-    await db.flush()
+    await db.commit()
     await db.refresh(customer)
     return customer
 
@@ -85,7 +85,7 @@ async def update_customer(
         raise HTTPException(404, CLIENT_NOT_FOUND)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(customer, key, value)
-    await db.flush()
+    await db.commit()
     await db.refresh(customer)
     return customer
 
@@ -103,7 +103,7 @@ async def delete_customer(
     if not customer:
         raise HTTPException(404, CLIENT_NOT_FOUND)
     customer.is_active = False
-    await db.flush()
+    await db.commit()
 
 
 @router.post("/{customer_id}/entries", response_model=CreditEntryResponse, status_code=201)
@@ -145,7 +145,7 @@ async def add_credit_entry(
     elif data.type == "PAYMENT":
         customer.balance = float(customer.balance) - data.amount
 
-    await db.flush()
+    await db.commit()
     await db.refresh(entry)
     return entry
 

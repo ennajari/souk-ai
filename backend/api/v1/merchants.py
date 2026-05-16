@@ -23,5 +23,5 @@ async def update_profile(
 ):
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(merchant, field, value)
-    await db.flush()
+    await db.commit()
     return merchant

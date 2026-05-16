@@ -57,7 +57,7 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
         business_category=BusinessCategory(req.business_category),
     )
     db.add(merchant)
-    await db.flush()
+    await db.commit()
 
     token = create_access_token(merchant.id)
     return TokenResponse(
@@ -145,7 +145,7 @@ async def reset_confirm(body: ResetConfirmBody, db: Annotated[AsyncSession, Depe
         raise HTTPException(404, "Compte introuvable")
 
     merchant.hashed_password = hash_password(body.new_password)
-    await db.flush()
+    await db.commit()
 
     token = create_access_token(merchant.id)
     return TokenResponse(
@@ -202,4 +202,4 @@ async def delete_account(
 
     # Delete merchant
     await db.execute(delete(Merchant).where(Merchant.id == mid))
-    await db.flush()
+    await db.commit()

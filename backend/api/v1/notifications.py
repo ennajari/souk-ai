@@ -58,7 +58,7 @@ async def create_notification(
         message=data.message,
     )
     db.add(notif)
-    await db.flush()
+    await db.commit()
     await db.refresh(notif)
     return notif
 
@@ -79,7 +79,7 @@ async def mark_read(
     if not notif:
         raise HTTPException(404, "Notification not found")
     notif.is_read = True
-    await db.flush()
+    await db.commit()
     return {"status": "ok"}
 
 
@@ -93,7 +93,7 @@ async def mark_all_read(
         .where(Notification.merchant_id == merchant.id, Notification.is_read == False)
         .values(is_read=True)
     )
-    await db.flush()
+    await db.commit()
     return {"status": "ok"}
 
 
@@ -113,5 +113,5 @@ async def delete_notification(
     if not notif:
         raise HTTPException(404, "Notification not found")
     await db.delete(notif)
-    await db.flush()
+    await db.commit()
     return {"status": "ok"}

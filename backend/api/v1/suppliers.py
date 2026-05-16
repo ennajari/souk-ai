@@ -49,7 +49,7 @@ async def create_supplier(
         raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
     supplier = Supplier(merchant_id=merchant.id, **data.model_dump())
     db.add(supplier)
-    await db.flush()
+    await db.commit()
     await db.refresh(supplier)
     return supplier
 
@@ -77,7 +77,7 @@ async def update_supplier(
             raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(supplier, key, value)
-    await db.flush()
+    await db.commit()
     await db.refresh(supplier)
     return supplier
 
@@ -95,7 +95,7 @@ async def delete_supplier(
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
     supplier.is_active = False
-    await db.flush()
+    await db.commit()
 
 
 @router.get("/{supplier_id}/orders", response_model=list[SupplierOrderResponse])
@@ -141,7 +141,7 @@ async def place_order(
         status=SupplierOrderStatus.PENDING,
     )
     db.add(order)
-    await db.flush()
+    await db.commit()
     await db.refresh(order)
 
     # Notify supplier via WhatsApp if phone number is set

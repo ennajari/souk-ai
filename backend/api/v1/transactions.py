@@ -100,7 +100,7 @@ async def create_transaction(
             inv.quantity = float(inv.quantity) + req.quantity
         inv.updated_at = datetime.now(timezone.utc)
 
-    await db.flush()
+    await db.commit()
 
     return TransactionResponse(
         id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
@@ -131,7 +131,7 @@ async def create_transactions_bulk(
     )
     inv_map = {i.product_id: i for i in inv_result.scalars().all()}
 
-    responses = []
+    txns = []
     for item in req.items:
         product = products_map.get(item.product_id)
         if not product:
@@ -153,6 +153,7 @@ async def create_transactions_bulk(
             total_amount=total,
         )
         db.add(txn)
+        txns.append((txn, product))
 
         if inv:
             if item.type == "SALE":
@@ -161,17 +162,19 @@ async def create_transactions_bulk(
                 inv.quantity = float(inv.quantity) + item.quantity
             inv.updated_at = datetime.now(timezone.utc)
 
-        responses.append(TransactionResponse(
+    await db.commit()
+
+    return [
+        TransactionResponse(
             id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
             customer_id=txn.customer_id,
             product_name_ar=product.name_ar, product_name_fr=product.name_fr,
             type=txn.type.value, source=txn.source.value,
             quantity=txn.quantity, unit_price=float(txn.unit_price),
             total_amount=float(txn.total_amount), created_at=txn.created_at,
-        ))
-
-    await db.flush()
-    return responses
+        )
+        for txn, product in txns
+    ]
 
 
 @router.post("/{transaction_id}/return", response_model=TransactionResponse, status_code=201)
@@ -215,7 +218,7 @@ async def return_transaction(
         inv.quantity = float(inv.quantity) + original.quantity
         inv.updated_at = datetime.now(timezone.utc)
 
-    await db.flush()
+    await db.commit()
 
     return TransactionResponse(
         id=return_txn.id, merchant_id=return_txn.merchant_id,
