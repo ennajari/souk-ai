@@ -28,11 +28,22 @@ import Marketplace from "./pages/Marketplace"
 import Payments from "./pages/Payments"
 import MarketIntelligence from "./pages/MarketIntelligence"
 import PayInvoice from "./pages/PayInvoice"
+import SupplierDashboard from "./pages/SupplierDashboard"
+import SupplierOrders from "./pages/SupplierOrders"
+import SupplierPayments from "./pages/SupplierPayments"
+import SupplierChat from "./pages/SupplierChat"
+import SupplierSettings from "./pages/SupplierSettings"
 import { useAuth } from "./context/AuthContext"
 
 function AdminRoute({ children }) {
   const { merchant } = useAuth()
   if (!merchant?.is_admin) return <Navigate to="/dashboard" replace />
+  return children
+}
+
+function SupplierRoute({ children }) {
+  const { merchant } = useAuth()
+  if (merchant?.account_type !== 'SUPPLIER') return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -76,6 +87,13 @@ export default function App() {
           <Route path="marketplace" element={<Marketplace />} />
           <Route path="payments" element={<Payments />} />
           <Route path="market-intelligence" element={<MarketIntelligence />} />
+
+          {/* ── Supplier-only pages ── */}
+          <Route path="supplier-dashboard" element={<SupplierRoute><SupplierDashboard /></SupplierRoute>} />
+          <Route path="supplier-orders" element={<SupplierRoute><SupplierOrders /></SupplierRoute>} />
+          <Route path="supplier-payments" element={<SupplierRoute><SupplierPayments /></SupplierRoute>} />
+          <Route path="supplier-chat" element={<SupplierRoute><SupplierChat /></SupplierRoute>} />
+          <Route path="supplier-settings" element={<SupplierRoute><SupplierSettings /></SupplierRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

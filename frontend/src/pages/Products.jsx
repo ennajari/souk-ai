@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap, FiCopy } from 'react-icons/fi'
 import { RiScanLine, RiBarcodeLine } from 'react-icons/ri'
 import { productsAPI, inventoryAPI } from '../api/client'
 import toast from 'react-hot-toast'
@@ -71,6 +71,53 @@ export default function Products() {
   }, [products, search])
 
   const noPriceCount = products.filter(p => !p.unit_price || p.unit_price === 0).length
+
+  /* ── Duplicate detection (Arabic ↔ French) ── */
+  const duplicates = useMemo(() => {
+    const pairs = []
+    const used = new Set()
+    for (let i = 0; i < products.length; i++) {
+      if (used.has(products[i].id)) continue
+      for (let j = i + 1; j < products.length; j++) {
+        if (used.has(products[j].id)) continue
+        const a = products[i], b = products[j]
+        let isDup = false
+        // Same barcode (both non-empty)
+        if (a.barcode && b.barcode && a.barcode === b.barcode) isDup = true
+        // Same unit + same prices (both > 0)
+        if (!isDup && a.unit === b.unit && a.unit_price > 0 && b.unit_price > 0 && a.unit_price === b.unit_price && a.cost_price === b.cost_price) isDup = true
+        // One name_fr matches the other's name_fr or name_ar (Latin similarity)
+        if (!isDup && (namesAreSimilar(a.name_fr, b.name_fr) || namesAreSimilar(a.name_ar, b.name_ar))) isDup = true
+        // Cross-check: one product has only Arabic, other only French, same price
+        if (!isDup && a.unit === b.unit) {
+          const aIsArabic = /[؀-ۿ]/.test(a.name_ar) && !/[؀-ۿ]/.test(b.name_ar)
+          const bIsArabic = /[؀-ۿ]/.test(b.name_ar) && !/[؀-ۿ]/.test(a.name_ar)
+          if ((aIsArabic || bIsArabic) && a.unit_price > 0 && a.unit_price === b.unit_price) isDup = true
+        }
+        if (isDup) {
+          pairs.push([a, b])
+          used.add(a.id)
+          used.add(b.id)
+          break
+        }
+      }
+    }
+    return pairs
+  }, [products])
+
+  const [merging, setMerging] = useState(null)
+  const handleMerge = async (keep, remove) => {
+    setMerging(keep.id + remove.id)
+    try {
+      await productsAPI.merge(keep.id, remove.id)
+      toast.success(`"${keep.name_fr || keep.name_ar}" fusionné — doublon supprimé`)
+      loadProducts()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erreur fusion')
+    } finally {
+      setMerging(null)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value, type } = e.target
@@ -346,6 +393,48 @@ export default function Products() {
               Cliquez sur ✏️ pour définir le prix, ou via WhatsApp: <span className="font-mono bg-amber-100 px-1 rounded">"sardines 10 DH"</span>
             </p>
           </div>
+        </div>
+      )}
+
+      {/* ── Duplicate warning ── */}
+      {duplicates.length > 0 && (
+        <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <FiCopy className="h-5 w-5 text-violet-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-violet-800">{duplicates.length} doublon(s) detecte(s)</p>
+              <p className="text-xs text-violet-600">Des produits semblent etre en double (arabe / francais). Fusionnez-les pour eviter la confusion.</p>
+            </div>
+          </div>
+          {duplicates.map(([a, b]) => {
+            const keepA = (a.unit_price > 0 || a.stock_quantity > 0)
+            const keep = keepA ? a : b
+            const remove = keepA ? b : a
+            return (
+              <div key={a.id + b.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-violet-100">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-800">{a.name_ar || a.name_fr}</span>
+                    <span className="text-xs text-gray-400">=</span>
+                    <span className="text-sm font-semibold text-gray-800">{b.name_fr || b.name_ar}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Prix: {a.unit_price > 0 ? `${Number(a.unit_price).toFixed(2)} MAD` : 'manquant'}
+                    {' / '}
+                    {b.unit_price > 0 ? `${Number(b.unit_price).toFixed(2)} MAD` : 'manquant'}
+                    {' · Stock: '}{a.stock_quantity ?? 0}{' / '}{b.stock_quantity ?? 0}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleMerge(keep, remove)}
+                  disabled={merging === keep.id + remove.id}
+                  className="px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition disabled:opacity-50 flex-shrink-0"
+                >
+                  {merging === keep.id + remove.id ? '...' : 'Fusionner'}
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 

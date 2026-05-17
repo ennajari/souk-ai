@@ -7,6 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 
 
+class AccountType(str, enum.Enum):
+    MERCHANT = "MERCHANT"
+    SUPPLIER = "SUPPLIER"
+
+
 class BusinessCategory(str, enum.Enum):
     GROCERY = "GROCERY"
     BAKERY = "BAKERY"
@@ -26,6 +31,9 @@ class Merchant(Base):
     business_name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     preferred_language: Mapped[str] = mapped_column(String(5), default="AR")
+    account_type: Mapped[AccountType] = mapped_column(
+        Enum(AccountType), default=AccountType.MERCHANT, server_default="MERCHANT"
+    )
     business_category: Mapped[BusinessCategory] = mapped_column(
         Enum(BusinessCategory), default=BusinessCategory.GROCERY
     )

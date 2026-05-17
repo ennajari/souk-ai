@@ -9,7 +9,8 @@ from sqlalchemy import select, delete
 from core.database import get_db
 from core.security import hash_password, verify_password, create_access_token
 from core.deps import get_current_merchant
-from models.merchant import Merchant, BusinessCategory
+from models.merchant import Merchant, BusinessCategory, AccountType
+from models.supplier import Supplier
 from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.config import settings
 
@@ -48,6 +49,8 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Ce numero de telephone est deja enregistre")
 
+    acct_type = AccountType(req.account_type) if req.account_type in ("MERCHANT", "SUPPLIER") else AccountType.MERCHANT
+
     merchant = Merchant(
         phone_number=phone,
         hashed_password=hash_password(req.password),
@@ -55,9 +58,25 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
         email=req.email,
         preferred_language=req.preferred_language,
         business_category=BusinessCategory(req.business_category),
+        account_type=acct_type,
     )
     db.add(merchant)
     await db.commit()
+
+    # Auto-link: if supplier account, link existing Supplier records with same phone
+    if acct_type == AccountType.SUPPLIER:
+        # Fetch ALL active suppliers and compare normalized phones
+        all_suppliers = await db.execute(
+            select(Supplier).where(Supplier.phone_number.isnot(None), Supplier.is_active == True)
+        )
+        linked = 0
+        for sup in all_suppliers.scalars().all():
+            if normalize_phone(sup.phone_number) == phone:
+                sup.supplier_account_id = merchant.id
+                linked += 1
+        if linked:
+            await db.commit()
+            print(f"[Auth] Auto-linked {linked} supplier records to account {merchant.business_name} ({phone})")
 
     token = create_access_token(merchant.id)
     return TokenResponse(
@@ -65,6 +84,7 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
         merchant_id=merchant.id,
         business_name=merchant.business_name,
         is_admin=merchant.phone_number == settings.ADMIN_PHONE,
+        account_type=acct_type.value,
     )
 
 
@@ -83,6 +103,7 @@ async def login(req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)])
         merchant_id=merchant.id,
         business_name=merchant.business_name,
         is_admin=merchant.phone_number == settings.ADMIN_PHONE,
+        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
     )
 
 
@@ -91,6 +112,7 @@ async def get_me(merchant: Annotated[Merchant, Depends(get_current_merchant)]):
     from schemas.merchant import MerchantResponse
     data = MerchantResponse.model_validate(merchant).model_dump()
     data["is_admin"] = merchant.phone_number == settings.ADMIN_PHONE
+    data["account_type"] = merchant.account_type.value if merchant.account_type else "MERCHANT"
     return data
 
 

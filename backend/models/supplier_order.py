@@ -10,6 +10,7 @@ from core.database import Base
 class SupplierOrderStatus(str, enum.Enum):
     PENDING = "PENDING"
     SUBMITTED = "SUBMITTED"
+    IN_DELIVERY = "IN_DELIVERY"
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
 
@@ -20,6 +21,7 @@ class SupplierOrder(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     merchant_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("merchants.id"), index=True, nullable=True)
     supplier_id: Mapped[str] = mapped_column(String(36), ForeignKey("suppliers.id"), index=True)
+    payment_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("payments.id"), nullable=True)
     status: Mapped[SupplierOrderStatus] = mapped_column(Enum(SupplierOrderStatus), default=SupplierOrderStatus.PENDING)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
     # Store aggregated items as JSON to avoid complex relational structures for MVP

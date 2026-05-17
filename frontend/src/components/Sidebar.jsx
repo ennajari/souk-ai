@@ -3,7 +3,8 @@ import { useState, useEffect } from "react"
 import {
   FiHome, FiPackage, FiBox, FiDollarSign, FiShoppingCart,
   FiBarChart2, FiTrendingUp, FiPercent,
-  FiUsers, FiSettings, FiMessageSquare, FiX, FiTruck, FiShoppingBag
+  FiUsers, FiSettings, FiMessageSquare, FiX, FiTruck, FiShoppingBag,
+  FiBell, FiCreditCard
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 import { useTranslation } from "react-i18next"
@@ -23,7 +24,9 @@ export default function Sidebar({ onClose }) {
       .catch(() => {})
   }, [])
 
-  const sections = [
+  const isSupplier = merchant?.account_type === 'SUPPLIER'
+
+  const merchantSections = [
     {
       label: t("nav.principal"),
       links: [
@@ -36,7 +39,7 @@ export default function Sidebar({ onClose }) {
     },
     {
       label: t("nav.intelligence"),
-      desktopOnly: true, // hidden on mobile/tablet — use Settings for analytics on the go
+      desktopOnly: true,
       links: [
         { to: "/analytics", icon: FiBarChart2,  label: t("nav.analytics") },
         { to: "/profit",    icon: FiPercent,    label: t("nav.profit") },
@@ -52,6 +55,21 @@ export default function Sidebar({ onClose }) {
       ],
     },
   ]
+
+  const supplierSections = [
+    {
+      label: 'Principal',
+      links: [
+        { to: "/supplier-dashboard", icon: FiHome,       label: 'Tableau de bord' },
+        { to: "/supplier-orders",    icon: FiTruck,      label: 'Commandes' },
+        { to: "/supplier-payments",  icon: FiCreditCard, label: 'Paiements reçus' },
+        { to: "/supplier-chat",      icon: FiMessageSquare, label: 'Assistant IA' },
+        { to: "/notifications",      icon: FiBell,       label: 'Notifications' },
+      ],
+    },
+  ]
+
+  const sections = isSupplier ? supplierSections : merchantSections
 
 
   const initials = (merchant?.business_name || "S")
@@ -132,7 +150,7 @@ export default function Sidebar({ onClose }) {
 
         {/* Settings */}
         <NavLink
-          to="/settings"
+          to={isSupplier ? "/supplier-settings" : "/settings"}
           onClick={onClose}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -153,7 +171,7 @@ export default function Sidebar({ onClose }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-gray-300 truncate leading-none">
-              {merchant?.business_name || "Commerçant"}
+              {merchant?.business_name || (isSupplier ? "Fournisseur" : "Commerçant")}
             </p>
             <p className="text-[10px] text-gray-600 mt-0.5 truncate">{merchant?.phone_number}</p>
           </div>

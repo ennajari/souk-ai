@@ -95,9 +95,26 @@ export const suppliersAPI = {
   create: (data) => client.post('/suppliers/', data),
   update: (id, data) => client.patch(`/suppliers/${id}`, data),
   orders: (supplierId) => client.get(`/suppliers/${supplierId}/orders`),
-  placeOrder: (supplierId, productId, quantity) =>
-    client.post(`/suppliers/${supplierId}/order`, null, { params: { product_id: productId, quantity } }),
+  placeOrder: (supplierId, items) =>
+    client.post(`/suppliers/${supplierId}/order`, { items }),
   aggregate: (supplierId) => client.post(`/suppliers/${supplierId}/aggregate`),
+  payOrder: (supplierId, orderId, method) =>
+    client.post(`/suppliers/${supplierId}/orders/${orderId}/pay`, { method }),
+  deleteOrder: (supplierId, orderId) =>
+    client.delete(`/suppliers/${supplierId}/orders/${orderId}`),
+}
+
+// ---- Supplier Portal (fournisseur connecte) ----
+export const supplierPortalAPI = {
+  dashboard: () => client.get('/supplier-portal/dashboard'),
+  orders: (status) => client.get('/supplier-portal/orders', { params: { status } }),
+  updateOrderStatus: (orderId, status) => client.patch(`/supplier-portal/orders/${orderId}/status`, { status }),
+  payments: () => client.get('/supplier-portal/payments'),
+}
+
+// ---- Supplier Chat ----
+export const supplierChatAPI = {
+  send: (message) => client.post('/supplier-chat/message', { message }),
 }
 
 // ---- Credit ----

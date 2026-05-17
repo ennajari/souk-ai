@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.deps import get_current_merchant
@@ -36,6 +37,7 @@ async def get_inventory(
     query = (
         select(Inventory)
         .join(Product)
+        .options(selectinload(Inventory.product))
         .where(Product.merchant_id == merchant.id, Product.is_active == True)
     )
     result = await db.execute(query)
@@ -55,6 +57,7 @@ async def get_alerts(
     query = (
         select(Inventory)
         .join(Product)
+        .options(selectinload(Inventory.product))
         .where(Product.merchant_id == merchant.id, Product.is_active == True)
     )
     result = await db.execute(query)
@@ -73,6 +76,7 @@ async def get_inventory_logs(
     """Audit trail — historique de toutes les modifications de stock."""
     query = (
         select(InventoryLog)
+        .options(selectinload(InventoryLog.product))
         .where(InventoryLog.merchant_id == merchant.id)
         .order_by(desc(InventoryLog.created_at))
         .limit(limit)

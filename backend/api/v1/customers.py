@@ -13,6 +13,7 @@ from schemas.customer import (
     CustomerCreate, CustomerUpdate, CustomerResponse,
     CustomerListResponse, CreditEntryCreate, CreditEntryResponse,
 )
+from services.whatsapp import send_text_message, send_template_message, normalize_phone
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -147,6 +148,51 @@ async def add_credit_entry(
 
     await db.commit()
     await db.refresh(entry)
+
+    # Auto-send WhatsApp notification to client for CREDIT entries
+    if data.type == "CREDIT" and customer.phone:
+        try:
+            phone_normalized = normalize_phone(customer.phone)
+            first_name = customer.name.split()[0] if customer.name else "Client"
+            amount_str = f"{data.amount:.2f}"
+            balance_str = f"{float(customer.balance):.2f}"
+            print(f"[WhatsApp Credit] Sending to {customer.name} — raw: {customer.phone}, normalized: {phone_normalized}")
+
+            # Try template first (works even outside 24h window)
+            try:
+                result = await send_template_message(
+                    to=phone_normalized,
+                    template_name="credit_notification",
+                    language="fr",
+                    body_params=[first_name, amount_str, merchant.business_name, balance_str],
+                )
+                print(f"[WhatsApp Credit] ✅ Template sent to {phone_normalized} — result: {result}")
+            except Exception as tmpl_err:
+                print(f"[WhatsApp Credit] Template failed ({tmpl_err}), trying free-form text...")
+                # Fallback: free-form text (only works within 24h window)
+                from datetime import datetime
+                date_str = datetime.now().strftime("%d/%m/%Y")
+                products_line = f"— {data.description}" if data.description else ""
+                msg = (
+                    f"Bonjour {first_name} 👋\n\n"
+                    f"Un crédit a été enregistré sur votre compte :\n\n"
+                    f"💰 Montant : {amount_str} MAD\n"
+                )
+                if products_line:
+                    msg += f"\n🛒 Détails :\n{products_line}\n"
+                msg += (
+                    f"\n📍 Boutique : {merchant.business_name}\n"
+                    f"📅 Date : {date_str}\n"
+                    f"💳 Solde total : {balance_str} MAD\n\n"
+                    f"Merci de régulariser votre situation\n"
+                    f"dès que possible. 🙏\n\n"
+                    f"— Souk.AI"
+                )
+                result = await send_text_message(phone_normalized, msg)
+                print(f"[WhatsApp Credit] ✅ Text fallback sent to {phone_normalized}")
+        except Exception as e:
+            print(f"[WhatsApp Credit] ❌ Failed for {customer.name} ({customer.phone}): {e}")
+
     return entry
 
 

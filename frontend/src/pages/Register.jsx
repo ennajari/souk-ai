@@ -5,7 +5,7 @@ import { authAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import {
   FiEye, FiEyeOff, FiUser, FiPhone, FiMail, FiLock,
-  FiGrid, FiGlobe, FiCheckCircle, FiShoppingBag, FiArrowRight
+  FiGrid, FiGlobe, FiCheckCircle, FiShoppingBag, FiArrowRight, FiTruck
 } from 'react-icons/fi'
 
 const categories = [
@@ -33,6 +33,7 @@ export default function Register() {
     email: '',
     preferred_language: 'AR',
     business_category: 'GROCERY',
+    account_type: 'MERCHANT',
   })
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
@@ -50,9 +51,10 @@ export default function Register() {
         id: data.merchant_id,
         business_name: data.business_name,
         phone_number: form.phone_number,
+        account_type: data.account_type || 'MERCHANT',
       })
       toast.success('Compte créé avec succès!')
-      navigate('/dashboard')
+      navigate(data.account_type === 'SUPPLIER' ? '/supplier-dashboard' : '/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.detail || "Erreur lors de l'inscription")
     } finally {
@@ -150,9 +152,37 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
+            {/* Account type selector */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Je suis</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'MERCHANT', label: 'Marchand', icon: FiShoppingBag, desc: 'Je vends des produits' },
+                  { value: 'SUPPLIER', label: 'Fournisseur', icon: FiTruck, desc: 'Je livre des marchands' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, account_type: opt.value })}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      form.account_type === opt.value
+                        ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-200'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    <opt.icon className={`h-5 w-5 mb-1.5 ${form.account_type === opt.value ? 'text-violet-600' : 'text-gray-400'}`} />
+                    <p className={`text-sm font-bold ${form.account_type === opt.value ? 'text-violet-700' : 'text-gray-700'}`}>{opt.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Business name */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Nom du commerce</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {form.account_type === 'SUPPLIER' ? "Nom de l'entreprise" : 'Nom du commerce'}
+              </label>
               <div className="relative">
                 <FiShoppingBag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -160,7 +190,7 @@ export default function Register() {
                   required
                   value={form.business_name}
                   onChange={handleChange}
-                  placeholder="Ex: Épicerie Ahmed"
+                  placeholder={form.account_type === 'SUPPLIER' ? 'Ex: Distribution Atlas' : 'Ex: Épicerie Ahmed'}
                   className={inputCls}
                 />
               </div>
@@ -226,23 +256,25 @@ export default function Register() {
             </div>
 
             {/* Category + Language */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
-                <div className="relative">
-                  <FiGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <select
-                    name="business_category"
-                    value={form.business_category}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
+            <div className={`grid ${form.account_type === 'SUPPLIER' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+              {form.account_type !== 'SUPPLIER' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
+                  <div className="relative">
+                    <FiGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <select
+                      name="business_category"
+                      value={form.business_category}
+                      onChange={handleChange}
+                      className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
+                    >
+                      {categories.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Langue</label>
                 <div className="relative">

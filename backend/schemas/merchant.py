@@ -12,6 +12,7 @@ class MerchantResponse(BaseModel):
     business_category: str
     location_lat: float | None = None
     location_lng: float | None = None
+    account_type: str = "MERCHANT"
     credit_score: int = 500
     is_active: bool
     created_at: datetime

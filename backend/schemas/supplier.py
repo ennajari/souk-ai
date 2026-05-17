@@ -50,6 +50,7 @@ class SupplierOrderResponse(BaseModel):
     id: str
     supplier_id: str
     merchant_id: Optional[str] = None
+    payment_id: Optional[str] = None
     status: str
     total_amount: float
     items: list

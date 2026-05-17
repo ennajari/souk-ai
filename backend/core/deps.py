@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from core.database import get_db
 from core.security import decode_access_token
-from models.merchant import Merchant
+from models.merchant import Merchant, AccountType
 
 security_scheme = HTTPBearer()
 
@@ -22,4 +22,12 @@ async def get_current_merchant(
     merchant = result.scalar_one_or_none()
     if not merchant:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Merchant introuvable")
+    return merchant
+
+
+async def get_current_supplier(
+    merchant: Merchant = Depends(get_current_merchant),
+) -> Merchant:
+    if merchant.account_type != AccountType.SUPPLIER:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acces reserve aux fournisseurs")
     return merchant

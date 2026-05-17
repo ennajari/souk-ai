@@ -28,6 +28,7 @@ class Supplier(Base):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     minimum_order_value: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
     product_ids: Mapped[list | None] = mapped_column(JSON, default=list, nullable=True)
+    supplier_account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("merchants.id"), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
