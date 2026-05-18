@@ -23,14 +23,19 @@ async def register_souk_card(
     db: Annotated[AsyncSession, Depends(get_db)],
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
-    """Register a new Carte Souk.AI (merchant creates card for client)."""
-    card = await register_card(
-        db=db,
-        holder_name=data.holder_name,
-        holder_phone=data.holder_phone,
-        pin=data.pin,
-        nfc_uid=data.nfc_uid,
-    )
+    """Register a new Carte Souk.AI (merchant creates card for client/supplier)."""
+    try:
+        card = await register_card(
+            db=db,
+            holder_name=data.holder_name,
+            holder_phone=data.holder_phone,
+            pin=data.pin,
+            nfc_uid=data.nfc_uid,
+            card_type=data.card_type,
+            card_number=data.card_number,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     await db.commit()
     return {
         "id": card.id,
@@ -39,6 +44,7 @@ async def register_souk_card(
         "holder_phone": card.holder_phone,
         "balance": float(card.balance),
         "status": card.status.value,
+        "card_type": card.card_type.value,
         "nfc_uid": card.nfc_uid,
         "created_at": card.created_at,
     }
@@ -78,6 +84,7 @@ async def card_by_nfc(
         "holder_name": card.holder_name,
         "balance": float(card.balance),
         "status": card.status.value,
+        "card_type": card.card_type.value if card.card_type else "CLIENT",
     }
 
 
@@ -94,6 +101,7 @@ async def cards_by_phone(
             "holder_name": c.holder_name,
             "balance": float(c.balance),
             "status": c.status.value,
+            "card_type": c.card_type.value if c.card_type else "CLIENT",
         }
         for c in cards
     ]
@@ -115,6 +123,7 @@ async def check_balance(
         "holder_name": card.holder_name,
         "balance": float(card.balance),
         "status": card.status.value,
+        "card_type": card.card_type.value if card.card_type else "CLIENT",
     }
 
 

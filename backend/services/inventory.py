@@ -2,6 +2,7 @@ import unicodedata
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from datetime import datetime, timezone
 
 from models.product import Product
@@ -199,6 +200,7 @@ async def get_low_stock_products(db: AsyncSession, merchant_id: str) -> list[dic
         select(Inventory)
         .join(Product)
         .where(Product.merchant_id == merchant_id, Product.is_active == True)
+        .options(selectinload(Inventory.product))
     )
     items = result.scalars().all()
     low = []

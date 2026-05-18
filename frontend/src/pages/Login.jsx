@@ -56,7 +56,7 @@ export default function Login() {
         code: resetCode,
         new_password: newPassword,
       })
-      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(resetPhone), is_admin: data.is_admin, account_type: data.account_type || 'MERCHANT' })
+      login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(resetPhone), is_admin: false, account_type: data.account_type || 'MERCHANT' })
       toast.success('Mot de passe changé avec succès!')
       navigate(data.account_type === 'SUPPLIER' ? '/supplier-dashboard' : '/dashboard')
     } catch (err) {
@@ -85,7 +85,8 @@ export default function Login() {
       const { data } = await authAPI.login(normalizePhone(phone), password)
       login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(phone), is_admin: data.is_admin, account_type: data.account_type || 'MERCHANT' })
       toast.success(`Bienvenue ${data.business_name}!`)
-      navigate(data.account_type === 'SUPPLIER' ? '/supplier-dashboard' : '/dashboard')
+      if (data.account_type === 'SUPPLIER') navigate('/supplier-dashboard')
+      else navigate('/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erreur de connexion')
     } finally {

@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from sqlalchemy.orm import selectinload
+
 from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
@@ -57,7 +59,7 @@ async def import_sage_articles(
                     Product.merchant_id == merchant.id,
                     Product.barcode == art['barcode'],
                     Product.is_active == True,
-                )
+                ).options(selectinload(Product.inventory))
             )
             existing = result.scalar_one_or_none()
 
@@ -67,7 +69,7 @@ async def import_sage_articles(
                     Product.merchant_id == merchant.id,
                     (Product.name_fr == name) | (Product.name_ar == name),
                     Product.is_active == True,
-                )
+                ).options(selectinload(Product.inventory))
             )
             existing = result.scalar_one_or_none()
 
@@ -241,7 +243,7 @@ async def import_sage_auto(
                     Product.merchant_id == merchant.id,
                     (Product.name_fr == name) | (Product.name_ar == name),
                     Product.is_active == True,
-                )
+                ).options(selectinload(Product.inventory))
             )
             existing = result.scalar_one_or_none()
 

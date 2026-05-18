@@ -131,8 +131,11 @@ async def get_profit_analysis(
     safe_days = min(days, MAX_PROFIT_DAYS)
     since = datetime.now(timezone.utc) - timedelta(days=safe_days)
 
+    from sqlalchemy.orm import selectinload
     result = await db.execute(
-        select(Transaction).where(
+        select(Transaction)
+        .options(selectinload(Transaction.product))
+        .where(
             Transaction.merchant_id == merchant.id,
             Transaction.type == TransactionType.SALE,
             Transaction.created_at >= since,
@@ -140,13 +143,12 @@ async def get_profit_analysis(
     )
     txns = result.scalars().all()
 
-    # Group by product
+    # Group by product (products already loaded via selectinload — no N+1)
     product_map: dict[str, dict] = {}
     for t in txns:
         pid = t.product_id
         if pid not in product_map:
-            prod_res = await db.execute(select(Product).where(Product.id == pid))
-            product = prod_res.scalar_one_or_none()
+            product = t.product
             product_map[pid] = {
                 "product_id": pid,
                 "name_fr": product.name_fr if product else "-",

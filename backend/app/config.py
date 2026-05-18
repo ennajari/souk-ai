@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     # Admin
     ADMIN_PHONE: str = "212763576794"
+    ADMIN_EMAIL: str = "abdellahennajari2018@gmail.com"
 
     # App
     APP_ENV: str = "development"

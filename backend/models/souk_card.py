@@ -7,6 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 
 
+class CardType(str, enum.Enum):
+    CLIENT = "CLIENT"
+    SUPPLIER = "SUPPLIER"
+
+
 class CardStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
     SUSPENDED = "SUSPENDED"
@@ -28,6 +33,7 @@ class SoukCard(Base):
     holder_phone: Mapped[str] = mapped_column(String(20), index=True)
     pin_hash: Mapped[str] = mapped_column(String(128))
     balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    card_type: Mapped[CardType] = mapped_column(Enum(CardType), default=CardType.CLIENT, server_default="CLIENT")
     status: Mapped[CardStatus] = mapped_column(Enum(CardStatus), default=CardStatus.ACTIVE)
     nfc_uid: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

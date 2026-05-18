@@ -75,7 +75,7 @@ async def update_supplier(
         raise HTTPException(400, "La commande minimum ne peut pas etre negative")
     if data.name and data.name != supplier.name:
         dup = await db.execute(
-            select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True, Supplier.id != supplier_id)
+            select(Supplier).where(Supplier.name == data.name, Supplier.is_active == True, Supplier.id != supplier_id, Supplier.merchant_id == merchant.id)
         )
         if dup.scalar_one_or_none():
             raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
@@ -281,7 +281,7 @@ async def aggregate_orders(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
+    result = await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id))
     supplier = result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
@@ -300,8 +300,8 @@ async def pay_supplier_order(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if req.method not in ("CASH", "NFC_SOUKCARD"):
-        raise HTTPException(400, "Methode de paiement invalide (CASH ou NFC_SOUKCARD)")
+    if req.method not in ("CASH", "NFC_SOUKCARD", "NFC_BANK"):
+        raise HTTPException(400, "Methode de paiement invalide (CASH, NFC_SOUKCARD ou NFC_BANK)")
 
     result = await db.execute(
         select(SupplierOrder).where(

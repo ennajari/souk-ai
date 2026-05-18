@@ -6,7 +6,7 @@ import secrets
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from models.souk_card import SoukCard, CardTransaction, CardStatus, CardTransactionType
+from models.souk_card import SoukCard, CardTransaction, CardStatus, CardTransactionType, CardType
 
 logger = logging.getLogger("souk_ai")
 
@@ -15,9 +15,9 @@ def _hash_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode()).hexdigest()
 
 
-def _generate_card_number() -> str:
-    """Generate a 16-digit Souk.AI card number: 9212 XXXX XXXX XXXX."""
-    prefix = "9212"
+def _generate_card_number(card_type: str = "CLIENT") -> str:
+    """Generate a 16-digit Souk.AI card number. Client: 9212, Supplier: 9213."""
+    prefix = "9213" if card_type == "SUPPLIER" else "9212"
     body = "".join([str(secrets.randbelow(10)) for _ in range(12)])
     return prefix + body
 
@@ -32,12 +32,23 @@ async def register_card(
     holder_phone: str,
     pin: str,
     nfc_uid: str | None = None,
+    card_type: str = "CLIENT",
+    card_number: str | None = None,
 ) -> SoukCard:
-    card_number = _generate_card_number()
-    existing = await db.execute(select(SoukCard).where(SoukCard.card_number == card_number))
-    while existing.scalar_one_or_none():
-        card_number = _generate_card_number()
+    ct = CardType(card_type)
+
+    if card_number:
+        # Activate a pre-printed physical card
         existing = await db.execute(select(SoukCard).where(SoukCard.card_number == card_number))
+        if existing.scalar_one_or_none():
+            raise ValueError(f"La carte {card_number} est deja enregistree")
+    else:
+        # Auto-generate card number
+        card_number = _generate_card_number(card_type)
+        existing = await db.execute(select(SoukCard).where(SoukCard.card_number == card_number))
+        while existing.scalar_one_or_none():
+            card_number = _generate_card_number(card_type)
+            existing = await db.execute(select(SoukCard).where(SoukCard.card_number == card_number))
 
     card = SoukCard(
         card_number=card_number,
@@ -45,10 +56,11 @@ async def register_card(
         holder_phone=holder_phone,
         pin_hash=_hash_pin(pin),
         nfc_uid=nfc_uid,
+        card_type=ct,
     )
     db.add(card)
     await db.flush()
-    logger.info(f"New Souk.AI card registered: {card_number} for {holder_phone}")
+    logger.info(f"New Souk.AI {card_type} card registered: {card_number} for {holder_phone}")
     return card
 
 

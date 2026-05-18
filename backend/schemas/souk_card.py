@@ -8,6 +8,8 @@ class SoukCardRegister(BaseModel):
     holder_phone: str = Field(..., pattern=r"^212\d{9}$")
     pin: str = Field(..., min_length=4, max_length=6, pattern=r"^\d{4,6}$")
     nfc_uid: Optional[str] = None
+    card_type: str = "CLIENT"  # CLIENT or SUPPLIER
+    card_number: Optional[str] = None  # if activating a pre-printed physical card
 
 
 class SoukCardResponse(BaseModel):
@@ -17,11 +19,11 @@ class SoukCardResponse(BaseModel):
     holder_phone: str
     balance: float
     status: str
+    card_type: str = "CLIENT"
     nfc_uid: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class SoukCardTopUp(BaseModel):
@@ -35,6 +37,7 @@ class SoukCardBalanceResponse(BaseModel):
     holder_name: str
     balance: float
     status: str
+    card_type: str = "CLIENT"
 
 
 class CardTransactionResponse(BaseModel):
@@ -46,5 +49,4 @@ class CardTransactionResponse(BaseModel):
     description: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import client from '../api/client'
 
 function ScoreGauge({ score }) {
@@ -34,6 +35,8 @@ export default function Credit() {
   const [scoreData, setScoreData] = useState(null)
   const [offers, setOffers] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [requestingIdx, setRequestingIdx] = useState(null)
+  const [requestedOffers, setRequestedOffers] = useState(new Set())
 
   useEffect(() => {
     Promise.all([
@@ -131,8 +134,34 @@ export default function Credit() {
                       </p>
                     </div>
                   </div>
-                  <button className="mt-3 w-full py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 font-medium">
-                    Demander ce financement
+                  <button
+                    disabled={requestingIdx === i || requestedOffers.has(i)}
+                    className={`mt-3 w-full py-2 text-white text-sm rounded-lg font-medium ${
+                      requestedOffers.has(i)
+                        ? 'bg-green-500 cursor-not-allowed'
+                        : requestingIdx === i
+                          ? 'bg-purple-400 cursor-wait'
+                          : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
+                    onClick={async () => {
+                      setRequestingIdx(i)
+                      try {
+                        await client.post('/credit/request', {
+                          amount: offer.amount,
+                          term_days: offer.term_days,
+                          fee_percentage: offer.fee_percentage,
+                        })
+                        toast.success('Demande de financement envoyee avec succes !')
+                        setRequestedOffers(prev => new Set([...prev, i]))
+                      } catch (err) {
+                        const detail = err.response?.data?.detail || 'Erreur lors de la demande'
+                        toast.error(detail)
+                      } finally {
+                        setRequestingIdx(null)
+                      }
+                    }}
+                  >
+                    {requestedOffers.has(i) ? 'Demande envoyee ✓' : requestingIdx === i ? 'Envoi en cours...' : 'Demander ce financement'}
                   </button>
                 </div>
               ))}

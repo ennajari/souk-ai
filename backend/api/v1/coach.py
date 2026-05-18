@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from sqlalchemy.orm import selectinload
+
 from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
@@ -60,10 +62,12 @@ async def get_tips(
 
     # Fetch products with inventory
     prod_result = await db.execute(
-        select(Product).where(
+        select(Product)
+        .where(
             Product.merchant_id == merchant.id,
             Product.is_active == True,
         )
+        .options(selectinload(Product.inventory))
     )
     products = prod_result.scalars().all()
 
@@ -157,10 +161,12 @@ async def get_insights(
 
     # Fetch products
     prod_result = await db.execute(
-        select(Product).where(
+        select(Product)
+        .where(
             Product.merchant_id == merchant.id,
             Product.is_active == True,
         )
+        .options(selectinload(Product.inventory))
     )
     products = prod_result.scalars().all()
     products_by_id = {p.id: p for p in products}

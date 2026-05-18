@@ -2,8 +2,10 @@ import { Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
+import AdminLayout from "./components/AdminLayout"
 import Landing from "./pages/Landing"
 import Login from "./pages/Login"
+import AdminLogin from "./pages/AdminLogin"
 import Register from "./pages/Register"
 import Dashboard from "./pages/Dashboard"
 import Products from "./pages/Products"
@@ -16,6 +18,11 @@ import Suppliers from "./pages/Suppliers"
 import Credit from "./pages/Credit"
 import SageImport from "./pages/SageImport"
 import AdminDashboard from "./pages/AdminDashboard"
+import AdminMerchants from "./pages/AdminMerchants"
+import AdminCards from "./pages/AdminCards"
+import AdminPayments from "./pages/AdminPayments"
+import AdminCreditRequests from "./pages/AdminCreditRequests"
+import AdminSettings from "./pages/AdminSettings"
 import POS from "./pages/POS"
 import Customers from "./pages/Customers"
 import Profit from "./pages/Profit"
@@ -27,7 +34,7 @@ import CataloguePublic from "./pages/CataloguePublic"
 import Marketplace from "./pages/Marketplace"
 import Payments from "./pages/Payments"
 import MarketIntelligence from "./pages/MarketIntelligence"
-import PayInvoice from "./pages/PayInvoice"
+
 import SupplierDashboard from "./pages/SupplierDashboard"
 import SupplierOrders from "./pages/SupplierOrders"
 import SupplierPayments from "./pages/SupplierPayments"
@@ -54,11 +61,29 @@ export default function App() {
         {/* ── Public pages ── */}
         <Route path="/" element={<Landing />} />
         <Route path="/catalogue/:merchantId" element={<CataloguePublic />} />
-        <Route path="/pay/:token" element={<PayInvoice />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/register" element={<Register />} />
 
-        {/* ── Protected app pages — pathless layout route ── */}
+        {/* ── Admin pages — separate layout ── */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            </ProtectedRoute>
+          }
+        >
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/merchants" element={<AdminMerchants />} />
+          <Route path="admin/cards" element={<AdminCards />} />
+          <Route path="admin/payments" element={<AdminPayments />} />
+          <Route path="admin/credit-requests" element={<AdminCreditRequests />} />
+          <Route path="admin/settings" element={<AdminSettings />} />
+        </Route>
+
+        {/* ── Merchant & Supplier pages — shared layout with conditional sidebar ── */}
         <Route
           element={
             <ProtectedRoute>
@@ -75,7 +100,6 @@ export default function App() {
           <Route path="forecasts" element={<Forecasts />} />
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="credit" element={<Credit />} />
-          <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="customers" element={<Customers />} />
           <Route path="profit" element={<Profit />} />
           <Route path="notifications" element={<Notifications />} />

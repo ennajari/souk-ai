@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.deps import get_current_merchant
@@ -24,7 +25,9 @@ async def export_products_csv(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)
+        select(Product)
+        .where(Product.merchant_id == merchant.id, Product.is_active == True)
+        .options(selectinload(Product.inventory))
     )
     products = result.scalars().all()
 
@@ -56,7 +59,9 @@ async def export_transactions_csv(
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
-        select(Transaction).where(
+        select(Transaction)
+        .options(selectinload(Transaction.product))
+        .where(
             Transaction.merchant_id == merchant.id,
             Transaction.created_at >= since,
         ).order_by(desc(Transaction.created_at))
@@ -68,8 +73,7 @@ async def export_transactions_csv(
     writer.writerow(["Date", "Type", "Source", "Produit", "Quantite", "Prix unitaire", "Total"])
 
     for t in txns:
-        prod_res = await db.execute(select(Product).where(Product.id == t.product_id))
-        product = prod_res.scalar_one_or_none()
+        product = t.product
         writer.writerow([
             t.created_at.strftime("%Y-%m-%d %H:%M"),
             t.type.value, t.source.value,
@@ -93,7 +97,9 @@ async def export_profit_csv(
 ):
     since = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
-        select(Transaction).where(
+        select(Transaction)
+        .options(selectinload(Transaction.product))
+        .where(
             Transaction.merchant_id == merchant.id,
             Transaction.type == TransactionType.SALE,
             Transaction.created_at >= since,
@@ -110,8 +116,7 @@ async def export_profit_csv(
     for t in txns:
         pid = t.product_id
         if pid not in product_data:
-            prod_res = await db.execute(select(Product).where(Product.id == pid))
-            product = prod_res.scalar_one_or_none()
+            product = t.product
             product_data[pid] = {
                 "name": product.name_fr if product else "-",
                 "cost_price": float(product.cost_price) if product else 0,

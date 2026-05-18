@@ -124,10 +124,15 @@ export default function SupplierDashboard() {
                 <div key={o.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{o.merchant_name || 'Marchand'}</p>
-                    <p className="text-xs text-gray-400">{o.product_name} &times; {o.quantity}</p>
+                    <p className="text-xs text-gray-400">
+                      {o.items?.length > 0
+                        ? o.items.map(it => `${it.product_name} x${it.quantity}`).join(', ')
+                        : '—'
+                      }
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900">{Number(o.total_cost || 0).toFixed(2)} MAD</p>
+                    <p className="text-sm font-bold text-gray-900">{Number(o.total_amount || 0).toFixed(2)} MAD</p>
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABELS[o.status] || o.status}
                     </span>

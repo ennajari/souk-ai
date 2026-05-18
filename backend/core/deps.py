@@ -6,8 +6,17 @@ from sqlalchemy import select
 from core.database import get_db
 from core.security import decode_access_token
 from models.merchant import Merchant, AccountType
+from app.config import settings
 
 security_scheme = HTTPBearer()
+
+
+def check_is_admin(merchant: Merchant) -> bool:
+    """Check if a merchant is the platform admin."""
+    return (
+        merchant.phone_number == settings.ADMIN_PHONE
+        or (merchant.email and merchant.email == settings.ADMIN_EMAIL)
+    )
 
 
 async def get_current_merchant(

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { FiEdit2, FiTrash2, FiX, FiPlus, FiPhone, FiMail, FiSearch, FiShoppingCart, FiDollarSign, FiCreditCard, FiTruck, FiPackage, FiSmartphone, FiShield, FiCheckCircle } from 'react-icons/fi'
 import client from '../api/client'
 import { suppliersAPI } from '../api/client'
+import SoukCardVisual from '../components/SoukCardVisual'
 import toast from 'react-hot-toast'
 
 const CATEGORIES = ['FMCG', 'FRESH', 'BEVERAGES', 'DAIRY', 'SNACKS', 'OTHER']
@@ -737,27 +738,12 @@ export default function Suppliers() {
             {payStep === 'card_found' && detectedCard && (
               <div className="p-6 space-y-4">
                 {/* Card visual */}
-                <div className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-8 -mb-8" />
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold tracking-widest opacity-80">SOUK.AI</span>
-                    <FiSmartphone className="h-6 w-6 opacity-60" />
-                  </div>
-                  <p className="font-mono text-lg tracking-[0.25em] mb-3">
-                    {detectedCard.card_number?.replace(/(.{4})/g, '$1 ').trim() || '****'}
-                  </p>
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider opacity-60">Titulaire</p>
-                      <p className="font-bold text-sm">{detectedCard.holder_name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wider opacity-60">Solde</p>
-                      <p className="font-black text-xl">{Number(detectedCard.balance || 0).toFixed(2)} <span className="text-xs">MAD</span></p>
-                    </div>
-                  </div>
-                </div>
+                <SoukCardVisual
+                  cardNumber={detectedCard.card_number}
+                  holderName={detectedCard.holder_name}
+                  balance={detectedCard.balance}
+                  cardType={detectedCard.card_type || 'SUPPLIER'}
+                />
 
                 {/* Balance check */}
                 {detectedCard.balance < Number(payModal.total_amount || 0) && (

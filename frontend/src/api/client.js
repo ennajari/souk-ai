@@ -28,6 +28,7 @@ client.interceptors.response.use(
 export const authAPI = {
   register: (data) => client.post('/auth/register', data),
   login: (phone_number, password) => client.post('/auth/login', { phone_number, password }),
+  adminLogin: (email, password) => client.post('/auth/admin-login', { email, password }),
   me: () => client.get('/auth/me'),
   deleteAccount: () => client.delete('/auth/account'),
 }
@@ -121,11 +122,18 @@ export const supplierChatAPI = {
 export const creditAPI = {
   score: () => client.get('/credit/score'),
   offers: () => client.get('/credit/offers'),
+  request: (data) => client.post('/credit/request', data),
 }
 
 // ---- Admin ----
 export const adminAPI = {
   health: () => client.get('/health'),
+  stats: () => client.get('/admin/stats'),
+  merchants: () => client.get('/admin/merchants'),
+  cards: () => client.get('/admin/cards'),
+  payments: () => client.get('/admin/payments'),
+  creditRequests: (status) => client.get('/admin/credit-requests', { params: { status } }),
+  reviewCreditRequest: (id, data) => client.patch(`/admin/credit-requests/${id}`, data),
 }
 
 // ---- Customers (Carnet de credit) ----

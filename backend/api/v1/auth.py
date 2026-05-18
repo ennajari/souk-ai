@@ -11,7 +11,8 @@ from core.security import hash_password, verify_password, create_access_token
 from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory, AccountType
 from models.supplier import Supplier
-from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from schemas.auth import RegisterRequest, LoginRequest, AdminLoginRequest, TokenResponse
+from core.deps import check_is_admin
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -83,7 +84,7 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
-        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
+        is_admin=False,
         account_type=acct_type.value,
     )
 
@@ -102,7 +103,29 @@ async def login(req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)])
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
-        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
+        is_admin=False,
+        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
+    )
+
+
+@router.post("/admin-login", response_model=TokenResponse)
+async def admin_login(req: AdminLoginRequest, db: Annotated[AsyncSession, Depends(get_db)]):
+    """Login for Souk.AI startup admin — email-based authentication."""
+    result = await db.execute(select(Merchant).where(Merchant.email == req.email))
+    merchant = result.scalar_one_or_none()
+
+    if not merchant or not verify_password(req.password, merchant.hashed_password):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+
+    if not check_is_admin(merchant):
+        raise HTTPException(status_code=403, detail="Acces reserve a l'administration")
+
+    token = create_access_token(merchant.id)
+    return TokenResponse(
+        access_token=token,
+        merchant_id=merchant.id,
+        business_name=merchant.business_name,
+        is_admin=True,
         account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
     )
 
@@ -111,7 +134,8 @@ async def login(req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)])
 async def get_me(merchant: Annotated[Merchant, Depends(get_current_merchant)]):
     from schemas.merchant import MerchantResponse
     data = MerchantResponse.model_validate(merchant).model_dump()
-    data["is_admin"] = merchant.phone_number == settings.ADMIN_PHONE
+    # Don't send is_admin here — frontend uses localStorage value set at login time
+    # This ensures phone login never grants admin, only /admin-login does
     data["account_type"] = merchant.account_type.value if merchant.account_type else "MERCHANT"
     return data
 
@@ -174,7 +198,8 @@ async def reset_confirm(body: ResetConfirmBody, db: Annotated[AsyncSession, Depe
         access_token=token,
         merchant_id=merchant.id,
         business_name=merchant.business_name,
-        is_admin=merchant.phone_number == settings.ADMIN_PHONE,
+        is_admin=False,
+        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
     )
 
 
