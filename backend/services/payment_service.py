@@ -1,4 +1,7 @@
 """Payment service for CMI and CashPlus integration (Morocco)."""
+import hashlib
+import hmac
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +9,8 @@ from sqlalchemy import select
 
 from models.payment import Payment, PaymentMethod, PaymentStatus, MerchantPaymentConfig
 from app.config import settings
+
+logger = logging.getLogger("souk_ai")
 
 
 async def create_payment(
@@ -100,18 +105,55 @@ def _generate_cashplus_voucher(payment: Payment) -> str:
     return f"CP{payment.id[:8].upper()}{int(payment.amount):06d}"
 
 
+def _verify_cmi_hash(data: dict) -> bool:
+    """Verify CMI callback HMAC signature.
+
+    CMI sends a HASH field computed from specific fields + store key.
+    If CMI_STORE_KEY is not configured, skip verification (development mode).
+    """
+    cmi_key = getattr(settings, "CMI_STORE_KEY", "")
+    if not cmi_key:
+        logger.warning("CMI_STORE_KEY not configured — skipping callback signature verification")
+        return True
+
+    received_hash = data.get("HASH", "")
+    if not received_hash:
+        return False
+
+    # CMI hash is computed from: amount + currency + oid + status + storeKey
+    hash_input = (
+        f"{data.get('amount', '')}"
+        f"{data.get('currency', '')}"
+        f"{data.get('OrderId', '')}"
+        f"{data.get('Status', '')}"
+        f"{cmi_key}"
+    )
+    computed = hashlib.sha512(hash_input.encode()).hexdigest()
+    return hmac.compare_digest(computed.lower(), received_hash.lower())
+
+
 async def process_cmi_callback(db: AsyncSession, data: dict) -> Payment | None:
-    """Process CMI payment gateway callback."""
+    """Process CMI payment gateway callback with signature verification."""
     order_id = data.get("OrderId")
     status = data.get("Status")
 
     if not order_id:
         return None
 
+    # Verify HMAC signature to prevent forged callbacks
+    if not _verify_cmi_hash(data):
+        logger.warning(f"CMI callback rejected: invalid signature for order {order_id}")
+        return None
+
     result = await db.execute(select(Payment).where(Payment.id == order_id))
     payment = result.scalar_one_or_none()
     if not payment:
         return None
+
+    # Prevent replay: only process PENDING payments
+    if payment.status != PaymentStatus.PENDING:
+        logger.warning(f"CMI callback ignored: payment {order_id} already {payment.status.value}")
+        return payment
 
     payment.gateway_response = data
     if status == "APPROVED":

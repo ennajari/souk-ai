@@ -79,12 +79,12 @@ async def create_product(
 
     product = Product(merchant_id=merchant.id, **data)
     db.add(product)
-    await db.commit()
+    await db.flush()  # Get product.id without committing
 
-    # Create inventory entry with initial stock
+    # Create inventory entry with initial stock (same transaction)
     inventory = Inventory(product_id=product.id, quantity=initial_stock)
     db.add(inventory)
-    await db.commit()
+    await db.commit()  # Single atomic commit: product + inventory
 
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,

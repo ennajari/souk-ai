@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = ""
 
+    # CMI Payment Gateway
+    CMI_STORE_KEY: str = ""  # HMAC key for callback verification
+
     # Admin
     ADMIN_PHONE: str = "212763576794"
     ADMIN_EMAIL: str = "abdellahennajari2018@gmail.com"

@@ -1,6 +1,8 @@
 """Carte Souk.AI service — prepaid NFC card management."""
 import logging
 import hashlib
+import hmac
+import os
 import secrets
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +13,12 @@ from models.souk_card import SoukCard, CardTransaction, CardStatus, CardTransact
 logger = logging.getLogger("souk_ai")
 
 
-def _hash_pin(pin: str) -> str:
-    return hashlib.sha256(pin.encode()).hexdigest()
+def _hash_pin(pin: str, salt: bytes | None = None) -> str:
+    """Hash PIN with PBKDF2-HMAC-SHA256 + random salt. Returns 'salt_hex:hash_hex'."""
+    if salt is None:
+        salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt, iterations=100_000)
+    return salt.hex() + ":" + dk.hex()
 
 
 def _generate_card_number(card_type: str = "CLIENT") -> str:
@@ -23,7 +29,17 @@ def _generate_card_number(card_type: str = "CLIENT") -> str:
 
 
 def _verify_pin(card: SoukCard, pin: str) -> bool:
-    return card.pin_hash == _hash_pin(pin)
+    """Verify PIN against stored hash. Supports both legacy SHA-256 and new PBKDF2 format."""
+    stored = card.pin_hash
+    if ":" in stored:
+        # New format: salt_hex:hash_hex (PBKDF2)
+        salt_hex, hash_hex = stored.split(":", 1)
+        salt = bytes.fromhex(salt_hex)
+        dk = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt, iterations=100_000)
+        return hmac.compare_digest(dk.hex(), hash_hex)
+    else:
+        # Legacy format: plain SHA-256 (backward compatible)
+        return hmac.compare_digest(stored, hashlib.sha256(pin.encode()).hexdigest())
 
 
 async def register_card(
@@ -133,6 +149,11 @@ async def pay_with_soukcard(
         return {"success": False, "error": "Carte introuvable"}
     if card.status != CardStatus.ACTIVE:
         return {"success": False, "error": "Carte suspendue"}
+
+    # PIN required for amounts > 50 MAD (NFC contactless limit)
+    NFC_CONTACTLESS_LIMIT = 50.0
+    if amount > NFC_CONTACTLESS_LIMIT and not pin:
+        return {"success": False, "error": f"Code PIN requis pour les paiements > {NFC_CONTACTLESS_LIMIT:.0f} MAD"}
 
     if pin and not _verify_pin(card, pin):
         return {"success": False, "error": "Code PIN incorrect"}

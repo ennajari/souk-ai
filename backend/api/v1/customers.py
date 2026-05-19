@@ -144,7 +144,13 @@ async def add_credit_entry(
     if data.type == "CREDIT":
         customer.balance = float(customer.balance) + data.amount
     elif data.type == "PAYMENT":
-        customer.balance = float(customer.balance) - data.amount
+        current_balance = float(customer.balance)
+        if data.amount > current_balance:
+            raise HTTPException(
+                400,
+                f"Montant du paiement ({data.amount:.2f} MAD) supérieur au solde dû ({current_balance:.2f} MAD)"
+            )
+        customer.balance = current_balance - data.amount
 
     await db.commit()
     await db.refresh(entry)

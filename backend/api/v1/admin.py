@@ -118,23 +118,32 @@ async def admin_stats(
         for row in top_merchants_rows
     ]
 
-    # Transactions per day (last 7 days)
+    # Transactions per day (last 7 days) — single query instead of 14
+    seven_days_ago = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    daily_q = await db.execute(
+        select(
+            func.date_trunc('day', Transaction.created_at).label("day"),
+            func.count(Transaction.id),
+            func.coalesce(func.sum(
+                func.case(
+                    (Transaction.type == TransactionType.SALE, Transaction.total_amount),
+                    else_=0,
+                )
+            ), 0),
+        )
+        .where(Transaction.created_at >= seven_days_ago)
+        .group_by(func.date_trunc('day', Transaction.created_at))
+    )
+    daily_map = {row[0].date(): {"transactions": row[1], "revenue": float(row[2])} for row in daily_q.all()}
+
     daily_activity = []
     for i in range(7):
-        day_start = (now - timedelta(days=6 - i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_count = (await db.execute(
-            select(func.count(Transaction.id))
-            .where(Transaction.created_at >= day_start, Transaction.created_at < day_end)
-        )).scalar() or 0
-        day_revenue = (await db.execute(
-            select(func.coalesce(func.sum(Transaction.total_amount), 0))
-            .where(Transaction.created_at >= day_start, Transaction.created_at < day_end, Transaction.type == TransactionType.SALE)
-        )).scalar() or 0
+        day = (now - timedelta(days=6 - i)).replace(hour=0, minute=0, second=0, microsecond=0).date()
+        stats = daily_map.get(day, {"transactions": 0, "revenue": 0.0})
         daily_activity.append({
-            "date": day_start.strftime("%d/%m"),
-            "transactions": day_count,
-            "revenue": float(day_revenue),
+            "date": day.strftime("%d/%m"),
+            "transactions": stats["transactions"],
+            "revenue": stats["revenue"],
         })
 
     return {
@@ -262,32 +271,42 @@ async def list_merchants(
 
     month_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
+    # Single query for all merchants
     merchants_q = await db.execute(select(Merchant).order_by(Merchant.created_at.desc()))
     merchants = merchants_q.scalars().all()
+    merchant_ids = [m.id for m in merchants]
+
+    if not merchant_ids:
+        return []
+
+    # Batch: product counts per merchant (1 query instead of N)
+    prod_counts_q = await db.execute(
+        select(Product.merchant_id, func.count(Product.id))
+        .where(Product.merchant_id.in_(merchant_ids))
+        .group_by(Product.merchant_id)
+    )
+    prod_counts = {row[0]: row[1] for row in prod_counts_q.all()}
+
+    # Batch: transaction counts + revenue per merchant last 30 days (1 query instead of 2N)
+    tx_stats_q = await db.execute(
+        select(
+            Transaction.merchant_id,
+            func.count(Transaction.id),
+            func.coalesce(func.sum(
+                func.case(
+                    (Transaction.type == TransactionType.SALE, Transaction.total_amount),
+                    else_=0,
+                )
+            ), 0),
+        )
+        .where(Transaction.merchant_id.in_(merchant_ids), Transaction.created_at >= month_ago)
+        .group_by(Transaction.merchant_id)
+    )
+    tx_stats = {row[0]: {"count": row[1], "revenue": row[2]} for row in tx_stats_q.all()}
 
     result = []
     for m in merchants:
-        # Product count
-        prod_count = (await db.execute(
-            select(func.count(Product.id)).where(Product.merchant_id == m.id)
-        )).scalar() or 0
-
-        # Transaction count last 30 days
-        tx_count = (await db.execute(
-            select(func.count(Transaction.id)).where(
-                Transaction.merchant_id == m.id, Transaction.created_at >= month_ago
-            )
-        )).scalar() or 0
-
-        # Revenue last 30 days
-        revenue = (await db.execute(
-            select(func.coalesce(func.sum(Transaction.total_amount), 0)).where(
-                Transaction.merchant_id == m.id,
-                Transaction.created_at >= month_ago,
-                Transaction.type == TransactionType.SALE,
-            )
-        )).scalar() or 0
-
+        stats = tx_stats.get(m.id, {"count": 0, "revenue": 0})
         result.append({
             "id": m.id,
             "business_name": m.business_name,
@@ -298,9 +317,9 @@ async def list_merchants(
             "credit_score": m.credit_score,
             "is_active": m.is_active,
             "created_at": m.created_at.isoformat(),
-            "products": prod_count,
-            "transactions_30d": tx_count,
-            "revenue_30d": float(revenue),
+            "products": prod_counts.get(m.id, 0),
+            "transactions_30d": stats["count"],
+            "revenue_30d": float(stats["revenue"]),
         })
 
     return result

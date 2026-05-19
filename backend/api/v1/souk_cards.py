@@ -54,8 +54,9 @@ async def register_souk_card(
 async def topup_souk_card(
     data: SoukCardTopUp,
     db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
-    """Top up a Carte Souk.AI (called by banking app webhook or admin)."""
+    """Top up a Carte Souk.AI (requires authentication)."""
     result = await top_up_card(
         db=db,
         card_number=data.card_number,

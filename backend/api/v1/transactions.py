@@ -193,7 +193,21 @@ async def return_transaction(
     )
     original = result.scalar_one_or_none()
     if not original:
-        raise HTTPException(404, "Vente introuvable ou déjà retournée")
+        raise HTTPException(404, "Vente introuvable")
+
+    # Prevent double return: check if a RETURN already exists for this sale
+    existing_return = await db.execute(
+        select(Transaction.id).where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.product_id == original.product_id,
+            Transaction.type == TransactionType.RETURN,
+            Transaction.quantity == original.quantity,
+            Transaction.unit_price == original.unit_price,
+            Transaction.customer_id == original.customer_id,
+        )
+    )
+    if existing_return.scalar_one_or_none():
+        raise HTTPException(409, "Cette vente a déjà été retournée")
 
     prod_result = await db.execute(select(Product).where(Product.id == original.product_id))
     product = prod_result.scalar_one_or_none()
