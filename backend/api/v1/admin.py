@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 
 from core.database import get_db
 from core.deps import get_current_merchant, check_is_admin
@@ -120,19 +120,20 @@ async def admin_stats(
 
     # Transactions per day (last 7 days) — single query instead of 14
     seven_days_ago = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_col = func.date_trunc('day', Transaction.created_at).label("day")
     daily_q = await db.execute(
         select(
-            func.date_trunc('day', Transaction.created_at).label("day"),
+            day_col,
             func.count(Transaction.id),
             func.coalesce(func.sum(
-                func.case(
+                case(
                     (Transaction.type == TransactionType.SALE, Transaction.total_amount),
                     else_=0,
                 )
             ), 0),
         )
         .where(Transaction.created_at >= seven_days_ago)
-        .group_by(func.date_trunc('day', Transaction.created_at))
+        .group_by(day_col)
     )
     daily_map = {row[0].date(): {"transactions": row[1], "revenue": float(row[2])} for row in daily_q.all()}
 
@@ -293,7 +294,7 @@ async def list_merchants(
             Transaction.merchant_id,
             func.count(Transaction.id),
             func.coalesce(func.sum(
-                func.case(
+                case(
                     (Transaction.type == TransactionType.SALE, Transaction.total_amount),
                     else_=0,
                 )
