@@ -106,18 +106,43 @@ async def calculate_forecast(
 
 async def get_restock_recommendations(db: AsyncSession, merchant_id: str) -> list[dict]:
     """For each active product, compare 7-day forecast demand vs current stock."""
+    from sqlalchemy.orm import selectinload
+
+    # Batch load all products with inventory in one query
     products_result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant_id, Product.is_active == True)
+        select(Product)
+        .options(selectinload(Product.inventory))
+        .where(Product.merchant_id == merchant_id, Product.is_active == True)
     )
     products = products_result.scalars().all()
 
+    if not products:
+        return []
+
+    # Batch load ALL transactions for this merchant in last 30 days (single query)
+    now = datetime.now(timezone.utc)
+    lookback = now - timedelta(days=30)
+    txn_result = await db.execute(
+        select(Transaction).where(
+            Transaction.merchant_id == merchant_id,
+            Transaction.type == TransactionType.SALE,
+            Transaction.created_at >= lookback,
+        )
+    )
+    all_txns = txn_result.scalars().all()
+
+    # Group transactions by product_id
+    txns_by_product: dict[str, list] = defaultdict(list)
+    for t in all_txns:
+        txns_by_product[t.product_id].append(t)
+
     recommendations = []
     for product in products:
-        forecast = await calculate_forecast(db, merchant_id, product.id, days_ahead=7)
+        # Calculate forecast using pre-loaded transactions
+        forecast = _calculate_forecast_from_txns(txns_by_product.get(product.id, []), now, days_ahead=7)
         total_demand_7d = sum(f["demand"] for f in forecast)
 
-        inv_result = await db.execute(select(Inventory).where(Inventory.product_id == product.id))
-        inv = inv_result.scalar_one_or_none()
+        inv = product.inventory
         current_stock = float(inv.quantity) if inv else 0.0
         threshold = inv.reorder_threshold if inv else 10
 
@@ -134,3 +159,71 @@ async def get_restock_recommendations(db: AsyncSession, merchant_id: str) -> lis
             "forecast": forecast,
         })
     return recommendations
+
+
+def _calculate_forecast_from_txns(txns: list, now: datetime, days_ahead: int = 7) -> list[dict]:
+    """Calculate forecast from pre-loaded transactions (no DB query)."""
+    daily_sales: dict[str, float] = defaultdict(float)
+    for t in txns:
+        day_str = t.created_at.strftime("%Y-%m-%d")
+        daily_sales[day_str] += float(t.quantity)
+
+    history = []
+    for i in range(30):
+        d = now - timedelta(days=30 - i)
+        day_str = d.strftime("%Y-%m-%d")
+        history.append(daily_sales.get(day_str, 0.0))
+
+    total_historical = sum(history)
+    if total_historical == 0:
+        return [
+            {"date": (now + timedelta(days=i + 1)).date(), "demand": 0.0, "lower": 0.0, "upper": 0.0, "factors": {}}
+            for i in range(days_ahead)
+        ]
+
+    recent_window = history[-7:]
+    avg_daily = sum(recent_window) / 7 if sum(recent_window) > 0 else (total_historical / 30)
+
+    weekday_totals: dict[int, float] = defaultdict(float)
+    weekday_counts: dict[int, int] = defaultdict(int)
+    for i, qty in enumerate(history):
+        d = now - timedelta(days=30 - i)
+        wd = d.weekday()
+        weekday_totals[wd] += qty
+        weekday_counts[wd] += 1
+
+    overall_avg = total_historical / 30
+    seasonality: dict[int, float] = {}
+    for wd in range(7):
+        if weekday_counts[wd] > 0 and overall_avg > 0:
+            seasonality[wd] = (weekday_totals[wd] / weekday_counts[wd]) / overall_avg
+        else:
+            seasonality[wd] = 1.0
+
+    window = history[-14:]
+    n = len(window)
+    if n >= 2:
+        x_mean = (n - 1) / 2
+        y_mean = sum(window) / n
+        numerator = sum((i - x_mean) * (window[i] - y_mean) for i in range(n))
+        denominator = sum((i - x_mean) ** 2 for i in range(n))
+        slope = numerator / denominator if denominator != 0 else 0.0
+    else:
+        slope = 0.0
+
+    forecasts = []
+    for i in range(days_ahead):
+        future_date = now + timedelta(days=i + 1)
+        wd = future_date.weekday()
+        trend_adjustment = avg_daily + slope * (i + 1)
+        predicted = max(0.0, trend_adjustment * seasonality.get(wd, 1.0))
+        margin = predicted * 0.25
+        forecasts.append({
+            "date": future_date.date(),
+            "demand": round(predicted, 2),
+            "lower": round(max(0.0, predicted - margin), 2),
+            "upper": round(predicted + margin, 2),
+            "factors": {"trend_slope": round(slope, 4), "seasonality": round(seasonality.get(wd, 1.0), 3)},
+        })
+
+    return forecasts

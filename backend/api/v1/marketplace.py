@@ -228,7 +228,7 @@ async def my_buying_orders(
         .order_by(MarketplaceOrder.created_at.desc())
     )
     orders = q.scalars().all()
-    return [await _load_order_details(db, o) for o in orders]
+    return await _batch_load_orders(db, orders)
 
 
 @router.get("/orders/selling")
@@ -243,7 +243,7 @@ async def my_selling_orders(
         .order_by(MarketplaceOrder.created_at.desc())
     )
     orders = q.scalars().all()
-    return [await _load_order_details(db, o) for o in orders]
+    return await _batch_load_orders(db, orders)
 
 
 @router.patch("/orders/{order_id}/status")
@@ -291,14 +291,35 @@ async def update_order_status(
 
 # ─── Helpers ───
 
+async def _batch_load_orders(db: AsyncSession, orders: list[MarketplaceOrder]) -> list[dict]:
+    """Load order details in batch (avoids N+1 queries)."""
+    if not orders:
+        return []
+
+    # Batch fetch listing titles
+    listing_ids = list({o.listing_id for o in orders})
+    listing_rows = (await db.execute(
+        select(MarketplaceListing.id, MarketplaceListing.title).where(MarketplaceListing.id.in_(listing_ids))
+    )).all()
+    listings_map = {r.id: r.title for r in listing_rows}
+
+    # Batch fetch merchant names (buyers + sellers)
+    merchant_ids = list({o.buyer_id for o in orders} | {o.seller_id for o in orders})
+    merchant_rows = (await db.execute(
+        select(Merchant.id, Merchant.business_name).where(Merchant.id.in_(merchant_ids))
+    )).all()
+    merchants_map = {r.id: r.business_name for r in merchant_rows}
+
+    return [
+        _enrich_order(o, listings_map.get(o.listing_id), merchants_map.get(o.buyer_id), merchants_map.get(o.seller_id))
+        for o in orders
+    ]
+
+
 async def _load_order_details(db: AsyncSession, order: MarketplaceOrder) -> dict:
-    listing_q = await db.execute(select(MarketplaceListing.title).where(MarketplaceListing.id == order.listing_id))
-    listing_title = listing_q.scalar()
-    buyer_q = await db.execute(select(Merchant.business_name).where(Merchant.id == order.buyer_id))
-    buyer_name = buyer_q.scalar()
-    seller_q = await db.execute(select(Merchant.business_name).where(Merchant.id == order.seller_id))
-    seller_name = seller_q.scalar()
-    return _enrich_order(order, listing_title, buyer_name, seller_name)
+    """Load single order details (used for single order status updates)."""
+    results = await _batch_load_orders(db, [order])
+    return results[0] if results else {}
 
 
 def _enrich_order(order, listing_title, buyer_name, seller_name) -> dict:

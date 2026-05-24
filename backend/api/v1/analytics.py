@@ -10,6 +10,8 @@ from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
 from models.transaction import Transaction, TransactionType
+from models.supplier_order import SupplierOrder
+from models.employee_contract import EmployeeContract
 from schemas.analytics import DashboardStats, SalesChartPoint, ProductProfit, ProfitSummary
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -187,3 +189,79 @@ async def get_profit_analysis(
         avg_margin=round(avg_margin, 1),
         products=products,
     )
+
+
+@router.get("/monthly-revenue")
+async def get_monthly_revenue(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    months: int = Query(1, ge=1, le=12),
+):
+    """Monthly net revenue = Sales revenue - Supplier costs (paid orders) - Employee salaries."""
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start = month_start - timedelta(days=30 * (months - 1))
+
+    # 1. Total sales revenue this period
+    rev_result = await db.execute(
+        select(func.coalesce(func.sum(Transaction.total_amount), 0)).where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.type == TransactionType.SALE,
+            Transaction.created_at >= start,
+        )
+    )
+    total_sales = float(rev_result.scalar() or 0)
+
+    # 2. Total supplier costs (paid orders)
+    sup_result = await db.execute(
+        select(func.coalesce(func.sum(SupplierOrder.total_amount), 0)).where(
+            SupplierOrder.merchant_id == merchant.id,
+            SupplierOrder.payment_id != None,
+            SupplierOrder.created_at >= start,
+        )
+    )
+    total_supplier_costs = float(sup_result.scalar() or 0)
+
+    # 3. Total employee salaries
+    sal_result = await db.execute(
+        select(func.coalesce(func.sum(EmployeeContract.salary), 0)).where(
+            EmployeeContract.merchant_id == merchant.id,
+            EmployeeContract.is_active == True,
+        )
+    )
+    total_salaries = float(sal_result.scalar() or 0) * months
+
+    # 4. Total cost of goods (from profit calculation)
+    from sqlalchemy.orm import selectinload
+    txn_result = await db.execute(
+        select(Transaction)
+        .options(selectinload(Transaction.product))
+        .where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.type == TransactionType.SALE,
+            Transaction.created_at >= start,
+        )
+    )
+    txns = txn_result.scalars().all()
+    total_cogs = sum(
+        t.quantity * float(t.product.cost_price) if t.product else 0
+        for t in txns
+    )
+
+    net_revenue = total_sales - total_cogs - total_supplier_costs - total_salaries
+
+    return {
+        "period_months": months,
+        "total_sales": round(total_sales, 2),
+        "total_cogs": round(total_cogs, 2),
+        "total_supplier_costs": round(total_supplier_costs, 2),
+        "total_salaries": round(total_salaries, 2),
+        "net_revenue": round(net_revenue, 2),
+        "breakdown": {
+            "ventes": round(total_sales, 2),
+            "cout_marchandises": round(total_cogs, 2),
+            "fournisseurs": round(total_supplier_costs, 2),
+            "salaires": round(total_salaries, 2),
+            "benefice_net": round(net_revenue, 2),
+        },
+    }

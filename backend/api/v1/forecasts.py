@@ -20,7 +20,15 @@ async def list_forecasts(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Get 7-day demand forecasts and restock recommendations for all products."""
-    return await get_restock_recommendations(db, merchant.id)
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        results = await get_restock_recommendations(db, merchant.id)
+        logger.info(f"[Forecasts] merchant={merchant.business_name} products={len(results)}")
+        return results
+    except Exception as e:
+        logger.error(f"[Forecasts] ERROR for merchant={merchant.business_name}: {e}", exc_info=True)
+        raise
 
 
 @router.get("/{product_id}", response_model=ProductForecast)

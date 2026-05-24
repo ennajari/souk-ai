@@ -202,6 +202,57 @@ async def add_credit_entry(
     return entry
 
 
+@router.post("/{customer_id}/remind")
+async def send_karni_reminder(
+    customer_id: str,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Manually send a karni (credit) reminder to a customer via WhatsApp."""
+    result = await db.execute(
+        select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(404, CLIENT_NOT_FOUND)
+
+    if not customer.phone:
+        raise HTTPException(400, "Ce client n'a pas de numéro de téléphone")
+
+    if float(customer.balance) <= 0:
+        raise HTTPException(400, "Ce client n'a pas de solde en cours")
+
+    # Find last entry for date info
+    last_entry_result = await db.execute(
+        select(CreditEntry).where(
+            CreditEntry.customer_id == customer.id,
+        ).order_by(CreditEntry.created_at.desc()).limit(1)
+    )
+    last_entry = last_entry_result.scalar_one_or_none()
+
+    first_name = customer.name.split()[0] if customer.name else "Client"
+    balance_str = f"{float(customer.balance):.2f}"
+    shop_name = merchant.business_name or "Votre boutique"
+    last_date = last_entry.created_at.strftime("%d/%m/%Y") if last_entry else "—"
+
+    msg = (
+        f"سلام {first_name} 👋\n\n"
+        f"هذا تذكير بسيط — عندك {balance_str} درهم في الكارني ديال {shop_name}.\n\n"
+        f"💳 المبلغ: {balance_str} MAD\n"
+        f"📅 آخر عملية: {last_date}\n\n"
+        f"الله يبارك فيك، خلص وقتما تقدر 🙏\n\n"
+        f"— {shop_name} via Souk.AI"
+    )
+
+    phone_normalized = normalize_phone(customer.phone)
+    try:
+        await send_text_message(phone_normalized, msg)
+    except Exception as e:
+        raise HTTPException(502, f"Échec d'envoi WhatsApp: {str(e)}")
+
+    return {"status": "sent", "phone": phone_normalized}
+
+
 @router.get("/{customer_id}/purchases")
 async def get_customer_purchases(
     customer_id: str,

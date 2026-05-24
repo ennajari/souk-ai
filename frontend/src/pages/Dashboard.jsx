@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import StatsCard from '../components/StatsCard'
 import RamadanBanner from '../components/RamadanBanner'
-import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI } from '../api/client'
+import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI, revenueAPI, barcodeAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -34,6 +34,8 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([])
   const [creditScore, setCreditScore] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [monthlyRevenue, setMonthlyRevenue] = useState(null)
+  const [expiringCount, setExpiringCount] = useState(0)
 
   const [chartDays, setChartDays] = useState(7)
 
@@ -59,6 +61,9 @@ export default function Dashboard() {
       setAlerts(alertsRes.data)
       setCreditScore(creditRes.data)
     }).finally(() => setLoading(false))
+    // Load monthly revenue + expiry count (non-blocking)
+    revenueAPI.monthly(1).then(r => setMonthlyRevenue(r.data)).catch(() => {})
+    barcodeAPI.expiring(3).then(r => setExpiringCount((r.data || []).length)).catch(() => {})
   }, [chartDays])
 
   const openSaleModal = () => {
@@ -207,6 +212,22 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard title="Stock bas" value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
         <StatsCard title="Revenu auj." value={`${(stats?.total_revenue_today || 0).toFixed(0)} MAD`} icon={FiZap} color="green" />
+        {monthlyRevenue && (
+          <div className="bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 hover:shadow-lg transition-all">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Benefice net/mois</p>
+            <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${monthlyRevenue.net_revenue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {monthlyRevenue.net_revenue.toFixed(0)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">MAD · apres charges</p>
+          </div>
+        )}
+        {expiringCount > 0 && (
+          <div className="bg-white rounded-2xl border border-red-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/products')}>
+            <p className="text-xs font-medium text-red-500 uppercase tracking-wide">Expiration</p>
+            <p className="text-2xl sm:text-3xl font-black mt-1.5 text-red-600">{expiringCount}</p>
+            <p className="text-xs text-gray-400 mt-1">produit(s) dans 3 jours</p>
+          </div>
+        )}
         {creditScore ? (
           <div className={`bg-white rounded-2xl border p-4 sm:p-5 hover:shadow-lg transition-all duration-300 ${
             scoreColor === 'green' ? 'border-emerald-100' : scoreColor === 'yellow' ? 'border-yellow-100' : 'border-red-100'

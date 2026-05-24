@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
 
 from core.database import get_db
@@ -195,18 +195,42 @@ async def return_transaction(
     if not original:
         raise HTTPException(404, "Vente introuvable")
 
-    # Prevent double return: check if a RETURN already exists for this sale
+    # Prevent double return: check if a RETURN referencing this exact sale already exists
+    # We use notes field to store the original transaction ID as a reliable reference
+    return_ref = f"return_of:{transaction_id}"
     existing_return = await db.execute(
         select(Transaction.id).where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.type == TransactionType.RETURN,
+            Transaction.source == TransactionSource.WEB,
+            Transaction.product_id == original.product_id,
+        ).limit(1)
+    )
+    # Also check via quantity+price+customer as fallback for old returns without ref
+    fallback_check = await db.execute(
+        select(func.count(Transaction.id)).where(
             Transaction.merchant_id == merchant.id,
             Transaction.product_id == original.product_id,
             Transaction.type == TransactionType.RETURN,
             Transaction.quantity == original.quantity,
             Transaction.unit_price == original.unit_price,
-            Transaction.customer_id == original.customer_id,
+            Transaction.total_amount == original.total_amount,
         )
     )
-    if existing_return.scalar_one_or_none():
+    return_count = fallback_check.scalar() or 0
+    # Count how many sales with same signature exist
+    sale_count_result = await db.execute(
+        select(func.count(Transaction.id)).where(
+            Transaction.merchant_id == merchant.id,
+            Transaction.product_id == original.product_id,
+            Transaction.type == TransactionType.SALE,
+            Transaction.quantity == original.quantity,
+            Transaction.unit_price == original.unit_price,
+            Transaction.total_amount == original.total_amount,
+        )
+    )
+    sale_count = sale_count_result.scalar() or 0
+    if return_count >= sale_count:
         raise HTTPException(409, "Cette vente a déjà été retournée")
 
     prod_result = await db.execute(select(Product).where(Product.id == original.product_id))

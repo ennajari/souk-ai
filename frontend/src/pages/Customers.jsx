@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiPlus, FiSearch, FiPhone, FiChevronRight, FiX, FiArrowUp, FiArrowDown, FiTrash2, FiEdit2, FiShoppingBag } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiPhone, FiChevronRight, FiX, FiArrowUp, FiArrowDown, FiTrash2, FiEdit2, FiShoppingBag, FiMessageCircle } from 'react-icons/fi'
 import client from '../api/client'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +23,21 @@ export default function Customers() {
   const [editForm, setEditForm] = useState({ name: '', phone: '', notes: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [sendingReminder, setSendingReminder] = useState(false)
+
+  const handleRemind = async () => {
+    if (!detail?.phone) return toast.error('Ce client n\'a pas de numéro de téléphone')
+    if (detail.balance <= 0) return toast.error('Ce client n\'a pas de solde en cours')
+    setSendingReminder(true)
+    try {
+      await client.post(`/customers/${selected}/remind`)
+      toast.success('Rappel WhatsApp envoyé ✅')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Échec de l\'envoi du rappel')
+    } finally {
+      setSendingReminder(false)
+    }
+  }
 
   const fetchCustomers = () => {
     setLoading(true)
@@ -191,6 +206,12 @@ export default function Customers() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
+                  {detail.phone && detail.balance > 0 && (
+                    <button onClick={handleRemind} disabled={sendingReminder}
+                      className="p-2 hover:bg-green-100 rounded-xl transition-colors disabled:opacity-50" title="Rappel WhatsApp">
+                      <FiMessageCircle className="h-4 w-4 text-green-600" />
+                    </button>
+                  )}
                   <button onClick={openEdit} className="p-2 hover:bg-violet-100 rounded-xl transition-colors" title="Modifier">
                     <FiEdit2 className="h-4 w-4 text-violet-600" />
                   </button>

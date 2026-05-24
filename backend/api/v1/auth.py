@@ -211,15 +211,20 @@ async def delete_account(
     """Permanently delete merchant account and all associated data."""
     from models.product import Product
     from models.transaction import Transaction
-    from models.inventory import Inventory
+    from models.inventory import Inventory, InventoryLog
     from models.conversation import ConversationMessage as Conversation
     from models.customer import Customer, CreditEntry
     from models.notification import Notification
     from models.employee import Employee
+    from models.employee_contract import EmployeeContract
     from models.forecast import Forecast
     from models.credit import CreditHistory
     from models.order import Order
+    from models.supplier import Supplier
     from models.supplier_order import SupplierOrder
+    from models.supplier_catalog import SupplierCatalogItem
+    from models.payment import Payment, MerchantPaymentConfig
+    from models.marketplace import MarketplaceListing, MarketplaceOrder
 
     mid = merchant.id
 
@@ -229,15 +234,39 @@ async def delete_account(
     if customer_ids:
         await db.execute(delete(CreditEntry).where(CreditEntry.customer_id.in_(customer_ids)))
 
-    # Delete inventory (FK to products)
+    # Delete inventory + logs (FK to products)
     products_q = await db.execute(select(Product.id).where(Product.merchant_id == mid))
     product_ids = list(products_q.scalars().all())
     if product_ids:
         await db.execute(delete(Inventory).where(Inventory.product_id.in_(product_ids)))
+    await db.execute(delete(InventoryLog).where(InventoryLog.merchant_id == mid))
+
+    # Delete employee contracts (FK to employees)
+    employees_q = await db.execute(select(Employee.id).where(Employee.merchant_id == mid))
+    employee_ids = list(employees_q.scalars().all())
+    if employee_ids:
+        await db.execute(delete(EmployeeContract).where(EmployeeContract.employee_id.in_(employee_ids)))
+
+    # Delete supplier catalog items (FK to suppliers)
+    suppliers_q = await db.execute(select(Supplier.id).where(Supplier.merchant_id == mid))
+    supplier_ids = list(suppliers_q.scalars().all())
+    if supplier_ids:
+        await db.execute(delete(SupplierCatalogItem).where(SupplierCatalogItem.supplier_id.in_(supplier_ids)))
+
+    # Delete marketplace orders and listings
+    await db.execute(delete(MarketplaceOrder).where(
+        (MarketplaceOrder.buyer_id == mid) | (MarketplaceOrder.seller_id == mid)
+    ))
+    await db.execute(delete(MarketplaceListing).where(MarketplaceListing.merchant_id == mid))
+
+    # Delete payments
+    await db.execute(delete(Payment).where(Payment.merchant_id == mid))
+    await db.execute(delete(MerchantPaymentConfig).where(MerchantPaymentConfig.merchant_id == mid))
 
     # Delete all merchant-owned records
     await db.execute(delete(Transaction).where(Transaction.merchant_id == mid))
     await db.execute(delete(SupplierOrder).where(SupplierOrder.merchant_id == mid))
+    await db.execute(delete(Supplier).where(Supplier.merchant_id == mid))
     await db.execute(delete(Order).where(Order.merchant_id == mid))
     await db.execute(delete(Product).where(Product.merchant_id == mid))
     await db.execute(delete(Customer).where(Customer.merchant_id == mid))

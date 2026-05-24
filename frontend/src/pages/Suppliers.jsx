@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { FiEdit2, FiTrash2, FiX, FiPlus, FiPhone, FiMail, FiSearch, FiShoppingCart, FiDollarSign, FiCreditCard, FiTruck, FiPackage, FiSmartphone, FiShield, FiCheckCircle } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiX, FiPlus, FiPhone, FiMail, FiSearch, FiShoppingCart, FiDollarSign, FiCreditCard, FiTruck, FiPackage, FiSmartphone, FiShield, FiCheckCircle, FiList } from 'react-icons/fi'
 import client from '../api/client'
-import { suppliersAPI } from '../api/client'
+import { suppliersAPI, supplierCatalogAPI } from '../api/client'
 import SoukCardVisual from '../components/SoukCardVisual'
 import toast from 'react-hot-toast'
 
@@ -62,6 +62,24 @@ export default function Suppliers() {
   const [payError, setPayError] = useState('')
   const nfcAbort = useRef(null)
   const pinRef = useRef(null)
+
+  // Catalog state (read-only for merchants)
+  const [catalogSupplier, setCatalogSupplier] = useState(null)
+  const [catalogItems, setCatalogItems] = useState([])
+  const [catalogLoading, setCatalogLoading] = useState(false)
+
+  const openCatalog = async (supplier) => {
+    setCatalogSupplier(supplier)
+    setCatalogLoading(true)
+    try {
+      const res = await supplierCatalogAPI.list(supplier.id)
+      setCatalogItems(res.data || [])
+    } catch {
+      toast.error('Erreur chargement catalogue')
+    } finally {
+      setCatalogLoading(false)
+    }
+  }
 
   const fetchOrders = () => {
     setOrdersLoading(true)
@@ -351,6 +369,7 @@ export default function Suppliers() {
           {[
             { key: 'suppliers', label: 'Fournisseurs', icon: FiTruck },
             { key: 'orders', label: 'Commandes', icon: FiShoppingCart },
+            { key: 'catalog', label: 'Catalogue', icon: FiList },
           ].map(t => (
             <button
               key={t.key}
@@ -442,6 +461,82 @@ export default function Suppliers() {
             ))}
           </div>
         )
+      )}
+
+      {/* ── Catalog Tab ── */}
+      {tab === 'catalog' && (
+        <div className="space-y-4">
+          {/* Supplier selector for catalog */}
+          {!catalogSupplier ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">Choisissez un fournisseur pour voir son catalogue :</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {suppliers.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => openCatalog(s)}
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-purple-300 transition-all text-left"
+                  >
+                    <p className="font-semibold text-gray-900">{s.name}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${categoryColor[s.category] || 'bg-gray-100 text-gray-600'}`}>
+                      {s.category}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Catalog header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => { setCatalogSupplier(null); setCatalogItems([]) }}
+                    className="p-2 hover:bg-gray-100 rounded-lg"><FiX className="h-4 w-4" /></button>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Catalogue — {catalogSupplier.name}</h3>
+                    <p className="text-xs text-gray-500">{catalogItems.length} article(s) · Lecture seule</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Catalog items list — READ ONLY for merchants */}
+              {catalogLoading ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /></div>
+              ) : catalogItems.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Aucun article dans le catalogue</p>
+                  <p className="text-xs mt-1">Le fournisseur n'a pas encore ajoute de produits a son catalogue.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unite</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prix</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code-barres</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categorie</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {catalogItems.map(item => (
+                        <tr key={item.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{Number(item.unit_price).toFixed(2)} MAD</td>
+                          <td className="px-4 py-3 text-sm text-gray-500 font-mono">{item.barcode || '—'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{item.category || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Suppliers Tab ── */}

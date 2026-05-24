@@ -248,6 +248,125 @@ async def supplier_payments(
     ]
 
 
+# ---------- Catalogue Management ----------
+
+@router.get("/catalog")
+async def get_my_catalog(
+    merchant: Annotated[Merchant, Depends(get_current_supplier)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Get all catalog items for the supplier's linked supplier records."""
+    from models.supplier_catalog import SupplierCatalogItem
+    supplier_ids = await _get_supplier_ids(db, merchant.id)
+    if not supplier_ids:
+        return []
+    result = await db.execute(
+        select(SupplierCatalogItem)
+        .where(SupplierCatalogItem.supplier_id.in_(supplier_ids), SupplierCatalogItem.is_available == True)
+        .order_by(SupplierCatalogItem.name)
+    )
+    items = result.scalars().all()
+    return [
+        {
+            "id": i.id, "supplier_id": i.supplier_id, "name": i.name,
+            "unit": i.unit, "unit_price": float(i.unit_price),
+            "barcode": i.barcode, "category": i.category,
+            "is_available": i.is_available,
+            "created_at": i.created_at.isoformat() if i.created_at else None,
+        }
+        for i in items
+    ]
+
+
+class CatalogItemInput(BaseModel):
+    name: str
+    unit: str = "piece"
+    unit_price: float = 0
+    barcode: str | None = None
+    category: str | None = None
+
+
+@router.post("/catalog", status_code=201)
+async def add_catalog_item(
+    data: CatalogItemInput,
+    merchant: Annotated[Merchant, Depends(get_current_supplier)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Add item to supplier's catalog."""
+    from models.supplier_catalog import SupplierCatalogItem
+    supplier_ids = await _get_supplier_ids(db, merchant.id)
+    if not supplier_ids:
+        raise HTTPException(400, "Aucun fournisseur lie a votre compte")
+    # Use first linked supplier
+    item = SupplierCatalogItem(
+        supplier_id=supplier_ids[0],
+        name=data.name, unit=data.unit, unit_price=data.unit_price,
+        barcode=data.barcode, category=data.category,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return {
+        "id": item.id, "supplier_id": item.supplier_id, "name": item.name,
+        "unit": item.unit, "unit_price": float(item.unit_price),
+        "barcode": item.barcode, "category": item.category,
+        "is_available": item.is_available,
+    }
+
+
+@router.patch("/catalog/{item_id}")
+async def update_catalog_item(
+    item_id: str,
+    data: CatalogItemInput,
+    merchant: Annotated[Merchant, Depends(get_current_supplier)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Update a catalog item."""
+    from models.supplier_catalog import SupplierCatalogItem
+    supplier_ids = await _get_supplier_ids(db, merchant.id)
+    result = await db.execute(
+        select(SupplierCatalogItem).where(
+            SupplierCatalogItem.id == item_id,
+            SupplierCatalogItem.supplier_id.in_(supplier_ids),
+        )
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(404, "Article introuvable")
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    await db.commit()
+    await db.refresh(item)
+    return {
+        "id": item.id, "supplier_id": item.supplier_id, "name": item.name,
+        "unit": item.unit, "unit_price": float(item.unit_price),
+        "barcode": item.barcode, "category": item.category,
+        "is_available": item.is_available,
+    }
+
+
+@router.delete("/catalog/{item_id}", status_code=204)
+async def delete_catalog_item(
+    item_id: str,
+    merchant: Annotated[Merchant, Depends(get_current_supplier)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Remove item from catalog (soft delete)."""
+    from models.supplier_catalog import SupplierCatalogItem
+    supplier_ids = await _get_supplier_ids(db, merchant.id)
+    result = await db.execute(
+        select(SupplierCatalogItem).where(
+            SupplierCatalogItem.id == item_id,
+            SupplierCatalogItem.supplier_id.in_(supplier_ids),
+        )
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(404, "Article introuvable")
+    item.is_available = False
+    await db.commit()
+
+
 @router.get("/events")
 async def supplier_events(
     request: Request,

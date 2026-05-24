@@ -9,6 +9,7 @@ class ProductCreate(BaseModel):
     unit: str = "piece"
     unit_price: float = 0
     cost_price: float = 0
+    manufacture_date: date | None = None
     expiry_date: date | None = None
     initial_stock: float = 0  # Used on creation to pre-fill inventory
 
@@ -20,6 +21,7 @@ class ProductUpdate(BaseModel):
     unit: str | None = None
     unit_price: float | None = None
     cost_price: float | None = None
+    manufacture_date: date | None = None
     expiry_date: date | None = None
 
 
@@ -34,6 +36,7 @@ class ProductResponse(BaseModel):
     cost_price: float
     is_active: bool
     created_at: datetime
+    manufacture_date: date | None = None
     expiry_date: date | None = None
     stock_quantity: float | None = None
 

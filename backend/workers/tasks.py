@@ -1579,12 +1579,157 @@ async def _send_daily_sales_report():
                         else:
                             lines.append(f"  🟡 {item['product_name']}: {qty:.0f} restant(s)")
 
+                # ── Karni (credit) stats section ──
+                from models.customer import Customer, CreditEntry, CreditEntryType
+                from sqlalchemy import func as sa_func
+
+                # New credits today
+                credit_result = await db.execute(
+                    select(
+                        sa_func.coalesce(sa_func.sum(CreditEntry.amount), 0),
+                        sa_func.count(sa_func.distinct(CreditEntry.customer_id)),
+                    ).where(
+                        CreditEntry.merchant_id == merchant.id,
+                        CreditEntry.type == CreditEntryType.CREDIT,
+                        CreditEntry.created_at >= today_start,
+                    )
+                )
+                credit_row = credit_result.one()
+                new_credits = float(credit_row[0])
+                credit_count = int(credit_row[1])
+
+                # Payments received today
+                payment_result = await db.execute(
+                    select(sa_func.coalesce(sa_func.sum(CreditEntry.amount), 0)).where(
+                        CreditEntry.merchant_id == merchant.id,
+                        CreditEntry.type == CreditEntryType.PAYMENT,
+                        CreditEntry.created_at >= today_start,
+                    )
+                )
+                payments_received = float(payment_result.scalar())
+
+                # Total owed across all active customers
+                debt_result = await db.execute(
+                    select(
+                        sa_func.coalesce(sa_func.sum(Customer.balance), 0),
+                        sa_func.count(Customer.id),
+                    ).where(
+                        Customer.merchant_id == merchant.id,
+                        Customer.is_active == True,
+                        Customer.balance > 0,
+                    )
+                )
+                debt_row = debt_result.one()
+                total_owed = float(debt_row[0])
+                debtors_count = int(debt_row[1])
+
+                if debtors_count > 0:
+                    lines += [
+                        "",
+                        "📋 Karni du jour:",
+                        f"  💸 Nouveaux crédits: {new_credits:.2f} MAD ({credit_count} clients)",
+                        f"  ✅ Remboursements: {payments_received:.2f} MAD",
+                        f"  📊 Total dû: {total_owed:.2f} MAD ({debtors_count} clients)",
+                    ]
+
                 lines.append(f"\n💪 Bonne continuation et bonnes ventes demain !")
                 lines.append(f"🔗 {settings.FRONTEND_URL}")
                 await send_text_message(merchant.phone_number, "\n".join(lines))
     finally:
         await engine.dispose()
     return {"status": "daily_reports_sent"}
+
+
+# ---- Karni (Credit) Reminders ----
+
+@celery_app.task(name="send_karni_reminders")
+def send_karni_reminders():
+    return run_async(_send_karni_reminders())
+
+
+async def _send_karni_reminders():
+    import redis.asyncio as aioredis
+    from models.customer import Customer, CreditEntry
+    from services.whatsapp import normalize_phone
+
+    engine, SessionLocal = get_async_session()
+    redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            merchants = result.scalars().all()
+
+            now = datetime.now(timezone.utc)
+            today_str = now.strftime("%Y-%m-%d")
+            three_days_ago = now - timedelta(days=3)
+
+            for merchant in merchants:
+                # Find active customers with balance > 50, phone exists
+                cust_result = await db.execute(
+                    select(Customer).where(
+                        Customer.merchant_id == merchant.id,
+                        Customer.is_active == True,
+                        Customer.balance > 50,
+                        Customer.phone != None,
+                        Customer.phone != "",
+                    )
+                )
+                customers = cust_result.scalars().all()
+
+                sent_count = 0
+                for customer in customers:
+                    if sent_count >= 20:
+                        break
+
+                    # Check Redis dedup — skip if already reminded today
+                    dedup_key = f"karni_reminder:{customer.id}:{today_str}"
+                    already_sent = await redis_client.get(dedup_key)
+                    if already_sent:
+                        continue
+
+                    # Find last CreditEntry for this customer
+                    last_entry_result = await db.execute(
+                        select(CreditEntry).where(
+                            CreditEntry.customer_id == customer.id,
+                        ).order_by(CreditEntry.created_at.desc()).limit(1)
+                    )
+                    last_entry = last_entry_result.scalar_one_or_none()
+
+                    # Skip if last activity was within 3 days
+                    if last_entry and last_entry.created_at.replace(tzinfo=timezone.utc if last_entry.created_at.tzinfo is None else last_entry.created_at.tzinfo) > three_days_ago:
+                        continue
+
+                    # Build and send reminder message
+                    first_name = customer.name.split()[0] if customer.name else "Client"
+                    balance_str = f"{float(customer.balance):.2f}"
+                    shop_name = merchant.business_name or "Votre boutique"
+                    last_date = last_entry.created_at.strftime("%d/%m/%Y") if last_entry else "—"
+
+                    msg = (
+                        f"سلام {first_name} 👋\n\n"
+                        f"هذا تذكير بسيط — عندك {balance_str} درهم في الكارني ديال {shop_name}.\n\n"
+                        f"💳 المبلغ: {balance_str} MAD\n"
+                        f"📅 آخر عملية: {last_date}\n\n"
+                        f"الله يبارك فيك، خلص وقتما تقدر 🙏\n\n"
+                        f"— {shop_name} via Souk.AI"
+                    )
+
+                    try:
+                        phone_normalized = normalize_phone(customer.phone)
+                        await send_text_message(phone_normalized, msg)
+                        # Mark as sent in Redis with 24h TTL
+                        await redis_client.setex(dedup_key, 86400, "1")
+                        sent_count += 1
+                    except Exception as e:
+                        logger.error(f"Karni reminder failed for {customer.name} ({customer.phone}): {e}")
+
+                logger.info(f"Karni reminders: sent {sent_count} for merchant {merchant.business_name}")
+    finally:
+        await redis_client.aclose()
+        await engine.dispose()
+
+    return {"status": "karni_reminders_sent"}
 
 
 # ---- Update Credit Scores ----
@@ -1659,3 +1804,82 @@ async def _update_forecasts():
     finally:
         await engine.dispose()
     return {"status": "forecasts_updated"}
+
+
+# ──────────────────────────────────────────────────────────────
+#  EXPIRY ALERTS — Products expiring within 3 days
+# ──────────────────────────────────────────────────────────────
+
+@celery_app.task(name="send_expiry_alerts")
+def send_expiry_alerts():
+    return run_async(_send_expiry_alerts())
+
+
+async def _send_expiry_alerts():
+    from services.whatsapp import normalize_phone
+
+    engine, SessionLocal = get_async_session()
+    total_sent = 0
+    try:
+        async with SessionLocal() as db:
+            result = await db.execute(select(Merchant).where(Merchant.is_active == True))
+            merchants = result.scalars().all()
+
+            now = datetime.now(timezone.utc).date()
+            deadline = now + timedelta(days=3)
+
+            for merchant in merchants:
+                if not merchant.phone_number:
+                    continue
+
+                # Find expiring products
+                exp_result = await db.execute(
+                    select(Product).where(
+                        Product.merchant_id == merchant.id,
+                        Product.is_active == True,
+                        Product.expiry_date != None,
+                        Product.expiry_date <= deadline,
+                    ).order_by(Product.expiry_date)
+                )
+                expiring = exp_result.scalars().all()
+
+                if not expiring:
+                    continue
+
+                # Build message
+                expired = [p for p in expiring if p.expiry_date <= now]
+                soon = [p for p in expiring if p.expiry_date > now]
+
+                lines = []
+                if expired:
+                    lines.append(f"🚨 {len(expired)} produit(s) EXPIRE(S):")
+                    for p in expired[:10]:
+                        name = p.name_fr or p.name_ar or "?"
+                        lines.append(f"  ❌ {name} (expire le {p.expiry_date.strftime('%d/%m')})")
+
+                if soon:
+                    lines.append(f"\n⚠️ {len(soon)} produit(s) expirent bientot:")
+                    for p in soon[:10]:
+                        name = p.name_fr or p.name_ar or "?"
+                        days_left = (p.expiry_date - now).days
+                        lines.append(f"  ⏰ {name} — {days_left}j restant(s) ({p.expiry_date.strftime('%d/%m')})")
+
+                shop = merchant.business_name or "Votre boutique"
+                msg = (
+                    f"📋 Alerte peremption — {shop}\n\n"
+                    + "\n".join(lines)
+                    + f"\n\n💡 Pensez a solder ou retirer ces produits.\n— Souk.AI"
+                )
+
+                try:
+                    phone = normalize_phone(merchant.phone_number)
+                    await send_text_message(phone, msg)
+                    total_sent += 1
+                    logger.info(f"[Expiry] Sent alert to {merchant.business_name} ({len(expiring)} products)")
+                except Exception as e:
+                    logger.error(f"[Expiry] Failed for {merchant.business_name}: {e}")
+
+    finally:
+        await engine.dispose()
+
+    return {"status": "expiry_alerts_sent", "merchants_notified": total_sent}

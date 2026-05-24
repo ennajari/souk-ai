@@ -40,6 +40,7 @@ import SupplierOrders from "./pages/SupplierOrders"
 import SupplierPayments from "./pages/SupplierPayments"
 import SupplierChat from "./pages/SupplierChat"
 import SupplierSettings from "./pages/SupplierSettings"
+import SupplierCatalog from "./pages/SupplierCatalog"
 import { useAuth } from "./context/AuthContext"
 
 function AdminRoute({ children }) {
@@ -51,6 +52,12 @@ function AdminRoute({ children }) {
 function SupplierRoute({ children }) {
   const { merchant } = useAuth()
   if (merchant?.account_type !== 'SUPPLIER') return <Navigate to="/dashboard" replace />
+  return children
+}
+
+function MerchantRoute({ children }) {
+  const { merchant } = useAuth()
+  if (merchant?.account_type === 'SUPPLIER') return <Navigate to="/supplier-dashboard" replace />
   return children
 }
 
@@ -91,30 +98,34 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="sales" element={<Sales />} />
-          <Route path="pos" element={<POS />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="forecasts" element={<Forecasts />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="credit" element={<Credit />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="profit" element={<Profit />} />
+          {/* ── Merchant-only pages ── */}
+          <Route path="dashboard" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
+          <Route path="products" element={<MerchantRoute><Products /></MerchantRoute>} />
+          <Route path="inventory" element={<MerchantRoute><Inventory /></MerchantRoute>} />
+          <Route path="sales" element={<MerchantRoute><Sales /></MerchantRoute>} />
+          <Route path="pos" element={<MerchantRoute><POS /></MerchantRoute>} />
+          <Route path="analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />
+          <Route path="forecasts" element={<MerchantRoute><Forecasts /></MerchantRoute>} />
+          <Route path="suppliers" element={<MerchantRoute><Suppliers /></MerchantRoute>} />
+          <Route path="credit" element={<MerchantRoute><Credit /></MerchantRoute>} />
+          <Route path="customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
+          <Route path="profit" element={<MerchantRoute><Profit /></MerchantRoute>} />
+          <Route path="coach" element={<MerchantRoute><CoachIA /></MerchantRoute>} />
+          <Route path="employees" element={<MerchantRoute><Employees /></MerchantRoute>} />
+          <Route path="my-catalogue" element={<MerchantRoute><Catalogue /></MerchantRoute>} />
+          <Route path="sage-import" element={<MerchantRoute><SageImport /></MerchantRoute>} />
+          <Route path="marketplace" element={<MerchantRoute><Marketplace /></MerchantRoute>} />
+          <Route path="market-intelligence" element={<MerchantRoute><MarketIntelligence /></MerchantRoute>} />
+
+          {/* ── Shared pages (both merchant & supplier) ── */}
           <Route path="notifications" element={<Notifications />} />
-          <Route path="coach" element={<CoachIA />} />
-          <Route path="employees" element={<Employees />} />
-          <Route path="my-catalogue" element={<Catalogue />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="sage-import" element={<SageImport />} />
-          <Route path="marketplace" element={<Marketplace />} />
           <Route path="payments" element={<Payments />} />
-          <Route path="market-intelligence" element={<MarketIntelligence />} />
 
           {/* ── Supplier-only pages ── */}
           <Route path="supplier-dashboard" element={<SupplierRoute><SupplierDashboard /></SupplierRoute>} />
           <Route path="supplier-orders" element={<SupplierRoute><SupplierOrders /></SupplierRoute>} />
+          <Route path="supplier-catalog" element={<SupplierRoute><SupplierCatalog /></SupplierRoute>} />
           <Route path="supplier-payments" element={<SupplierRoute><SupplierPayments /></SupplierRoute>} />
           <Route path="supplier-chat" element={<SupplierRoute><SupplierChat /></SupplierRoute>} />
           <Route path="supplier-settings" element={<SupplierRoute><SupplierSettings /></SupplierRoute>} />

@@ -4,7 +4,7 @@ import {
   FiHome, FiPackage, FiBox, FiDollarSign, FiShoppingCart,
   FiBarChart2, FiTrendingUp, FiPercent,
   FiUsers, FiSettings, FiMessageSquare, FiX, FiTruck, FiShoppingBag,
-  FiBell, FiCreditCard
+  FiBell, FiCreditCard, FiList
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 import { useTranslation } from "react-i18next"
@@ -62,6 +62,7 @@ export default function Sidebar({ onClose }) {
       links: [
         { to: "/supplier-dashboard", icon: FiHome,       label: 'Tableau de bord' },
         { to: "/supplier-orders",    icon: FiTruck,      label: 'Commandes' },
+        { to: "/supplier-catalog",   icon: FiList,       label: 'Mon catalogue' },
         { to: "/supplier-payments",  icon: FiCreditCard, label: 'Paiements reçus' },
         { to: "/supplier-chat",      icon: FiMessageSquare, label: 'Assistant IA' },
         { to: "/notifications",      icon: FiBell,       label: 'Notifications' },

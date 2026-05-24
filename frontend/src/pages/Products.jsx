@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap, FiCopy } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap, FiCopy, FiFilter, FiClock } from 'react-icons/fi'
 import { RiScanLine, RiBarcodeLine } from 'react-icons/ri'
 import { productsAPI, inventoryAPI } from '../api/client'
 import toast from 'react-hot-toast'
@@ -32,7 +32,9 @@ export default function Products() {
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId]       = useState(null)
   const [search, setSearch]       = useState('')
-  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '' })
+  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', manufacture_date: '', expiry_date: '' })
+  const [filterGroup, setFilterGroup] = useState('')  // Smart group filter
+  const [expiringProducts, setExpiringProducts] = useState([])
 
   /* ── Scan invoice state ── */
   const [showScanModal, setShowScanModal]   = useState(false)
@@ -61,39 +63,95 @@ export default function Products() {
   useEffect(() => { loadProducts() }, [])
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return products
-    const q = search.toLowerCase()
-    return products.filter(p =>
-      p.name_ar?.toLowerCase().includes(q) ||
-      p.name_fr?.toLowerCase().includes(q) ||
-      p.barcode?.includes(q)
-    )
-  }, [products, search])
+    let list = products
+    // Apply search filter
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(p =>
+        p.name_ar?.toLowerCase().includes(q) ||
+        p.name_fr?.toLowerCase().includes(q) ||
+        p.barcode?.includes(q)
+      )
+    }
+    // Apply group filter (smart keyword match on product names)
+    if (filterGroup) {
+      const g = filterGroup.toLowerCase()
+      list = list.filter(p =>
+        p.name_ar?.toLowerCase().includes(g) ||
+        p.name_fr?.toLowerCase().includes(g)
+      )
+    }
+    return list
+  }, [products, search, filterGroup])
+
+  // Extract unique product groups/categories from names (first word or common keywords)
+  const productGroups = useMemo(() => {
+    const groupMap = {}
+    products.forEach(p => {
+      const name = (p.name_fr || p.name_ar || '').toLowerCase()
+      // Extract meaningful first word (>2 chars)
+      const words = name.split(/[\s,\-\/]+/).filter(w => w.length > 2)
+      if (words[0]) {
+        const key = words[0]
+        groupMap[key] = (groupMap[key] || 0) + 1
+      }
+    })
+    // Only show groups with 2+ products, sorted by count
+    return Object.entries(groupMap)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([name, count]) => ({ name, count }))
+  }, [products])
 
   const noPriceCount = products.filter(p => !p.unit_price || p.unit_price === 0).length
+
+  // Load expiring products
+  useEffect(() => {
+    import('../api/client').then(({ barcodeAPI }) => {
+      barcodeAPI.expiring(3).then(r => setExpiringProducts(r.data || [])).catch(() => {})
+    })
+  }, [products])
+
+  /* ── Dismissed duplicates (persisted per session) ── */
+  const [dismissedDups, setDismissedDups] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dismissed_dups') || '[]') } catch { return [] }
+  })
+  const dismissDup = (a, b) => {
+    const key = [a.id, b.id].sort().join(':')
+    const next = [...dismissedDups, key]
+    setDismissedDups(next)
+    localStorage.setItem('dismissed_dups', JSON.stringify(next))
+  }
 
   /* ── Duplicate detection (Arabic ↔ French) ── */
   const duplicates = useMemo(() => {
     const pairs = []
     const used = new Set()
+    const dismissedSet = new Set(dismissedDups)
     for (let i = 0; i < products.length; i++) {
       if (used.has(products[i].id)) continue
       for (let j = i + 1; j < products.length; j++) {
         if (used.has(products[j].id)) continue
         const a = products[i], b = products[j]
+        // Skip dismissed pairs
+        const pairKey = [a.id, b.id].sort().join(':')
+        if (dismissedSet.has(pairKey)) continue
         let isDup = false
         // Same barcode (both non-empty)
         if (a.barcode && b.barcode && a.barcode === b.barcode) isDup = true
-        // Same unit + same prices (both > 0)
-        if (!isDup && a.unit === b.unit && a.unit_price > 0 && b.unit_price > 0 && a.unit_price === b.unit_price && a.cost_price === b.cost_price) isDup = true
-        // One name_fr matches the other's name_fr or name_ar (Latin similarity)
-        if (!isDup && (namesAreSimilar(a.name_fr, b.name_fr) || namesAreSimilar(a.name_ar, b.name_ar))) isDup = true
-        // Cross-check: one product has only Arabic, other only French, same price
-        if (!isDup && a.unit === b.unit) {
-          const aIsArabic = /[؀-ۿ]/.test(a.name_ar) && !/[؀-ۿ]/.test(b.name_ar)
-          const bIsArabic = /[؀-ۿ]/.test(b.name_ar) && !/[؀-ۿ]/.test(a.name_ar)
-          if ((aIsArabic || bIsArabic) && a.unit_price > 0 && a.unit_price === b.unit_price) isDup = true
+        // Same unit + same prices + similar name (need at least name hint)
+        if (!isDup && a.unit === b.unit && a.unit_price > 0 && b.unit_price > 0 && a.unit_price === b.unit_price && a.cost_price === b.cost_price) {
+          // Price match alone is not enough — require name similarity or same barcode
+          if (namesAreSimilar(a.name_fr, b.name_fr) || namesAreSimilar(a.name_ar, b.name_ar)
+              || namesAreSimilar(a.name_fr, b.name_ar) || namesAreSimilar(a.name_ar, b.name_fr)) {
+            isDup = true
+          }
         }
+        // Name similarity (Latin or Arabic)
+        if (!isDup && (namesAreSimilar(a.name_fr, b.name_fr) || namesAreSimilar(a.name_ar, b.name_ar))) isDup = true
+        // Cross-language name similarity (Arabic name vs French name)
+        if (!isDup && (namesAreSimilar(a.name_ar, b.name_fr) || namesAreSimilar(a.name_fr, b.name_ar))) isDup = true
         if (isDup) {
           pairs.push([a, b])
           used.add(a.id)
@@ -103,7 +161,7 @@ export default function Products() {
       }
     }
     return pairs
-  }, [products])
+  }, [products, dismissedDups])
 
   const [merging, setMerging] = useState(null)
   const handleMerge = async (keep, remove) => {
@@ -134,15 +192,29 @@ export default function Products() {
     }
   }
 
+  /* ── Inline expiry date editing ── */
+  const [editingExpiry, setEditingExpiry] = useState(null) // product id being edited
+
+  const handleExpiryInline = async (productId, newDate) => {
+    setEditingExpiry(null)
+    try {
+      await productsAPI.update(productId, { expiry_date: newDate || null })
+      toast.success('Date d\'expiration mise à jour')
+      loadProducts()
+    } catch {
+      toast.error('Erreur mise à jour expiration')
+    }
+  }
+
   const openAdd = () => {
     setEditId(null)
-    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', stock_quantity: '' })
+    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', stock_quantity: '', manufacture_date: '', expiry_date: '' })
     setShowModal(true)
   }
 
   const openEdit = (p) => {
     setEditId(p.id)
-    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price || '', cost_price: p.cost_price || '', stock_quantity: p.stock_quantity ?? '' })
+    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price || '', cost_price: p.cost_price || '', stock_quantity: p.stock_quantity ?? '', manufacture_date: p.manufacture_date || '', expiry_date: p.expiry_date || '' })
     setShowModal(true)
   }
 
@@ -152,7 +224,7 @@ export default function Products() {
       if (editId) {
         const product = products.find(p => p.id === editId)
         const { stock_quantity, ...productData } = form
-        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0 }
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null }
         await productsAPI.update(editId, cleanData)
         const delta = Math.round(parseFloat(stock_quantity) || 0) - Math.round(product?.stock_quantity ?? 0)
         if (delta !== 0) {
@@ -165,7 +237,7 @@ export default function Products() {
         toast.success('Produit mis à jour')
       } else {
         const { stock_quantity, ...productData } = form
-        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0 }
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null }
         await productsAPI.create({ ...cleanData, initial_stock: parseFloat(stock_quantity) || 0 })
         toast.success('Produit ajouté')
       }
@@ -425,28 +497,85 @@ export default function Products() {
                     {' · Stock: '}{a.stock_quantity ?? 0}{' / '}{b.stock_quantity ?? 0}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleMerge(keep, remove)}
-                  disabled={merging === keep.id + remove.id}
-                  className="px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition disabled:opacity-50 flex-shrink-0"
-                >
-                  {merging === keep.id + remove.id ? '...' : 'Fusionner'}
-                </button>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => handleMerge(keep, remove)}
+                    disabled={merging === keep.id + remove.id}
+                    className="px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition disabled:opacity-50"
+                  >
+                    {merging === keep.id + remove.id ? '...' : 'Fusionner'}
+                  </button>
+                  <button
+                    onClick={() => dismissDup(a, b)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                    title="Pas un doublon — ignorer"
+                  >
+                    <FiX className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* ── Search ── */}
-      <div className="relative">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={`Rechercher parmi ${products.length} produits...`}
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-        />
+      {/* ── Expiry Alert ── */}
+      {expiringProducts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <FiClock className="h-5 w-5 text-red-500" />
+            <p className="text-sm font-bold text-red-800">
+              {expiringProducts.length} produit(s) proche(s) de l'expiration
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {expiringProducts.slice(0, 8).map(p => (
+              <span key={p.id} className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                p.expired ? 'bg-red-200 text-red-800' : 'bg-orange-100 text-orange-700'
+              }`}>
+                {p.expired ? '❌' : '⏰'} {p.name_fr || p.name_ar} {p.days_left !== null ? `(${p.days_left}j)` : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Search + Filters ── */}
+      <div className="space-y-3">
+        <div className="relative">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={`Rechercher parmi ${products.length} produits...`}
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+          />
+        </div>
+        {/* Smart group filters */}
+        {productGroups.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <FiFilter className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <button
+              onClick={() => setFilterGroup('')}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                !filterGroup ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Tous ({products.length})
+            </button>
+            {productGroups.map(g => (
+              <button
+                key={g.name}
+                onClick={() => setFilterGroup(filterGroup === g.name ? '' : g.name)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition capitalize ${
+                  filterGroup === g.name ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {g.name} ({g.count})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Table ── */}
@@ -459,6 +588,7 @@ export default function Products() {
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix vente</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiration</th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -498,6 +628,57 @@ export default function Products() {
                         {p.stock_quantity !== null ? p.stock_quantity : '—'}
                       </span>
                     </td>
+                    <td className="px-5 py-3.5">
+                      {editingExpiry === p.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="date"
+                            defaultValue={p.expiry_date || ''}
+                            autoFocus
+                            onBlur={(e) => handleExpiryInline(p.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleExpiryInline(p.id, e.target.value)
+                              if (e.key === 'Escape') setEditingExpiry(null)
+                            }}
+                            className="w-32 px-2 py-1 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 outline-none"
+                          />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setEditingExpiry(p.id)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                            !p.expiry_date
+                              ? 'text-gray-400 hover:bg-gray-100'
+                              : (() => {
+                                  const today = new Date()
+                                  today.setHours(0,0,0,0)
+                                  const exp = new Date(p.expiry_date + 'T00:00:00')
+                                  const diff = Math.ceil((exp - today) / 86400000)
+                                  if (diff <= 0) return 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  if (diff <= 7) return 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                  if (diff <= 30) return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  return 'bg-green-50 text-green-700 hover:bg-green-100'
+                                })()
+                          }`}
+                          title="Cliquer pour modifier"
+                        >
+                          {!p.expiry_date ? (
+                            <span className="flex items-center gap-1"><FiClock className="h-3 w-3" /> —</span>
+                          ) : (() => {
+                            const today = new Date()
+                            today.setHours(0,0,0,0)
+                            const exp = new Date(p.expiry_date + 'T00:00:00')
+                            const diff = Math.ceil((exp - today) / 86400000)
+                            const dateStr = exp.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            if (diff <= 0) return <><span>❌</span> {dateStr}</>
+                            if (diff <= 3) return <><span>🔴</span> {dateStr} ({diff}j)</>
+                            if (diff <= 7) return <><span>🟠</span> {dateStr} ({diff}j)</>
+                            if (diff <= 30) return <><span>🟡</span> {dateStr} ({diff}j)</>
+                            return <><span>✅</span> {dateStr}</>
+                          })()}
+                        </button>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
@@ -513,7 +694,7 @@ export default function Products() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
                     {search ? `Aucun résultat pour "${search}"` : 'Aucun produit. Ajoutez votre premier produit!'}
                   </td>
                 </tr>
@@ -593,6 +774,28 @@ export default function Products() {
                         {delta > 0 ? '+' : ''}{delta} unité(s)
                       </p>
                     )
+                  })()}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Date fabrication</label>
+                  <input name="manufacture_date" type="date" value={form.manufacture_date} onChange={handleChange}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Date expiration</label>
+                  <input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange}
+                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm ${
+                      form.expiry_date && new Date(form.expiry_date) <= new Date() ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                    }`} />
+                  {form.expiry_date && (() => {
+                    const today = new Date(); today.setHours(0,0,0,0)
+                    const exp = new Date(form.expiry_date + 'T00:00:00')
+                    const diff = Math.ceil((exp - today) / 86400000)
+                    if (diff <= 0) return <p className="text-xs mt-1 font-medium text-red-600">❌ Produit expiré</p>
+                    if (diff <= 7) return <p className="text-xs mt-1 font-medium text-orange-600">⚠️ Expire dans {diff} jour(s)</p>
+                    return null
                   })()}
                 </div>
               </div>

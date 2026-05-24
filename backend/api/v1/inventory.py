@@ -141,7 +141,9 @@ async def adjust_inventory(
 
     await db.commit()
 
-    result = await db.execute(select(Inventory).where(Inventory.id == inv.id))
+    result = await db.execute(
+        select(Inventory).options(selectinload(Inventory.product)).where(Inventory.id == inv.id)
+    )
     inv = result.scalar_one()
     return _to_response(inv)
 

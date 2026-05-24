@@ -12,6 +12,7 @@ from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
 from schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from services.barcode_service import register_barcode, lookup_barcode
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -35,6 +36,7 @@ async def list_products(
             id=p.id, merchant_id=p.merchant_id, name_ar=p.name_ar, name_fr=p.name_fr,
             barcode=p.barcode, unit=p.unit, unit_price=float(p.unit_price),
             cost_price=float(p.cost_price), is_active=p.is_active,
+            manufacture_date=p.manufacture_date, expiry_date=p.expiry_date,
             created_at=p.created_at, stock_quantity=stock,
         ))
     return response
@@ -84,7 +86,16 @@ async def create_product(
     # Create inventory entry with initial stock (same transaction)
     inventory = Inventory(product_id=product.id, quantity=initial_stock)
     db.add(inventory)
-    await db.commit()  # Single atomic commit: product + inventory
+
+    # Register barcode in global intelligence DB
+    if product.barcode:
+        await register_barcode(
+            db, product.barcode,
+            name_fr=product.name_fr, name_ar=product.name_ar,
+            unit=product.unit, unit_price=float(product.unit_price),
+        )
+
+    await db.commit()  # Single atomic commit: product + inventory + barcode
 
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
@@ -158,6 +169,55 @@ async def delete_product(
 
     product.is_active = False
     await db.commit()
+
+
+@router.get("/barcode-lookup/{barcode}")
+async def barcode_lookup(
+    barcode: str,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Look up a barcode in the global intelligence database.
+    Returns product info if another merchant has already registered this barcode."""
+    info = await lookup_barcode(db, barcode)
+    if not info:
+        raise HTTPException(404, "Code-barres inconnu")
+    return info
+
+
+@router.get("/expiring/soon")
+async def get_expiring_products(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    days: int = 3,
+):
+    """Get products expiring within N days."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc).date()
+    deadline = now + timedelta(days=days)
+
+    result = await db.execute(
+        select(Product).where(
+            Product.merchant_id == merchant.id,
+            Product.is_active == True,
+            Product.expiry_date != None,
+            Product.expiry_date <= deadline,
+        ).order_by(Product.expiry_date)
+    )
+    products = result.scalars().all()
+
+    return [
+        {
+            "id": p.id,
+            "name_fr": p.name_fr,
+            "name_ar": p.name_ar,
+            "expiry_date": p.expiry_date.isoformat() if p.expiry_date else None,
+            "days_left": (p.expiry_date - now).days if p.expiry_date else None,
+            "stock": float(p.inventory.quantity) if p.inventory else 0,
+            "expired": p.expiry_date <= now if p.expiry_date else False,
+        }
+        for p in products
+    ]
 
 
 @router.post("/{keep_id}/merge/{remove_id}", response_model=ProductResponse)

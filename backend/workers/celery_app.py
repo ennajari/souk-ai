@@ -43,6 +43,16 @@ celery_app.conf.update(
             "task": "send_daily_sales_report",
             "schedule": crontab(hour=0, minute=0),
         },
+        # Daily karni (credit) reminders at 10:00 Casablanca time
+        "karni-reminders-daily": {
+            "task": "send_karni_reminders",
+            "schedule": crontab(hour=10, minute=0),
+        },
+        # Daily expiry alerts at 08:00 — products expiring within 3 days
+        "expiry-alerts-daily": {
+            "task": "send_expiry_alerts",
+            "schedule": crontab(hour=8, minute=0),
+        },
     },
 )
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { FiPlus, FiTrash2, FiEdit2, FiX, FiUserCheck, FiUsers } from 'react-icons/fi'
+import React, { useState, useEffect } from 'react'
+import { FiPlus, FiTrash2, FiEdit2, FiX, FiUserCheck, FiUsers, FiCalendar, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 
@@ -35,6 +35,58 @@ export default function Employees() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', phone: '', pin_code: '', role: 'CASHIER' })
+  // Contracts state
+  const [expandedEmp, setExpandedEmp] = useState(null)
+  const [contracts, setContracts] = useState([])
+  const [contractsLoading, setContractsLoading] = useState(false)
+  const [showContractForm, setShowContractForm] = useState(false)
+  const [contractForm, setContractForm] = useState({ start_date: '', end_date: '', salary: '', notes: '' })
+
+  const loadContracts = async (empId) => {
+    if (expandedEmp === empId) { setExpandedEmp(null); return }
+    setExpandedEmp(empId)
+    setContractsLoading(true)
+    try {
+      const data = await api(`/employees/${empId}/contracts`)
+      setContracts(data)
+    } catch {
+      toast.error('Erreur chargement contrats')
+    } finally {
+      setContractsLoading(false)
+    }
+  }
+
+  const handleContractSubmit = async (e) => {
+    e.preventDefault()
+    if (!expandedEmp) return
+    try {
+      await api(`/employees/${expandedEmp}/contracts`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...contractForm,
+          salary: parseFloat(contractForm.salary) || 0,
+          end_date: contractForm.end_date || null,
+        }),
+      })
+      toast.success(t('common.success'))
+      setShowContractForm(false)
+      setContractForm({ start_date: '', end_date: '', salary: '', notes: '' })
+      loadContracts(null) // force collapse
+      loadContracts(expandedEmp) // reload
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
+  const deleteContract = async (empId, contractId) => {
+    try {
+      await api(`/employees/${empId}/contracts/${contractId}`, { method: 'DELETE' })
+      toast.success(t('common.success'))
+      setContracts(prev => prev.filter(c => c.id !== contractId))
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }
 
   const roleLabel = (role) => {
     const map = { MANAGER: t('employees.manager'), CASHIER: t('employees.cashier'), VIEWER: t('employees.viewer') }
@@ -62,11 +114,15 @@ export default function Employees() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Don't send empty pin_code
+      const payload = { ...form }
+      if (!payload.pin_code) delete payload.pin_code
+
       if (editId) {
-        await api(`/employees/${editId}`, { method: 'PATCH', body: JSON.stringify(form) })
+        await api(`/employees/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) })
         toast.success(t('common.success'))
       } else {
-        await api('/employees/', { method: 'POST', body: JSON.stringify(form) })
+        await api('/employees/', { method: 'POST', body: JSON.stringify(payload) })
         toast.success(t('common.success'))
       }
       setShowForm(false)
@@ -150,20 +206,20 @@ export default function Employees() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('employees.pin')} <span className="text-gray-400 font-normal">({t('employees.pinHint')})</span>
+                {t('employees.pin')} <span className="text-gray-400 font-normal">({t('employees.pinHint')}) — optionnel</span>
               </label>
               <input
                 type="password"
-                required={!editId}
                 minLength={4}
                 maxLength={6}
                 pattern="\d{4,6}"
                 value={form.pin_code}
-                onChange={(e) => setForm({ ...form, pin_code: e.target.value })}
+                onChange={(e) => setForm({ ...form, pin_code: e.target.value.replace(/\D/g, '') })}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent font-mono tracking-widest"
                 dir="ltr"
-                placeholder={editId ? '****' : ''}
+                placeholder={editId ? '****' : '1234'}
               />
+              <p className="text-xs text-gray-400 mt-1">Pour l'acces a la caisse POS (laissez vide si non necessaire)</p>
             </div>
 
             <div>
@@ -215,7 +271,8 @@ export default function Employees() {
               </thead>
               <tbody>
                 {employees.map((emp) => (
-                  <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <React.Fragment key={emp.id}>
+                  <tr className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm">
@@ -237,6 +294,9 @@ export default function Employees() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className={`flex gap-1 ${isRtl ? 'justify-start' : 'justify-end'}`}>
+                        <button onClick={() => loadContracts(emp.id)} className="p-2 hover:bg-violet-50 rounded-lg text-violet-500 transition-colors" title="Calendrier">
+                          {expandedEmp === emp.id ? <FiChevronUp className="w-4 h-4" /> : <FiCalendar className="w-4 h-4" />}
+                        </button>
                         <button onClick={() => handleEdit(emp)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors">
                           <FiEdit2 className="w-4 h-4" />
                         </button>
@@ -246,6 +306,97 @@ export default function Employees() {
                       </div>
                     </td>
                   </tr>
+                  {/* Contracts panel */}
+                  {expandedEmp === emp.id && (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-4 bg-violet-50/50">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-violet-800 flex items-center gap-2">
+                              <FiCalendar className="h-4 w-4" /> Periodes de travail
+                            </p>
+                            <button
+                              onClick={() => { setShowContractForm(true); setContractForm({ start_date: '', end_date: '', salary: '', notes: '' }) }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700"
+                            >
+                              <FiPlus className="h-3 w-3" /> Ajouter
+                            </button>
+                          </div>
+
+                          {showContractForm && (
+                            <form onSubmit={handleContractSubmit} className="bg-white rounded-lg p-3 border border-violet-200 space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-gray-500">Date debut *</label>
+                                  <input type="date" required value={contractForm.start_date}
+                                    onChange={e => setContractForm(f => ({ ...f, start_date: e.target.value }))}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">Date fin</label>
+                                  <input type="date" value={contractForm.end_date}
+                                    onChange={e => setContractForm(f => ({ ...f, end_date: e.target.value }))}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">Salaire (MAD)</label>
+                                  <input type="number" step="0.01" value={contractForm.salary}
+                                    onChange={e => setContractForm(f => ({ ...f, salary: e.target.value }))}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">Notes</label>
+                                  <input value={contractForm.notes}
+                                    onChange={e => setContractForm(f => ({ ...f, notes: e.target.value }))}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => setShowContractForm(false)} className="px-3 py-1.5 text-xs border rounded-lg hover:bg-gray-50">Annuler</button>
+                                <button type="submit" className="px-3 py-1.5 text-xs bg-violet-600 text-white rounded-lg hover:bg-violet-700 font-semibold">Enregistrer</button>
+                              </div>
+                            </form>
+                          )}
+
+                          {contractsLoading ? (
+                            <p className="text-xs text-gray-400">Chargement...</p>
+                          ) : contracts.length === 0 ? (
+                            <p className="text-xs text-gray-400">Aucune periode enregistree</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {contracts.map(c => {
+                                const start = new Date(c.start_date)
+                                const end = c.end_date ? new Date(c.end_date) : null
+                                const days = end ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) : null
+                                const isOngoing = !c.end_date
+                                return (
+                                  <div key={c.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-100">
+                                    <div className={`w-2 h-10 rounded-full ${isOngoing ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        {' → '}
+                                        {end ? end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : <span className="text-green-600 font-semibold">En cours</span>}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {days ? `${days} jours` : 'En cours'}
+                                        {c.salary > 0 && ` · ${Number(c.salary).toFixed(0)} MAD`}
+                                        {c.notes && ` · ${c.notes}`}
+                                      </p>
+                                    </div>
+                                    <button onClick={() => deleteContract(emp.id, c.id)} className="p-1.5 hover:bg-red-50 rounded-lg">
+                                      <FiTrash2 className="h-3.5 w-3.5 text-red-400" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

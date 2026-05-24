@@ -111,11 +111,45 @@ export const supplierPortalAPI = {
   orders: (status) => client.get('/supplier-portal/orders', { params: { status } }),
   updateOrderStatus: (orderId, status) => client.patch(`/supplier-portal/orders/${orderId}/status`, { status }),
   payments: () => client.get('/supplier-portal/payments'),
+  catalog: () => client.get('/supplier-portal/catalog'),
+  addCatalogItem: (data) => client.post('/supplier-portal/catalog', data),
+  updateCatalogItem: (itemId, data) => client.patch(`/supplier-portal/catalog/${itemId}`, data),
+  deleteCatalogItem: (itemId) => client.delete(`/supplier-portal/catalog/${itemId}`),
 }
 
 // ---- Supplier Chat ----
 export const supplierChatAPI = {
   send: (message) => client.post('/supplier-chat/message', { message }),
+}
+
+// ---- Supplier Catalog ----
+export const supplierCatalogAPI = {
+  list: (supplierId) => client.get(`/supplier-catalog/${supplierId}`),
+  // POST/PATCH/DELETE removed — suppliers manage their catalog via /supplier-portal/catalog
+}
+
+// ---- Employees ----
+export const employeesAPI = {
+  list: () => client.get('/employees/'),
+  create: (data) => client.post('/employees/', data),
+  update: (id, data) => client.patch(`/employees/${id}`, data),
+  delete: (id) => client.delete(`/employees/${id}`),
+  verifyPin: (id, pin) => client.post(`/employees/${id}/verify-pin`, { pin_code: pin }),
+  contracts: (id) => client.get(`/employees/${id}/contracts`),
+  addContract: (id, data) => client.post(`/employees/${id}/contracts`, data),
+  updateContract: (empId, contractId, data) => client.patch(`/employees/${empId}/contracts/${contractId}`, data),
+  deleteContract: (empId, contractId) => client.delete(`/employees/${empId}/contracts/${contractId}`),
+}
+
+// ---- Barcode Intelligence ----
+export const barcodeAPI = {
+  lookup: (barcode) => client.get(`/products/barcode-lookup/${barcode}`),
+  expiring: (days = 3) => client.get('/products/expiring/soon', { params: { days } }),
+}
+
+// ---- Monthly Revenue ----
+export const revenueAPI = {
+  monthly: (months = 1) => client.get('/analytics/monthly-revenue', { params: { months } }),
 }
 
 // ---- Credit ----
@@ -144,6 +178,7 @@ export const customersAPI = {
   update: (id, data) => client.patch(`/customers/${id}`, data),
   delete: (id) => client.delete(`/customers/${id}`),
   addEntry: (id, data) => client.post(`/customers/${id}/entries`, data),
+  remind: (id) => client.post(`/customers/${id}/remind`),
 }
 
 // ---- Marketplace ----
