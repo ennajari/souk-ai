@@ -1,547 +1,507 @@
-# Souk.AI
+<p align="center">
+  <img src="https://img.shields.io/badge/Souk.AI-v2.0-7c3aed?style=for-the-badge" alt="Souk.AI"/>
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"/>
+</p>
 
-**Gestion intelligente pour les commercants marocains** -- Plateforme SaaS tout-en-un combinant point de vente (POS), gestion de stock, paiements NFC, intelligence artificielle et marketplace B2B.
+<h1 align="center">Souk.AI</h1>
+<h3 align="center">Plateforme SaaS de Digitalisation du Commerce Traditionnel Marocain</h3>
 
-> Deploye sur [soukai.duckdns.org](https://soukai.duckdns.org)
+<p align="center">
+  <strong>POS intelligent + Carte NFC + IA en Darija + Marketplace B2B</strong>
+  <br/>
+  <a href="https://soukai.duckdns.org">Demo Live</a>
+</p>
 
 ---
 
-## Sommaire
+## Le Probleme
 
-- [Fonctionnalites](#fonctionnalites)
-- [Architecture](#architecture)
-- [Stack technique](#stack-technique)
-- [Structure du projet](#structure-du-projet)
-- [Installation locale](#installation-locale)
-- [Variables d'environnement](#variables-denvironnement)
-- [Deploiement VPS](#deploiement-vps)
-- [API Reference](#api-reference)
-- [Systeme de paiement](#systeme-de-paiement)
-- [Carte Souk.AI](#carte-soukai)
-- [Base de donnees](#base-de-donnees)
-- [Licence](#licence)
+Plus de **3,2 millions de TPE marocaines** gerent leur commerce sur papier :
+- **15-20%** du chiffre d'affaires perdu en erreurs de stock et creances non suivies
+- Aucun outil de prevision ou d'analyse
+- Exclusion financiere des clients non bancarises
+- Zero visibilite sur les tendances du marche
+
+## La Solution
+
+**Souk.AI** est une plateforme tout-en-un qui digitalise le commerce traditionnel avec de l'IA, accessible depuis un smartphone ou un navigateur web.
 
 ---
 
 ## Fonctionnalites
 
-### Point de Vente (POS)
-- Caisse tactile optimisee pour la vitesse (6 clients / 5 min)
-- Scan code-barres via camera ou lecteur physique
-- Liaison automatique code-barres ↔ produit
-- 3 modes de paiement en 1 clic : **Cash**, **Credit** (carnet), **NFC**
-- Ticket de caisse imprimable (80mm thermique)
-- Support bilingue francais / arabe (RTL)
+### 1. Point de Vente (POS) Intelligent
+- Caisse enregistreuse tactile avec recherche rapide
+- Scan de **code-barres** via camera (BarcodeDetector API)
+- Vente en **especes, carte Souk.AI (NFC), ou credit client**
+- Calcul automatique de la monnaie a rendre
+- Historique complet des ventes avec filtre par date/produit
+- Retours et remboursements avec protection anti-doublon
+- Impression/export de recus
 
-### Gestion de stock
-- Inventaire en temps reel avec seuils d'alerte
-- Ajustement de stock avec historique complet
-- Import depuis factures fournisseurs via OCR (GPT-4o Vision)
-- Import fichiers Sage (articles + ventes)
-- Previsions de stock par IA (forecasting)
+### 2. Gestion des Produits
+- Catalogue bilingue **arabe / francais**
+- Import automatique par **scan de facture fournisseur** (GPT-4o Vision)
+- Detection et fusion de **doublons** (meme produit en arabe et francais)
+- Suivi des **dates d'expiration** avec alertes visuelles :
+  - Colonne expiration dans le tableau avec code couleur
+  - Edition inline (clic direct sur la date)
+  - Alertes WhatsApp automatiques (3 jours et 7 jours avant)
+- Prix d'achat et prix de vente pour calcul de marge
+- Groupes/categories automatiques
 
-### Paiements
-- **Especes** -- enregistrement instantane
-- **Carte Souk.AI** -- carte prepayee rechargeable NFC (type tramway Casablanca)
-- **Carte bancaire NFC** -- paiement sans contact
-- **CMI** -- passerelle de paiement en ligne marocaine
-- **CashPlus** -- paiement par voucher
-- **Credit** -- carnet de credit client avec suivi des dettes
+### 3. Gestion de Stock & Inventaire
+- Stock en temps reel avec seuils d'alerte personnalisables
+- **Alertes stock bas** sur le dashboard et par WhatsApp
+- Ajustement manuel avec historique d'audit complet
+- Mise a jour automatique apres chaque vente/retour
+- Vue filtree : tous les produits ou stock bas uniquement
 
-### Intelligence artificielle
-- Previsions de ventes et de stock (ML)
-- Coach IA pour conseils business personnalises
-- Analyse de marche et benchmarking concurrentiel
-- Extraction automatique de produits depuis photos de factures
-- Recherche semantique de produits (Weaviate)
+### 4. Previsions IA (Forecasting)
+- Prevision de demande sur **7 jours** par produit
+- Algorithme statistique : moyenne mobile + saisonnalite jour de semaine + tendance lineaire
+- Intervalle de confiance (min/max a +/-25%)
+- Recommandation de **reapprovisionnement** automatique
+- Graphiques interactifs (Recharts)
 
-### Commerce
-- Carnet de credit client (dettes / paiements)
-- Gestion fournisseurs et commandes
-- Marketplace B2B inter-commercants
-- Catalogue public partageable
-- Factures et historique de transactions
-- Export CSV (produits, transactions, profits)
+### 5. Analytique & Tableaux de Bord
+- **Dashboard marchand** : CA du jour, ventes, stock bas, produits expirants, score de credit
+- Graphique des ventes sur 7/14/30 jours
+- Top produits et tendances
+- Revenu mensuel et profit net
+- **Dashboard admin** : nombre de marchands, transactions globales, activite quotidienne
 
-### Notifications
-- Bot WhatsApp pour alertes de stock et rapports
-- Notifications in-app
+### 6. Analyse de Profit
+- Calcul automatique de la **marge brute** par produit
+- Ventilation des charges (loyer, employes, fournisseurs)
+- Profit net par periode
+- Identification des produits les plus/moins rentables
+
+### 7. Gestion des Clients & Credit
+- Base de donnees clients avec historique d'achats
+- **Carnet de credit** : suivi des dettes clients
+- Ajout/remboursement de credit par client
+- Score de credit automatique base sur l'historique
+- Alertes de creances impayees
+
+### 8. Carte Souk.AI (NFC)
+- Carte prepayee **NFC** pour les clients non bancarises
+- Rechargement par le marchand
+- Paiement sans contact en boutique
+- Historique des transactions par carte
+- Gestion admin : emission, activation, blocage
+
+### 9. Gestion des Fournisseurs
+- Fiche fournisseur avec coordonnees et catalogue
+- **Commandes fournisseur** avec suivi de statut
+- Paiement fournisseur (especes ou carte Souk.AI)
+- Historique des livraisons et paiements
+- Catalogue fournisseur consultable (lecture seule)
+
+### 10. Portail Fournisseur (Double Profil)
+- Compte **SUPPLIER** separe avec son propre dashboard
+- Tableau de bord : commandes en attente, en livraison, CA recu
+- Gestion des commandes recues avec changement de statut
+- Catalogue produits editable (prix, disponibilite)
+- Chat en temps reel avec les marchands (IA-assiste)
+- Suivi des paiements recus
+
+### 11. Marketplace B2B
+- Place de marche entre marchands
+- Publication d'annonces (produits en gros)
+- Recherche par categorie, ville, prix
+- Systeme de commande avec suivi
+- Gestion acheteur/vendeur avec statuts (accepte, expedie, livre, annule)
+
+### 12. Coach IA
+- Assistant virtuel intelligent
+- Conseils personnalises bases sur les donnees du commerce
+- Analyse des performances et recommandations
+- Interface chat conversationnelle
+
+### 13. Intelligence de Marche
+- Benchmark des prix par categorie et region
+- Tendances du marche local
+- Analyse concurrentielle
+- Donnees agregees anonymisees de la plateforme
+
+### 14. Bot WhatsApp IA
+- Interface conversationnelle en **Darija, francais et anglais**
+- Commandes naturelles : `"sardines 10 DH"` pour mettre a jour un prix
+- Rapport quotidien automatique :
+  - Resume des ventes du jour
+  - Alertes stock bas
+  - Produits proches de l'expiration
+  - Previsions de demande
+- Reset de mot de passe par OTP WhatsApp
+
+### 15. Gestion des Employes
+- Fiches employes avec contrats
+- Suivi des salaires et paiements
+- Historique des contrats
+
+### 16. Import Sage
+- Import de donnees depuis **Sage** (logiciel comptable)
+- Mapping automatique des produits et transactions
+- Reconciliation des stocks
+
+### 17. Facturation
+- Generation de factures PDF (ReportLab)
+- Paiement de factures en ligne
+- Suivi des factures payees/impayees
+
+### 18. Export de Donnees
+- Export des ventes, produits, clients en **CSV/Excel**
+- Rapports personnalisables par periode
+
+### 19. Notifications
+- Centre de notifications in-app
+- Alertes en temps reel (SSE)
+- Notifications push WhatsApp programmees
+- Types : stock bas, expiration, paiement recu, commande
+
+### 20. Catalogue Public
+- Page publique du catalogue marchand
+- URL partageable : `/catalogue/:merchantId`
+- Vitrine en ligne sans compte requis
+
+### 21. Systeme de Paiement
+- Paiements **especes** (auto-complete)
+- Paiements **carte Souk.AI** (NFC, validation requise)
+- Historique et reconciliation
+- Configuration par marchand
+
+### 22. Multi-langue
+- Interface en **francais** et **arabe**
+- Detection automatique de la langue du navigateur
+- i18next integration
 
 ---
 
-## Architecture
+## Architecture Technique
 
 ```
-                    Internet
-                       |
-                 Cloudflare Tunnel
-                       |
-                   +-------+
-                   | Nginx |  (SSL + reverse proxy)
-                   +---+---+
-                   /       \
-          +-------+         +----------+
-          |Frontend|         | Backend  |
-          | React  |         | FastAPI  |
-          | :80    |         | :8000    |
-          +--------+         +----+-----+
-                                  |
-                    +-------------+-------------+
-                    |             |              |
-               +----+----+  +----+----+  +------+------+
-               |PostgreSQL|  |  Redis  |  |  Weaviate   |
-               |TimescaleDB| | (cache) |  | (vector DB) |
-               |  :5432   |  | :6379  |  |   :8081     |
-               +----------+  +--------+  +-------------+
-                    |
-              +-----+------+
-              |   Celery    |
-              | Worker+Beat |
-              +-------------+
+                    +-------------------+
+                    |   Nginx (443/80)  |
+                    +--------+----------+
+                             |
+              +--------------+--------------+
+              |                             |
+    +---------v---------+     +-------------v-----------+
+    |   Frontend (React)|     |   Backend (FastAPI)     |
+    |   Vite + Tailwind |     |   Uvicorn + async       |
+    +-------------------+     +---+-------+-------+-----+
+                                  |       |       |
+                    +-------------+  +----+----+  +--------+
+                    |                |         |           |
+              +-----v-----+  +------v---+  +--v------+  +-v--------+
+              | PostgreSQL |  |  Redis   |  | Celery  |  | Weaviate |
+              | TimescaleDB|  |  Cache   |  | Workers |  | VectorDB |
+              +------------+  +----------+  +---------+  +----------+
+                                                |
+                                          +-----v------+
+                                          | Celery Beat|
+                                          | (Scheduler)|
+                                          +------------+
 ```
 
+### Stack Technique
+
+| Couche | Technologie | Role |
+|--------|------------|------|
+| **Frontend** | React 18, Vite, Tailwind CSS | Interface utilisateur SPA |
+| **Backend** | FastAPI, SQLAlchemy 2.0, asyncpg | API REST asynchrone |
+| **Base de donnees** | PostgreSQL 16 + TimescaleDB | Stockage relationnel + time-series |
+| **Cache** | Redis | Sessions, cache, broker Celery |
+| **Taches async** | Celery + Celery Beat | Rapports quotidiens, alertes, forecasts |
+| **IA** | OpenAI GPT-4o | Scan factures, coach IA, WhatsApp bot |
+| **Recherche** | Weaviate | Recherche semantique vectorielle |
+| **Messagerie** | WhatsApp Cloud API | Bot conversationnel, alertes, OTP |
+| **Auth** | JWT (python-jose) + bcrypt | Authentification stateless |
+| **PDF** | ReportLab | Generation de factures |
+| **Reverse Proxy** | Nginx + Cloudflare Tunnel | SSL, routing, securite |
+| **Conteneurisation** | Docker Compose (9 services) | Deploiement unifie |
+
 ---
 
-## Stack technique
-
-| Couche | Technologie |
-|--------|------------|
-| **Frontend** | React 18, Vite 6, Tailwind CSS 3, React Router 6, Recharts, i18next |
-| **Backend** | Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 (async), Pydantic 2 |
-| **Base de donnees** | PostgreSQL 16 (TimescaleDB), Alembic (migrations) |
-| **Cache / Queue** | Redis 7, Celery 5.4 |
-| **IA** | OpenAI GPT-4o (OCR + coach), Weaviate (recherche semantique) |
-| **Auth** | JWT (HS256), bcrypt |
-| **Deploiement** | Docker Compose, Nginx, Cloudflare Tunnel, Let's Encrypt |
-| **NFC** | Web NFC API (NDEFReader) -- Android Chrome |
-
----
-
-## Structure du projet
+## Structure du Projet
 
 ```
 souk-ai/
 ├── backend/
-│   ├── alembic/              # Migrations de base de donnees
-│   │   └── versions/         # Fichiers de migration
-│   ├── api/v1/               # Endpoints REST
-│   │   ├── auth.py           # Inscription / connexion
-│   │   ├── products.py       # CRUD produits + dedup + merge
-│   │   ├── transactions.py   # Ventes / achats / retours + batch
-│   │   ├── inventory.py      # Stock + alertes
-│   │   ├── customers.py      # Carnet de credit
-│   │   ├── invoices.py       # Factures + paiement public
-│   │   ├── souk_cards.py     # Carte Souk.AI (NFC)
-│   │   ├── payments.py       # CMI / CashPlus / NFC
-│   │   ├── suppliers.py      # Fournisseurs + commandes
-│   │   ├── marketplace.py    # B2B listings + orders
-│   │   ├── analytics.py      # Dashboard + graphiques
-│   │   ├── forecasts.py      # Previsions IA
-│   │   ├── market.py         # Intelligence de marche
-│   │   ├── coach.py          # Coach IA
-│   │   ├── whatsapp.py       # Webhook WhatsApp
-│   │   ├── sage.py           # Import Sage
-│   │   ├── export.py         # Export CSV
+│   ├── api/v1/              # 28 modules de routes API
+│   │   ├── auth.py          # Inscription, login, reset password
+│   │   ├── products.py      # CRUD produits + scan facture IA
+│   │   ├── transactions.py  # Ventes et retours
+│   │   ├── inventory.py     # Gestion de stock
+│   │   ├── analytics.py     # Tableaux de bord et stats
+│   │   ├── forecasts.py     # Previsions IA
+│   │   ├── marketplace.py   # Place de marche B2B
+│   │   ├── suppliers.py     # Gestion fournisseurs
+│   │   ├── supplier_portal.py # Portail fournisseur
+│   │   ├── customers.py     # Clients et credit
+│   │   ├── payments.py      # Paiements
+│   │   ├── souk_cards.py    # Cartes NFC
+│   │   ├── admin.py         # Panel administration
+│   │   ├── coach.py         # Coach IA
+│   │   ├── market.py        # Intelligence de marche
+│   │   ├── whatsapp.py      # Webhook WhatsApp
+│   │   └── router.py        # Routeur principal
+│   ├── models/              # 22 modeles SQLAlchemy ORM
+│   ├── schemas/             # Schemas Pydantic (validation)
+│   ├── services/            # 17 modules de logique metier
+│   │   ├── ai_engine.py     # Moteur IA central
+│   │   ├── forecasting.py   # Algorithme de prevision
+│   │   ├── credit_scoring.py # Score de credit
+│   │   ├── payment_service.py # Service de paiement
+│   │   ├── market_intelligence.py # Intelligence de marche
+│   │   ├── whatsapp.py      # Service WhatsApp
 │   │   └── ...
-│   ├── models/               # Modeles SQLAlchemy
-│   │   ├── merchant.py       # Commercant
-│   │   ├── product.py        # Produit (name_fr + name_ar)
-│   │   ├── transaction.py    # Transaction (SALE/PURCHASE/RETURN)
-│   │   ├── inventory.py      # Stock + seuil d'alerte
-│   │   ├── customer.py       # Client + carnet credit
-│   │   ├── souk_card.py      # Carte NFC prepayee
-│   │   ├── invoice.py        # Facture avec token public
-│   │   ├── payment.py        # Paiement (CMI/NFC/Cash/CashPlus)
-│   │   ├── supplier.py       # Fournisseur
-│   │   ├── marketplace.py    # Listing + Order B2B
-│   │   ├── forecast.py       # Prevision
-│   │   └── ...
-│   ├── services/             # Logique metier
-│   │   ├── inventory.py      # Gestion stock + recherche produit
-│   │   ├── payment_service.py    # CMI + CashPlus + NFC
-│   │   ├── soukcard_service.py   # Carte Souk.AI
-│   │   ├── invoice_service.py    # Factures + paiement
-│   │   └── ...
-│   ├── workers/              # Taches Celery
-│   │   ├── celery_app.py     # Configuration Celery
-│   │   └── tasks.py          # WhatsApp, PDF, analytics, alertes
-│   ├── core/
-│   │   ├── database.py       # Engine async + pool (10 conn)
-│   │   ├── deps.py           # Dependencies (auth middleware)
-│   │   └── security.py       # JWT + bcrypt
-│   ├── app/
-│   │   ├── main.py           # FastAPI app + CORS
-│   │   └── config.py         # Settings (env)
-│   ├── schemas/              # Pydantic schemas (request/response)
-│   ├── Dockerfile
-│   └── requirements.txt
+│   ├── workers/             # Taches Celery
+│   │   ├── tasks.py         # Rapports quotidiens, alertes
+│   │   └── celery_app.py    # Configuration Celery
+│   ├── core/                # Config, DB, securite, deps
+│   ├── alembic/             # Migrations de base de donnees
+│   └── app/main.py          # Point d'entree FastAPI
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── POS.jsx           # Caisse (page principale)
-│   │   │   ├── Dashboard.jsx     # Tableau de bord
-│   │   │   ├── Products.jsx      # Gestion produits + scan facture
-│   │   │   ├── Inventory.jsx     # Inventaire + ajustements
-│   │   │   ├── Sales.jsx         # Historique ventes
-│   │   │   ├── Payments.jsx      # Factures + Carte Souk.AI + config
-│   │   │   ├── PayInvoice.jsx    # Page paiement publique (client)
-│   │   │   ├── Customers.jsx     # Carnet de credit
-│   │   │   ├── Suppliers.jsx     # Fournisseurs
-│   │   │   ├── Marketplace.jsx   # B2B
-│   │   │   ├── Analytics.jsx     # Analyses
-│   │   │   ├── Profit.jsx        # Marges + profits
-│   │   │   ├── Forecasts.jsx     # Previsions IA
-│   │   │   ├── Settings.jsx      # Parametres
+│   │   ├── pages/           # 39 pages React
+│   │   │   ├── Dashboard.jsx    # Tableau de bord marchand
+│   │   │   ├── POS.jsx          # Point de vente
+│   │   │   ├── Products.jsx     # Gestion produits
+│   │   │   ├── Inventory.jsx    # Inventaire
+│   │   │   ├── Sales.jsx        # Ventes
+│   │   │   ├── Analytics.jsx    # Analytique
+│   │   │   ├── Forecasts.jsx    # Previsions IA
+│   │   │   ├── Suppliers.jsx    # Fournisseurs
+│   │   │   ├── Marketplace.jsx  # Marketplace B2B
+│   │   │   ├── Customers.jsx    # Clients
+│   │   │   ├── Payments.jsx     # Paiements
+│   │   │   ├── CoachIA.jsx      # Coach IA
+│   │   │   ├── Profit.jsx       # Analyse de profit
+│   │   │   ├── SupplierDashboard.jsx  # Dashboard fournisseur
+│   │   │   ├── SupplierOrders.jsx     # Commandes fournisseur
+│   │   │   ├── AdminDashboard.jsx     # Dashboard admin
 │   │   │   └── ...
-│   │   ├── components/
-│   │   │   ├── Sidebar.jsx       # Navigation laterale
-│   │   │   ├── Layout.jsx        # Layout RTL-aware
-│   │   │   ├── BarcodeScanner.jsx
-│   │   │   ├── StatsCard.jsx
-│   │   │   └── ...
-│   │   ├── api/
-│   │   │   └── client.js        # Axios client + toutes les APIs
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx   # Auth state (JWT + merchant)
-│   │   ├── i18n/                 # Traductions fr/ar
-│   │   └── App.jsx              # Routes
-│   ├── Dockerfile
-│   └── package.json
+│   │   ├── components/      # Layout, Sidebar, Header
+│   │   ├── context/         # AuthContext (gestion d'etat)
+│   │   ├── api/client.js    # Client Axios centralise
+│   │   └── main.jsx         # Point d'entree Vite
+│   ├── package.json
+│   └── vite.config.js
 │
-├── nginx/
-│   ├── nginx.conf          # SSL + proxy /api → backend, / → frontend
-│   └── Dockerfile
-│
-├── docker-compose.yml      # 7 services
-└── .env                    # Variables d'environnement
+├── nginx/                   # Configuration reverse proxy
+├── docker-compose.yml       # 9 services Docker
+├── requirements.txt         # Dependances Python
+├── .env.example             # Template de configuration
+└── README.md
 ```
 
 ---
 
-## Installation locale
+## Installation & Deploiement
 
 ### Prerequis
+- Docker & Docker Compose
+- Cle API OpenAI (pour les fonctionnalites IA)
+- Compte WhatsApp Business API (optionnel)
 
-- Docker + Docker Compose
-- Git
-
-### Demarrage
+### Installation locale
 
 ```bash
-# Cloner le projet
-git clone https://github.com/ennajari/souk-ai.git
+# 1. Cloner le repo
+git clone https://github.com/votre-repo/souk-ai.git
 cd souk-ai
 
-# Configurer l'environnement
+# 2. Configurer l'environnement
 cp .env.example .env
-# Editer .env avec vos cles (voir section Variables d'environnement)
+# Editer .env avec vos cles API
 
-# Lancer tous les services
+# 3. Lancer tous les services
 docker compose up -d --build
 
-# Executer les migrations
+# 4. Appliquer les migrations
 docker compose exec backend alembic upgrade head
+
+# 5. Acceder a l'application
+# Frontend : http://localhost
+# Backend API : http://localhost:8000/docs
 ```
 
-L'application est accessible sur :
-- **Frontend** : http://localhost (port 80)
-- **Backend API** : http://localhost/api/v1/
-- **Swagger docs** : http://localhost/docs
-
-### Developpement (sans Docker)
+### Deploiement VPS (Production)
 
 ```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+# Deployer les modifications
+scp -r backend/ ubuntu@VOTRE_IP:/opt/souk-ai/backend/
+scp -r frontend/ ubuntu@VOTRE_IP:/opt/souk-ai/frontend/
 
-# Frontend (dans un autre terminal)
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## Variables d'environnement
-
-| Variable | Description | Defaut |
-|----------|------------|--------|
-| `DATABASE_URL` | URL PostgreSQL async | `postgresql+asyncpg://souk_user:changeme@localhost:5432/souk_db` |
-| `REDIS_URL` | URL Redis | `redis://localhost:6379/0` |
-| `SECRET_KEY` | Cle secrete JWT | `changeme` |
-| `OPENAI_API_KEY` | Cle API OpenAI (OCR + coach IA) | -- |
-| `WHATSAPP_ACCESS_TOKEN` | Token WhatsApp Cloud API | -- |
-| `WHATSAPP_PHONE_NUMBER_ID` | ID numero WhatsApp | -- |
-| `WHATSAPP_APP_SECRET` | Secret app WhatsApp | -- |
-| `BACKEND_CORS_ORIGINS` | Origines CORS (JSON array) | `["http://localhost:5173"]` |
-| `FRONTEND_URL` | URL du frontend | `http://localhost:8080` |
-| `CLOUDFLARED_TUNNEL_TOKEN` | Token tunnel Cloudflare | -- |
-| `POSTGRES_USER` | Utilisateur PostgreSQL | `souk_user` |
-| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | `postgres123` |
-| `POSTGRES_DB` | Nom de la base | `souk_db` |
-
----
-
-## Deploiement VPS
-
-### Infrastructure
-
-- **VPS** : OVH, Ubuntu
-- **Domaine** : soukai.duckdns.org
-- **SSL** : Let's Encrypt (certbot)
-- **Tunnel** : Cloudflare Tunnel (cloudflared)
-
-### Deployer une mise a jour
-
-```bash
-# Sur le VPS
-ssh ubuntu@<VPS_IP>
-cd /opt/souk-ai
-
-# Migration si necessaire
-sudo docker compose exec backend alembic upgrade head
-
-# Rebuild + restart
-sudo docker compose up -d --build --force-recreate
+# Rebuild et redemarrer
+ssh ubuntu@VOTRE_IP "cd /opt/souk-ai && docker compose up -d --build"
 
 # Verifier les logs
-sudo docker compose logs -f --tail=50 backend
-```
-
-### Commandes utiles
-
-```bash
-# Status des conteneurs
-sudo docker compose ps
-
-# Logs d'un service
-sudo docker compose logs -f backend
-sudo docker compose logs -f nginx
-
-# Acces shell backend
-sudo docker compose exec backend bash
-
-# Renouveler le certificat SSL
-sudo certbot renew
+ssh ubuntu@VOTRE_IP "cd /opt/souk-ai && docker compose logs backend --tail 30"
 ```
 
 ---
 
-## API Reference
+## Configuration (.env)
 
-Base URL : `/api/v1`
+```env
+# Base de donnees
+POSTGRES_USER=souk
+POSTGRES_PASSWORD=votre_mot_de_passe
+POSTGRES_DB=soukdb
+DATABASE_URL=postgresql+asyncpg://souk:votre_mot_de_passe@postgres:5432/soukdb
 
-### Authentification
+# Cache & Celery
+REDIS_URL=redis://redis:6379/0
+
+# Securite
+SECRET_KEY=votre_cle_secrete_256bits
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# OpenAI (IA)
+OPENAI_API_KEY=sk-...
+
+# WhatsApp Cloud API
+WHATSAPP_ACCESS_TOKEN=EAAG...
+WHATSAPP_PHONE_NUMBER_ID=123456789
+WHATSAPP_VERIFY_TOKEN=souk_verify_token
+WHATSAPP_APP_SECRET=abc123
+
+# Application
+APP_ENV=production
+FRONTEND_URL=https://soukai.duckdns.org
+ADMIN_PHONE=212XXXXXXXXX
+```
+
+---
+
+## API Documentation
+
+L'API REST est documentee automatiquement via **Swagger UI** :
+
+```
+https://soukai.duckdns.org/docs
+```
+
+### Endpoints principaux
 
 | Methode | Endpoint | Description |
-|---------|----------|------------|
-| `POST` | `/auth/register` | Inscription commercant |
-| `POST` | `/auth/login` | Connexion (retourne JWT) |
-| `GET` | `/auth/me` | Profil connecte |
-
-### Produits
-
-| Methode | Endpoint | Description |
-|---------|----------|------------|
-| `GET` | `/products/` | Liste des produits |
-| `POST` | `/products/` | Creer un produit (detection doublons fr/ar) |
-| `PATCH` | `/products/{id}` | Modifier un produit |
-| `DELETE` | `/products/{id}` | Desactiver un produit |
-| `POST` | `/products/{keep}/merge/{remove}` | Fusionner deux doublons |
-| `POST` | `/products/scan-invoice` | OCR facture fournisseur (GPT-4o Vision) |
-
-### Transactions
-
-| Methode | Endpoint | Description |
-|---------|----------|------------|
-| `GET` | `/transactions/` | Historique (filtrable par type) |
-| `POST` | `/transactions/` | Creer une transaction |
-| `POST` | `/transactions/bulk` | Creer plusieurs transactions (POS batch) |
-| `POST` | `/transactions/{id}/return` | Retour / annulation |
-
-### Carte Souk.AI
-
-| Methode | Endpoint | Description |
-|---------|----------|------------|
-| `POST` | `/souk-cards/register` | Enregistrer une nouvelle carte |
-| `POST` | `/souk-cards/topup` | Recharger une carte |
-| `GET` | `/souk-cards/nfc/{uid}` | Chercher carte par NFC UID |
-| `GET` | `/souk-cards/phone/{phone}` | Chercher par telephone |
-| `GET` | `/souk-cards/{number}` | Consulter le solde |
-| `GET` | `/souk-cards/{number}/transactions` | Historique carte |
-
-### Factures
-
-| Methode | Endpoint | Description |
-|---------|----------|------------|
-| `POST` | `/invoices/` | Creer une facture |
-| `GET` | `/invoices/` | Liste des factures |
-| `GET` | `/invoices/pay/{token}` | Consulter facture (public, sans auth) |
-| `POST` | `/invoices/pay/{token}` | Payer une facture (public, sans auth) |
-
-### Autres endpoints
-
-| Module | Prefix | Fonctionnalites |
-|--------|--------|----------------|
-| Inventaire | `/inventory/` | Stock, alertes, ajustements, logs |
-| Clients | `/customers/` | CRUD + entrees credit (CREDIT / PAYMENT) |
-| Fournisseurs | `/suppliers/` | CRUD + commandes |
-| Paiements | `/payments/` | CMI / CashPlus / NFC + config marchand |
-| Analytics | `/analytics/` | Dashboard, graphiques ventes, profits |
-| Previsions | `/forecasts/` | Previsions de ventes par produit (IA) |
-| Marketplace | `/marketplace/` | Listings, commandes B2B |
-| Marche | `/market/` | Benchmark, tendances, prix concurrents |
-| Export | `/export/` | CSV produits, transactions, profits |
-| WhatsApp | `/whatsapp/` | Webhook bot WhatsApp |
-| Coach IA | `/coach/` | Conseils business personnalises |
-
-Documentation interactive Swagger : `/docs`
+|---------|----------|-------------|
+| `POST` | `/api/v1/auth/register` | Inscription marchand/fournisseur |
+| `POST` | `/api/v1/auth/login` | Connexion (phone + password) |
+| `GET` | `/api/v1/products/` | Liste des produits |
+| `POST` | `/api/v1/products/scan-invoice` | Scan facture par IA (GPT-4o Vision) |
+| `GET` | `/api/v1/products/expiring/soon` | Produits proches expiration |
+| `POST` | `/api/v1/transactions/` | Enregistrer une vente |
+| `GET` | `/api/v1/inventory/` | Etat du stock |
+| `GET` | `/api/v1/inventory/alerts` | Alertes stock bas |
+| `GET` | `/api/v1/analytics/dashboard` | Stats du tableau de bord |
+| `GET` | `/api/v1/analytics/sales-chart` | Graphique des ventes |
+| `GET` | `/api/v1/forecasts/` | Previsions de demande 7 jours |
+| `GET` | `/api/v1/marketplace/listings` | Annonces marketplace B2B |
+| `POST` | `/api/v1/marketplace/orders` | Passer une commande B2B |
+| `GET` | `/api/v1/credit/score` | Score de credit du marchand |
+| `GET` | `/api/v1/supplier-portal/dashboard` | Stats portail fournisseur |
+| `POST` | `/api/v1/whatsapp/webhook` | Webhook WhatsApp entrant |
+| `GET` | `/api/v1/admin/monitoring` | Monitoring admin |
 
 ---
 
-## Systeme de paiement
+## Roles Utilisateurs
 
-### Flux POS (Caisse)
-
-```
-Commercant scanne / selectionne produits
-                 |
-           Panier rempli
-                 |
-     +-----------+-----------+
-     |           |           |
-   [Cash]    [Credit]     [NFC]
-   1 clic     1 clic     Terminal
-     |           |           |
-     |      Entree dans    Scan NFC
-     |      le carnet        |
-     |      de credit   +----+----+
-     |      du client   |         |
-     |           |    Souk.AI  Bancaire
-     |           |   PIN→Debit   OK
-     |           |      |         |
-     +-----------+------+---------+
-                 |
-      POST /transactions/bulk
-         (1 seul appel API)
-                 |
-          Ticket imprime
-```
-
-### Methodes de paiement
-
-| Methode | Type | Temps | Description |
-|---------|------|-------|-------------|
-| **Cash** | Direct | ~1s | 1 clic, pas de modal |
-| **Credit** | Direct | ~1s | 1 clic, client requis, ajoute au carnet |
-| **NFC Souk.AI** | Terminal | ~5s | Scan carte → PIN 4-6 chiffres → debit |
-| **NFC Bancaire** | Terminal | ~3s | Scan carte → paiement direct |
-| **CMI** | En ligne | ~30s | Redirection passerelle bancaire marocaine |
-| **CashPlus** | Voucher | -- | Code a presenter chez agent CashPlus |
+| Role | Acces | Route |
+|------|-------|-------|
+| **Marchand** | POS, Produits, Stock, Ventes, Analytics, Fournisseurs, Marketplace, Credit, Coach IA, Employes | `/dashboard` |
+| **Fournisseur** | Dashboard, Commandes recues, Catalogue, Paiements, Chat, Parametres | `/supplier-dashboard` |
+| **Admin** | Marchands, Cartes Souk.AI, Paiements globaux, Demandes de credit, Monitoring | `/admin` |
 
 ---
 
-## Carte Souk.AI
+## Taches Automatisees (Celery Beat)
 
-Carte prepayee rechargeable NFC, inspiree des cartes de tramway de Casablanca.
-
-### Caracteristiques
-
-- **Numero** : 16 chiffres (prefixe `9212`)
-- **Identification** : NFC UID (numero de serie materiel)
-- **Securite** : PIN 4-6 chiffres (SHA-256)
-- **Rechargement** : via application bancaire ou admin
-- **Solde** : affiche lors du paiement NFC
-
-### Flux de paiement NFC
-
-```
-1. Client approche la carte du telephone Android
-2. Web NFC API lit le UID de la carte
-3. GET /souk-cards/nfc/{uid} → info carte + solde
-4. Client saisit son PIN (4-6 chiffres)
-5. POST /invoices/pay/{token} → debit carte
-6. Transaction enregistree, ticket imprime
-```
-
-### Prerequis NFC
-
-- Telephone Android avec NFC active
-- Chrome (seul navigateur supportant Web NFC API)
-- HTTPS obligatoire (fonctionne en production)
+| Tache | Frequence | Description |
+|-------|-----------|-------------|
+| `send_daily_reports` | Chaque jour a 8h | Resume WhatsApp : ventes + alertes stock + expirations |
+| `send_expiry_alerts` | Chaque jour a 7h | Alerte WhatsApp pour produits expirant sous 3 jours |
+| `update_forecasts` | Chaque jour a 6h | Recalcul des previsions de demande |
+| `update_market_benchmarks` | Chaque semaine | Mise a jour des benchmarks de prix |
 
 ---
 
-## Base de donnees
+## Securite
 
-### Schema principal
-
-```
-merchants ─┬── products ──── inventory
-            │       └─────── transactions
-            ├── customers ── credit_entries
-            ├── suppliers ── supplier_orders
-            ├── invoices
-            ├── payments
-            └── marketplace_listings ── marketplace_orders
-
-souk_cards ──── card_transactions
-```
-
-### Migrations
-
-```bash
-# Creer une nouvelle migration
-docker compose exec backend alembic revision --autogenerate -m "description"
-
-# Appliquer les migrations
-docker compose exec backend alembic upgrade head
-
-# Rollback d'une migration
-docker compose exec backend alembic downgrade -1
-```
+- Authentification **JWT** avec expiration configurable (24h par defaut)
+- Mots de passe hashes avec **bcrypt** (salt automatique)
+- Protection CORS configuree par environnement
+- Validation stricte des entrees par **Pydantic**
+- Separation des roles : Marchand / Fournisseur / Admin
+- Routes protegees par dependencies FastAPI (`get_current_merchant`, `get_current_supplier`, `check_is_admin`)
+- OTP par WhatsApp pour le reset de mot de passe (6 digits, expire en 10 min)
+- Conteneurs Docker non-root (`appuser`)
+- Nginx reverse proxy avec HTTPS
 
 ---
 
-## Optimisations de performance
+## Screenshots
 
-Le systeme est optimise pour servir **6 clients en 5 minutes** :
+| Dashboard Marchand | Point de Vente | Gestion Produits |
+|---|---|---|
+| Stats, ventes, alertes | Caisse tactile, scan | Catalogue, expiration |
 
-| Optimisation | Impact |
-|-------------|--------|
-| Batch transactions (`POST /bulk`) | 1 requete au lieu de N par vente |
-| 1-click Cash / Credit | Pas de modal, paiement instantane |
-| Debounce recherche (120ms) | Pas de lag avec 500+ produits |
-| Chargement parallele | Produits + clients en `Promise.all` |
-| Pool DB (10 conn + 5 overflow) | Support clients simultanes |
-| Lazy loading optimise | Pas de chargement inutile des relations |
-| CORS preflight cache (1h) | Elimine les requetes OPTIONS repetees |
-| Timeout API (20s) | Pas de requetes bloquees indefiniment |
-| Detection doublons produits | Evite les duplications fr ↔ ar |
-| Fusion produits (`/merge`) | Nettoie les doublons existants |
+| Marketplace B2B | Dashboard Admin | Previsions IA |
+|---|---|---|
+| Annonces, commandes | Monitoring global | Graphiques 7 jours |
 
 ---
 
-## Langues supportees
+## Roadmap
 
-| Langue | Code | Direction |
-|--------|------|-----------|
-| Francais | `fr` | LTR (gauche → droite) |
-| Arabe | `ar` | RTL (droite ← gauche) |
+- [x] POS intelligent avec scan code-barres
+- [x] Gestion de stock avec alertes
+- [x] Scan de factures par IA (GPT-4o Vision)
+- [x] Carte Souk.AI NFC
+- [x] Bot WhatsApp IA (Darija/FR/EN)
+- [x] Marketplace B2B
+- [x] Portail fournisseur (double profil)
+- [x] Previsions de demande IA
+- [x] Intelligence de marche
+- [x] Coach IA
+- [x] Import Sage
+- [x] Dates d'expiration avec alertes
+- [ ] Application mobile (React Native)
+- [ ] Paiement mobile (CMI / CashPlus)
+- [ ] Programme de fidelite client
+- [ ] Multi-boutique pour un meme marchand
 
-L'interface detecte automatiquement la langue du navigateur. Le changement est disponible dans le header.
+---
+
+## Auteur
+
+**Abdellah Ennajari**
+
+| | |
+|---|---|
+| Email | abdellahennajari2018@gmail.com |
+| Tel | +212 667 156 625 |
+| Ville | Casablanca, Maroc |
 
 ---
 
 ## Licence
 
-Projet prive -- Tous droits reserves.
-
-Developpe par **Abdellah Ennajari** -- 2025/2026
+Projet prive — Tous droits reserves.
 
 ---
 
-*Souk.AI -- Gestion intelligente pour les commercants marocains*
+<p align="center">
+  <strong>Souk.AI</strong> — Digitaliser le commerce marocain avec l'intelligence artificielle
+  <br/>
+  <sub>Projet soumis au programme PPEJ 2026 (CONFEJES / Ministere de la Jeunesse)</sub>
+</p>
