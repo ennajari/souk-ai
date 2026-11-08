@@ -59,7 +59,8 @@ async def notify_credit(
     description: str | None, currency: str = "MAD",
 ) -> None:
     """Best-effort WhatsApp receipt to the customer (template first, free text inside the 24 h window)."""
-    if not phone:
+    from app.config import settings
+    if not phone or not settings.WHATSAPP_ACCESS_TOKEN:
         return
     from services.whatsapp import normalize_phone, send_template_message, send_text_message
     to = normalize_phone(phone)

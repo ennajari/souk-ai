@@ -84,6 +84,7 @@ export const exportAPI = {
 export const merchantsAPI = {
   me: () => client.get('/merchants/me'),
   update: (data) => client.patch('/merchants/me', data),
+  exportData: () => client.get('/merchants/me/export'),
 }
 
 export default client

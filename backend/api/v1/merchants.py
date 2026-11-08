@@ -25,3 +25,18 @@ async def update_profile(
         setattr(merchant, field, value)
     await db.commit()
     return merchant
+
+
+@router.get("/me/export")
+async def export_my_data(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Download all data held about this account as JSON (GDPR / loi 09-08 access & portability)."""
+    from fastapi.responses import JSONResponse
+
+    from services.data_export import export_merchant
+    return JSONResponse(
+        await export_merchant(db, merchant),
+        headers={"Content-Disposition": 'attachment; filename="souk-ai-export.json"'},
+    )

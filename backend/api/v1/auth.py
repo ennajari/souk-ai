@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select, update
 
 from core.database import get_db
 from core.security import hash_password, verify_password, create_access_token
@@ -220,6 +220,9 @@ async def delete_account(
     from models.supplier_catalog import SupplierCatalogItem
     from models.payment import Payment, MerchantPaymentConfig
     from models.marketplace import MarketplaceListing, MarketplaceOrder
+    from models.souk_card import CardTransaction
+    from models.invoice import Invoice
+    from models.credit_request import CreditRequest
 
     mid = merchant.id
 
@@ -270,6 +273,12 @@ async def delete_account(
     await db.execute(delete(Forecast).where(Forecast.merchant_id == mid))
     await db.execute(delete(CreditHistory).where(CreditHistory.merchant_id == mid))
     await db.execute(delete(Conversation).where(Conversation.merchant_id == mid))
+
+    # Card ledgers belong to card holders: keep them (balances must stay auditable) but detach this merchant
+    await db.execute(update(CardTransaction).where(CardTransaction.merchant_id == mid).values(merchant_id=None))
+    await db.execute(update(Supplier).where(Supplier.supplier_account_id == mid).values(supplier_account_id=None))
+    await db.execute(delete(Invoice).where(Invoice.merchant_id == mid))
+    await db.execute(delete(CreditRequest).where(CreditRequest.merchant_id == mid))
 
     # Delete merchant
     await db.execute(delete(Merchant).where(Merchant.id == mid))
