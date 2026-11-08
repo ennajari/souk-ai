@@ -24,14 +24,16 @@ async def calculate_credit_score(db: AsyncSession, merchant_id: str) -> Dict[str
     result = await db.execute(
         select(Transaction).where(
             Transaction.merchant_id == merchant_id,
-            Transaction.type == TransactionType.SALE,
+            Transaction.type.in_([TransactionType.SALE, TransactionType.RETURN]),
             Transaction.created_at >= lookback_30
         )
     )
-    txns = result.scalars().all()
-    
-    # 1. Volume Factor
-    total_sales_value = sum(float(t.total_amount) for t in txns)
+    all_txns = result.scalars().all()
+    txns = [t for t in all_txns if t.type == TransactionType.SALE]
+    returned = sum(float(t.total_amount) for t in all_txns if t.type == TransactionType.RETURN)
+
+    # 1. Volume Factor — net of returns, otherwise sell+return loops inflate the score (AUDIT L7)
+    total_sales_value = max(0.0, sum(float(t.total_amount) for t in txns) - returned)
     # Give 1 point for every 100 MAD sold, max 200 points (20,000 MAD)
     volume_points = min(200, int(total_sales_value / 100))
     score += volume_points

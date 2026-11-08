@@ -148,3 +148,19 @@ async def test_customers_list_works_on_migrated_schema(client):
     await _customer(client, h)
     r = await client.get("/api/v1/customers/", headers=h)
     assert r.status_code == 200 and len(r.json()) == 1
+
+
+async def test_credit_score_is_net_of_returns(client):
+    """L7: selling then returning the same goods must not raise the score."""
+    from core.database import AsyncSessionLocal
+    from services.credit_scoring import calculate_credit_score
+    h = await register(client)
+    p = await make_product(client, h, stock=1000, price=1000)
+    me = (await client.get("/api/v1/auth/me", headers=h)).json()
+    for _ in range(3):
+        sale = (await client.post(BULK, json={"items": [{"product_id": p["id"], "quantity": 5, "unit_price": 1000}]},
+                                  headers=h)).json()[0]
+        await client.post(f"/api/v1/transactions/{sale['id']}/return", headers=h)
+    async with AsyncSessionLocal() as db:
+        score = await calculate_credit_score(db, me["id"])
+    assert score["factors"]["volume_points"] == 0
