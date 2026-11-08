@@ -242,7 +242,8 @@ export default function Register() {
                   required
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Minimum 6 caractères"
+                  placeholder="Minimum 8 caractères"
+                  minLength={8}
                   className="w-full pl-10 pr-12 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm transition font-medium"
                 />
                 <button

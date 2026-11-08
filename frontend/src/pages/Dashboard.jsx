@@ -10,23 +10,28 @@ import {
 } from 'recharts'
 import StatsCard from '../components/StatsCard'
 import RamadanBanner from '../components/RamadanBanner'
+import MoneyReportCard from '../components/MoneyReportCard'
 import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI, revenueAPI, barcodeAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useMoney } from '../utils/money'
 import toast from 'react-hot-toast'
 
 /* ── Custom chart tooltip ── */
 function ChartTooltip({ active, payload, label }) {
+  const money = useMoney()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-gray-900 text-white rounded-xl px-3 py-2 shadow-xl text-xs">
       <p className="font-semibold text-gray-300 mb-1">{label}</p>
-      <p className="font-bold text-violet-300 text-sm">{Number(payload[0]?.value || 0).toFixed(2)} MAD</p>
+      <p className="font-bold text-violet-300 text-sm">{money(Number(payload[0]?.value || 0))}</p>
     </div>
   )
 }
 
 export default function Dashboard() {
   const { merchant } = useAuth()
+  const money = useMoney()
+  const currency = merchant?.currency || 'MAD'
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [chartData, setChartData] = useState([])
@@ -181,7 +186,7 @@ export default function Dashboard() {
               <p className="text-sm font-medium text-violet-200">Revenu du mois</p>
             </div>
             <p className="text-4xl font-black tabular-nums">{(stats?.total_revenue_month || 0).toFixed(0)}</p>
-            <p className="text-violet-300 font-semibold text-lg">MAD</p>
+            <p className="text-violet-300 font-semibold text-lg">{currency}</p>
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-violet-300">{stats?.total_sales_month || 0} ventes ce mois</p>
               <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-lg">
@@ -197,7 +202,7 @@ export default function Dashboard() {
           value={stats?.total_sales_today || 0}
           icon={FiShoppingCart}
           color="blue"
-          subtitle={`${(stats?.total_revenue_today || 0).toFixed(0)} MAD aujourd'hui`}
+          subtitle={`${money(stats?.total_revenue_today || 0, 0)} aujourd'hui`}
         />
         <StatsCard
           title="Produits"
@@ -209,16 +214,18 @@ export default function Dashboard() {
       </div>
 
       {/* ── Secondary stats ── */}
+      <MoneyReportCard />
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard title="Stock bas" value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
-        <StatsCard title="Revenu auj." value={`${(stats?.total_revenue_today || 0).toFixed(0)} MAD`} icon={FiZap} color="green" />
+        <StatsCard title={`Revenu auj. (${currency})`} value={Math.round(stats?.total_revenue_today || 0).toLocaleString()} icon={FiZap} color="green" />
         {monthlyRevenue && (
           <div className="bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 hover:shadow-lg transition-all">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Benefice net/mois</p>
             <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${monthlyRevenue.net_revenue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {monthlyRevenue.net_revenue.toFixed(0)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">MAD · apres charges</p>
+            <p className="text-xs text-gray-400 mt-1">{currency} · apres charges</p>
           </div>
         )}
         {expiringCount > 0 && (
@@ -323,7 +330,7 @@ export default function Dashboard() {
           <div className="space-y-3">
             {[
               { label: 'Ventes totales', value: stats?.total_sales_month || 0, valueClass: 'text-gray-900 font-bold' },
-              { label: 'Revenu total', value: `${(stats?.total_revenue_month || 0).toFixed(2)} MAD`, valueClass: 'text-emerald-600 font-bold' },
+              { label: 'Revenu total', value: `${money((stats?.total_revenue_month || 0))}`, valueClass: 'text-emerald-600 font-bold' },
               { label: 'Alertes stock', value: alerts.length, valueClass: alerts.length > 0 ? 'text-orange-500 font-bold' : 'text-emerald-500 font-bold' },
             ].map(({ label, value, valueClass }) => (
               <div key={label} className="flex justify-between items-center py-2.5 border-b border-gray-50 last:border-0">
@@ -403,7 +410,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className={`text-sm font-bold flex-shrink-0 ${tx.type === 'SALE' ? 'text-emerald-600' : 'text-blue-600'}`}>
-                    {tx.type === 'SALE' ? '+' : ''}{Number(tx.total_amount || 0).toFixed(2)} MAD
+                    {tx.type === 'SALE' ? '+' : ''}{money(Number(tx.total_amount || 0))}
                   </span>
                 </div>
               ))}
@@ -535,7 +542,7 @@ export default function Dashboard() {
                       <p className="text-sm font-semibold text-violet-800 truncate">
                         {selectedProduct.name_fr || selectedProduct.name_ar}
                       </p>
-                      <p className="text-xs text-violet-500">{Number(selectedProduct.unit_price).toFixed(2)} MAD · stock: {selectedProduct.stock_quantity ?? '?'}</p>
+                      <p className="text-xs text-violet-500">{money(Number(selectedProduct.unit_price))} · stock: {selectedProduct.stock_quantity ?? '?'}</p>
                     </div>
                     <button type="button" onClick={() => { setSaleForm({ ...saleForm, product_id: '' }); setProductSearch(''); setTimeout(() => searchRef.current?.focus(), 50) }}
                       className="p-1 rounded-lg hover:bg-violet-200 text-violet-500 transition-colors flex-shrink-0">
@@ -577,7 +584,7 @@ export default function Dashboard() {
                           {p.name_ar && p.name_fr && <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>}
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">
-                          <p className="text-sm font-bold text-violet-600">{Number(p.unit_price).toFixed(2)} MAD</p>
+                          <p className="text-sm font-bold text-violet-600">{money(Number(p.unit_price))}</p>
                           <p className="text-xs text-gray-400">stock: {p.stock_quantity ?? '?'}</p>
                         </div>
                       </button>
@@ -606,7 +613,7 @@ export default function Dashboard() {
               {saleForm.product_id && (
                 <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl px-4 py-3 flex justify-between items-center border border-violet-100">
                   <span className="text-xs font-medium text-violet-700">Total estimé</span>
-                  <span className="text-base font-black text-violet-800">{saleTotal} MAD</span>
+                  <span className="text-base font-black text-violet-800">{money(saleTotal)}</span>
                 </div>
               )}
               <div className="flex gap-3 pt-1">

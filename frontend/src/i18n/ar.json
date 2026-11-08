@@ -85,7 +85,8 @@
     "saleRegistered": "!تم تسجيل البيع",
     "stock": "المخزون",
     "directPrint": "طباعة",
-    "noProduct": "لم يتم العثور على منتج"
+    "noProduct": "لم يتم العثور على منتج",
+    "expired": "فايت الصلاحية"
   },
   "customers": {
     "title": "دفتر الائتمان",
@@ -139,7 +140,8 @@
     },
     "languages": {
       "AR": "العربية / الدارجة",
-      "FR": "Français"
+      "FR": "Français",
+      "EN": "English"
     }
   },
   "notifications": {
@@ -227,5 +229,21 @@
     "syncing": "جاري المزامنة...",
     "pending": "إجراءات معلقة",
     "synced": "تمت المزامنة ✓"
+  },
+  "money": {
+    "title": "فين مشات فلوسك؟",
+    "toRecover": "باقي عند الكليان",
+    "customers_one": "{{count}} كليان عليه الكريدي",
+    "customers_other": "{{count}} ديال الكليان عليهم الكريدي",
+    "lost": "خسارة (سلعة فايتة الصلاحية)",
+    "expiredHint": "{{count}} منتوج فايت الصلاحية باقي فالرف",
+    "atRisk": "فالخطر",
+    "atRiskHint": "{{soon}} غادي يفوتو فـ 7 أيام · {{dead}} ما تباعوش فـ 30 يوم",
+    "missedSales": "ربح ضايع / سيمانة",
+    "missedHint": "{{count}} منتوج مطلوب ومقطوع",
+    "customers_zero": "{{count}} ديال الكليان عليهم الكريدي",
+    "customers_two": "{{count}} ديال الكليان عليهم الكريدي",
+    "customers_few": "{{count}} ديال الكليان عليهم الكريدي",
+    "customers_many": "{{count}} ديال الكليان عليهم الكريدي"
   }
 }

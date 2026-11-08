@@ -1,35 +1,14 @@
-import re
+
+from core.locale import normalize_phone as _normalize_phone
 import httpx
 from app.config import settings
 
 WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 
-def normalize_phone(phone: str) -> str:
-    """Normalize a Moroccan phone number to WhatsApp format (212XXXXXXXXX).
-
-    Handles: 0612345678, +212612345678, 212612345678, 06-12-34-56-78, etc.
-    """
-    # Remove all non-digit characters
-    digits = re.sub(r'\D', '', phone)
-
-    # Remove leading + equivalent (if someone stored +212 as 00212)
-    if digits.startswith('00212'):
-        digits = '212' + digits[5:]
-
-    # Moroccan local number starting with 0
-    if digits.startswith('0') and len(digits) == 10:
-        digits = '212' + digits[1:]
-
-    # Already has 212 prefix
-    if digits.startswith('212') and len(digits) == 12:
-        return digits
-
-    # If it's just 9 digits (without 0 or 212), assume Moroccan
-    if len(digits) == 9 and digits[0] in ('6', '7', '5'):
-        digits = '212' + digits
-
-    return digits
+def normalize_phone(phone: str, country: str | None = "MA") -> str:
+    """WhatsApp/E.164 digits. Single implementation lives in core.locale."""
+    return _normalize_phone(phone, country)
 
 
 async def send_text_message(to: str, text: str) -> dict:

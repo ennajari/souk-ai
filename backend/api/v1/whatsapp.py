@@ -1,27 +1,35 @@
 import hashlib
 import hmac
-import redis as redis_lib
+import logging
 from typing import Annotated
-from fastapi import APIRouter, Request, HTTPException, Query
+
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 from app.config import settings
+from core.ratelimit import get_redis
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
+logger = logging.getLogger("souk_ai")
 
-def _is_duplicate(message_id: str) -> bool:
-    """Return True if this WhatsApp message ID was already processed (dedup via Redis)."""
+
+async def _is_duplicate(message_id: str) -> bool:
+    """True if this WhatsApp message ID was already seen. Atomic (SET NX) so concurrent retries can't both pass."""
     if not message_id:
         return False
     try:
-        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=1)
-        key = f"wamid:{message_id}"
-        if r.get(key):
-            return True
-        r.setex(key, 3600, "1")  # 1-hour TTL — WhatsApp may retry after delays
-        return False
-    except Exception:
-        return False  # If Redis is down, don't block messages
+        # 24 h: Meta retries failed deliveries for up to a day
+        return not await get_redis().set(f"wamid:{message_id}", "1", nx=True, ex=86400)
+    except Exception:  # noqa: BLE001
+        return False  # Redis down: better a rare duplicate than dropping merchant messages
+
+
+def _signature_ok(body: bytes, signature: str) -> bool:
+    if not settings.WHATSAPP_APP_SECRET:
+        # Without the app secret anyone could post fake merchant messages (= fake sales/prices).
+        return not settings.is_production
+    expected = "sha256=" + hmac.new(settings.WHATSAPP_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature, expected)
 
 
 @router.get("/webhook")
@@ -31,7 +39,11 @@ async def verify_webhook(
     hub_challenge: Annotated[str | None, Query(alias="hub.challenge")] = None,
 ):
     """WhatsApp webhook verification (GET)."""
-    if hub_mode == "subscribe" and hub_verify_token == settings.WHATSAPP_VERIFY_TOKEN:
+    if (
+        hub_mode == "subscribe"
+        and settings.WHATSAPP_VERIFY_TOKEN
+        and hmac.compare_digest(hub_verify_token or "", settings.WHATSAPP_VERIFY_TOKEN)
+    ):
         return Response(content=hub_challenge, media_type="text/plain")
     raise HTTPException(status_code=403, detail="Verification failed")
 
@@ -41,14 +53,9 @@ async def receive_webhook(request: Request):
     """Receive WhatsApp messages (POST)."""
     body = await request.body()
 
-    # Verify signature if app secret is configured
-    if settings.WHATSAPP_APP_SECRET:
-        signature = request.headers.get("x-hub-signature-256", "")
-        expected = "sha256=" + hmac.new(
-            settings.WHATSAPP_APP_SECRET.encode(), body, hashlib.sha256
-        ).hexdigest()
-        if not hmac.compare_digest(signature, expected):
-            raise HTTPException(status_code=403, detail="Invalid signature")
+    if not _signature_ok(body, request.headers.get("x-hub-signature-256", "")):
+        logger.warning("whatsapp webhook rejected: bad or missing signature")
+        raise HTTPException(status_code=403, detail="Invalid signature")
 
     payload = await request.json()
 
@@ -63,7 +70,7 @@ async def receive_webhook(request: Request):
                 msg_type = message.get("type", "")
 
                 message_id = message.get("id", "")
-                if _is_duplicate(message_id):
+                if await _is_duplicate(message_id):
                     continue  # WhatsApp duplicate delivery — skip silently
 
                 if msg_type == "text":

@@ -1,3 +1,6 @@
+from decimal import Decimal
+from typing import Literal
+
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -17,9 +20,9 @@ class CustomerUpdate(BaseModel):
 
 
 class CreditEntryCreate(BaseModel):
-    type: str  # CREDIT or PAYMENT
-    amount: float = Field(gt=0)
-    description: str | None = None
+    type: Literal["CREDIT", "PAYMENT"]
+    amount: Decimal = Field(gt=0, le=10_000_000)
+    description: str | None = Field(None, max_length=255)
 
 
 class CreditEntryResponse(BaseModel):

@@ -45,10 +45,12 @@ export default function Header({ onMenuClick }) {
 
   const isAr = i18n.language === 'ar'
 
+  // fr → ar → en → fr
+  const LANGS = ['fr', 'ar', 'en']
+  const nextLang = LANGS[(LANGS.indexOf(i18n.language?.slice(0, 2)) + 1) % LANGS.length]
   const toggleLang = () => {
-    const next = isAr ? 'fr' : 'ar'
-    i18n.changeLanguage(next)
-    localStorage.setItem('i18nextLng', next)
+    i18n.changeLanguage(nextLang)
+    localStorage.setItem('i18nextLng', nextLang)
   }
 
   useEffect(() => {
@@ -80,10 +82,11 @@ export default function Header({ onMenuClick }) {
         <button
           onClick={toggleLang}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-violet-300 hover:bg-violet-50 text-gray-500 hover:text-violet-600 transition-all text-xs font-semibold"
-          title="Changer la langue"
+          title="Changer la langue / Change language"
+          aria-label={`Language: ${nextLang.toUpperCase()}`}
         >
-          <RiGlobalLine className="h-3.5 w-3.5" />
-          <span>{isAr ? 'FR' : 'AR'}</span>
+          <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{nextLang.toUpperCase()}</span>
         </button>
 
         {/* Quick modules — hidden on mobile */}

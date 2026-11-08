@@ -1,37 +1,49 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from core.security import decode_access_token
-from models.merchant import Merchant, AccountType
-from app.config import settings
+from core.security import decode_token
+from models.merchant import AccountType, Merchant
 
 security_scheme = HTTPBearer()
+optional_security_scheme = HTTPBearer(auto_error=False)
 
 
 def check_is_admin(merchant: Merchant) -> bool:
-    """Check if a merchant is the platform admin."""
-    return (
-        merchant.phone_number == settings.ADMIN_PHONE
-        or (merchant.email and merchant.email == settings.ADMIN_EMAIL)
-    )
+    """Admin = server-side DB flag. Never derived from user-editable fields (email/phone)."""
+    return bool(merchant.is_admin)
+
+
+async def merchant_from_token(token: str, db: AsyncSession) -> Merchant | None:
+    payload = decode_token(token)
+    if not payload or not payload.get("sub"):
+        return None
+    merchant = (await db.execute(select(Merchant).where(Merchant.id == payload["sub"]))).scalar_one_or_none()
+    if not merchant or payload.get("ver", 0) != (merchant.token_version or 0):
+        return None
+    return merchant
 
 
 async def get_current_merchant(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> Merchant:
-    merchant_id = decode_access_token(credentials.credentials)
-    if not merchant_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalide ou expire")
-
-    result = await db.execute(select(Merchant).where(Merchant.id == merchant_id))
-    merchant = result.scalar_one_or_none()
+    merchant = await merchant_from_token(credentials.credentials, db)
     if not merchant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Merchant introuvable")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalide ou expire")
     return merchant
+
+
+async def get_optional_merchant(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> Merchant | None:
+    """For public endpoints that unlock extra actions when the shop owner is logged in."""
+    if not credentials:
+        return None
+    return await merchant_from_token(credentials.credentials, db)
 
 
 async def get_current_supplier(

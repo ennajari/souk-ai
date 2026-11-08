@@ -113,7 +113,10 @@ def _verify_cmi_hash(data: dict) -> bool:
     """
     cmi_key = getattr(settings, "CMI_STORE_KEY", "")
     if not cmi_key:
-        logger.warning("CMI_STORE_KEY not configured — skipping callback signature verification")
+        if settings.is_production:
+            logger.error("CMI_STORE_KEY not configured — rejecting callback (fail closed)")
+            return False
+        logger.warning("CMI_STORE_KEY not configured — skipping callback signature verification (dev only)")
         return True
 
     received_hash = data.get("HASH", "")

@@ -92,7 +92,7 @@ export default function AdminSettings() {
             </div>
             <div className="flex justify-between">
               <span>VPS</span>
-              <span className="font-mono text-gray-900"><VPS_IP></span>
+              <span className="font-mono text-gray-900">{import.meta.env.VITE_SERVER_LABEL || "—"}</span>
             </div>
           </div>
         </div>

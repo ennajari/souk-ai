@@ -175,8 +175,22 @@ export default function Settings() {
               <FiAlertTriangle className="h-4 w-4" /> Zone dangereuse
             </h2>
             <p className="text-xs text-gray-400 mb-4">
-              Suppression permanente de toutes vos données.
+              Suppression permanente de toutes vos données. Téléchargez-les d'abord si besoin.
             </p>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await merchantsAPI.exportData()
+                  const url = URL.createObjectURL(new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' }))
+                  const a = Object.assign(document.createElement('a'), { href: url, download: 'souk-ai-export.json' })
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } catch { toast.error('Export impossible, réessayez') }
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 mb-3 bg-white border border-gray-300 text-gray-800 rounded-xl hover:bg-gray-50 text-sm font-semibold transition-colors"
+            >
+              Télécharger mes données (JSON)
+            </button>
             <button
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors"

@@ -1,5 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+
+from core.uploads import read_limited
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -29,7 +31,7 @@ async def import_sage_articles(
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):
         raise HTTPException(400, "Format non supporté. Envoyez un fichier CSV.")
 
-    raw = await file.read()
+    raw = await read_limited(file)
     # Try multiple encodings (Sage often uses Windows-1252)
     for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
         try:
@@ -134,7 +136,7 @@ async def import_sage_sales(
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):
         raise HTTPException(400, "Format non supporté. Envoyez un fichier CSV.")
 
-    raw = await file.read()
+    raw = await read_limited(file)
     for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
         try:
             content = raw.decode(encoding)
@@ -215,7 +217,7 @@ async def import_sage_auto(
     if not file.filename.endswith(('.csv', '.txt', '.CSV', '.TXT')):
         raise HTTPException(400, "Format non supporté. Envoyez un fichier CSV.")
 
-    raw = await file.read()
+    raw = await read_limited(file)
     for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
         try:
             content = raw.decode(encoding)

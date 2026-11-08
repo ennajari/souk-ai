@@ -1,19 +1,106 @@
+from collections import defaultdict
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.deps import get_current_merchant
-from models.merchant import Merchant
-from models.product import Product
+from core.money import to_money
+from models.customer import Customer
+from models.idempotency import IdempotencyKey
 from models.inventory import Inventory
-from models.transaction import Transaction, TransactionType, TransactionSource
-from schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate
+from models.merchant import Merchant
+from models.payment import Payment, PaymentMethod, PaymentStatus
+from models.product import Product
+from models.transaction import Transaction, TransactionSource, TransactionType
+from schemas.transaction import BulkTransactionCreate, TransactionCreate, TransactionResponse
+from services.credit_ledger import apply_entry, lock_customer, notify_credit
+from services.soukcard_service import pay_with_soukcard
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+_STOCK_IN = {"PURCHASE", "RETURN"}
+
+
+def _to_response(txn: Transaction, product: Product | None) -> TransactionResponse:
+    return TransactionResponse(
+        id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
+        customer_id=txn.customer_id,
+        product_name_ar=product.name_ar if product else None,
+        product_name_fr=product.name_fr if product else None,
+        type=txn.type.value, source=txn.source.value,
+        quantity=txn.quantity, unit_price=float(txn.unit_price),
+        total_amount=float(txn.total_amount), created_at=txn.created_at,
+    )
+
+
+async def _check_customer(db: AsyncSession, merchant_id: str, customer_id: str | None) -> None:
+    """Tenant isolation: a sale can only be attached to one of the merchant's own customers (AUDIT S14)."""
+    if customer_id and not (await db.execute(
+        select(Customer.id).where(Customer.id == customer_id, Customer.merchant_id == merchant_id)
+    )).scalar_one_or_none():
+        raise HTTPException(404, "Client introuvable")
+
+
+async def _record_items(
+    db: AsyncSession, merchant_id: str, items: list[TransactionCreate], customer_id: str | None,
+) -> list[tuple[Transaction, Product]]:
+    """Create transactions and move stock atomically.
+
+    Inventory rows are locked (FOR UPDATE, in product-id order to avoid deadlocks) so two tills
+    selling the last unit cannot both succeed (AUDIT L4).
+    """
+    product_ids = sorted({i.product_id for i in items})
+    products = {p.id: p for p in (await db.execute(
+        select(Product).where(Product.id.in_(product_ids), Product.merchant_id == merchant_id)
+    )).scalars().all()}
+    inv_map = {i.product_id: i for i in (await db.execute(
+        select(Inventory).where(Inventory.product_id.in_(product_ids))
+        .order_by(Inventory.product_id).with_for_update()
+    )).scalars().all()}
+
+    wanted: dict[str, int] = defaultdict(int)
+    for item in items:
+        product = products.get(item.product_id)
+        if not product:
+            raise HTTPException(404, f"Produit introuvable: {item.product_id}")
+        if item.type == "SALE":
+            wanted[item.product_id] += item.quantity
+    for pid, qty in wanted.items():
+        inv = inv_map.get(pid)
+        if inv and to_money(inv.quantity) < qty:
+            p = products[pid]
+            raise HTTPException(
+                400, f"Stock insuffisant pour {p.name_fr or p.name_ar} — disponible: {float(inv.quantity):g}, demandé: {qty}"
+            )
+
+    now = datetime.now(timezone.utc)
+    out = []
+    for item in items:
+        unit_price = to_money(item.unit_price)
+        txn = Transaction(
+            merchant_id=merchant_id, product_id=item.product_id,
+            customer_id=customer_id or item.customer_id,
+            type=TransactionType(item.type), source=TransactionSource(item.source),
+            quantity=item.quantity, unit_price=unit_price, total_amount=to_money(unit_price * item.quantity),
+        )
+        db.add(txn)
+        out.append((txn, products[item.product_id]))
+        inv = inv_map.get(item.product_id)
+        if inv:
+            if item.type == "SALE":
+                inv.quantity = to_money(inv.quantity) - item.quantity
+            elif item.type in _STOCK_IN:
+                inv.quantity = to_money(inv.quantity) + item.quantity
+            inv.updated_at = now
+    await db.flush()
+    return out
 
 
 @router.get("/", response_model=list[TransactionResponse])
@@ -23,7 +110,6 @@ async def list_transactions(
     type: str | None = None,
     limit: int = Query(50, le=200),
 ):
-    # Fix N+1: load Product in the same query via JOIN
     query = (
         select(Transaction)
         .options(selectinload(Transaction.product))
@@ -32,22 +118,8 @@ async def list_transactions(
     if type:
         query = query.where(Transaction.type == type)
     query = query.order_by(desc(Transaction.created_at)).limit(limit)
-
-    result = await db.execute(query)
-    txns = result.scalars().all()
-
-    return [
-        TransactionResponse(
-            id=t.id, merchant_id=t.merchant_id, product_id=t.product_id,
-            customer_id=t.customer_id,
-            product_name_ar=t.product.name_ar if t.product else None,
-            product_name_fr=t.product.name_fr if t.product else None,
-            type=t.type.value, source=t.source.value,
-            quantity=t.quantity, unit_price=float(t.unit_price),
-            total_amount=float(t.total_amount), created_at=t.created_at,
-        )
-        for t in txns
-    ]
+    txns = (await db.execute(query)).scalars().all()
+    return [_to_response(t, t.product) for t in txns]
 
 
 @router.post("/", response_model=TransactionResponse, status_code=201)
@@ -56,60 +128,10 @@ async def create_transaction(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # Verify product belongs to merchant
-    prod_result = await db.execute(
-        select(Product).where(Product.id == req.product_id, Product.merchant_id == merchant.id)
-    )
-    product = prod_result.scalar_one_or_none()
-    if not product:
-        raise HTTPException(status_code=404, detail="Produit introuvable")
-
-    # Get inventory
-    inv_result = await db.execute(select(Inventory).where(Inventory.product_id == req.product_id))
-    inv = inv_result.scalar_one_or_none()
-
-    # Fix stock négatif: block sale if insufficient stock
-    if req.type == "SALE" and inv:
-        available = float(inv.quantity)
-        if available < req.quantity:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Stock insuffisant — disponible: {available:.0f}, demandé: {req.quantity}"
-            )
-
-    # Fix retour: RETURN adds back to stock (negative quantity on sale side)
-    total = req.quantity * req.unit_price
-
-    txn = Transaction(
-        merchant_id=merchant.id,
-        product_id=req.product_id,
-        customer_id=req.customer_id,
-        type=TransactionType(req.type),
-        source=TransactionSource(req.source),
-        quantity=req.quantity,
-        unit_price=req.unit_price,
-        total_amount=total,
-    )
-    db.add(txn)
-
-    # Update inventory
-    if inv:
-        if req.type == "SALE":
-            inv.quantity = float(inv.quantity) - req.quantity
-        elif req.type in ("PURCHASE", "RETURN"):
-            inv.quantity = float(inv.quantity) + req.quantity
-        inv.updated_at = datetime.now(timezone.utc)
-
+    await _check_customer(db, merchant.id, req.customer_id)
+    [(txn, product)] = await _record_items(db, merchant.id, [req], req.customer_id)
     await db.commit()
-
-    return TransactionResponse(
-        id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
-        customer_id=txn.customer_id,
-        product_name_ar=product.name_ar, product_name_fr=product.name_fr,
-        type=txn.type.value, source=txn.source.value,
-        quantity=txn.quantity, unit_price=float(txn.unit_price),
-        total_amount=float(txn.total_amount), created_at=txn.created_at,
-    )
+    return _to_response(txn, product)
 
 
 @router.post("/bulk", response_model=list[TransactionResponse], status_code=201)
@@ -117,64 +139,65 @@ async def create_transactions_bulk(
     req: BulkTransactionCreate,
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    background: BackgroundTasks,
+    idempotency_key: Annotated[str | None, Header(max_length=100)] = None,
 ):
-    """Create multiple transactions in one request (POS checkout)."""
-    product_ids = list({item.product_id for item in req.items})
-    prod_result = await db.execute(
-        select(Product)
-        .where(Product.id.in_(product_ids), Product.merchant_id == merchant.id)
-    )
-    products_map = {p.id: p for p in prod_result.scalars().all()}
+    """POS checkout: sale lines + stock + payment (cash, credit book, Souk card) in ONE DB transaction.
 
-    inv_result = await db.execute(
-        select(Inventory).where(Inventory.product_id.in_(product_ids))
-    )
-    inv_map = {i.product_id: i for i in inv_result.scalars().all()}
+    Before, the browser chained 2-3 requests (invoice → card debit → sale, or sale → credit entry):
+    a failure in the middle left a debited card without a sale, or goods out without a debt (AUDIT L2, L3).
+    Send an `Idempotency-Key` header: a retried checkout (double tap, offline replay) returns the
+    first result instead of selling twice (AUDIT L5).
+    """
+    if idempotency_key:
+        prior = (await db.execute(select(IdempotencyKey).where(
+            IdempotencyKey.merchant_id == merchant.id, IdempotencyKey.key == idempotency_key,
+        ))).scalar_one_or_none()
+        if prior:
+            return prior.response
+        claim = IdempotencyKey(merchant_id=merchant.id, key=idempotency_key)
+        db.add(claim)
+        try:
+            await db.flush()  # unique (merchant_id, key): a concurrent twin blocks here, then fails
+        except IntegrityError:
+            raise HTTPException(409, "Cette vente est deja en cours de traitement") from None
 
-    txns = []
-    for item in req.items:
-        product = products_map.get(item.product_id)
-        if not product:
-            raise HTTPException(404, f"Produit introuvable: {item.product_id}")
+    customer_id = req.customer_id
+    await _check_customer(db, merchant.id, customer_id)
+    lines = await _record_items(db, merchant.id, req.items, customer_id)
+    total = sum((t.total_amount for t, _ in lines if t.type == TransactionType.SALE), Decimal("0"))
 
-        inv = inv_map.get(item.product_id)
-        if item.type == "SALE" and inv and float(inv.quantity) < item.quantity:
-            raise HTTPException(400, f"Stock insuffisant pour {product.name_fr or product.name_ar}")
-
-        total = item.quantity * item.unit_price
-        txn = Transaction(
-            merchant_id=merchant.id,
-            product_id=item.product_id,
-            customer_id=req.customer_id or item.customer_id,
-            type=TransactionType(item.type),
-            source=TransactionSource(item.source),
-            quantity=item.quantity,
-            unit_price=item.unit_price,
-            total_amount=total,
+    credit = None
+    if req.payment_method == "CREDIT":
+        if not customer_id:
+            raise HTTPException(400, "Selectionnez un client pour une vente a credit")
+        customer = await lock_customer(db, customer_id, merchant.id)
+        label = ", ".join(f"{t.quantity}x {p.name_fr or p.name_ar}" for t, p in lines)
+        apply_entry(db, customer, merchant.id, "CREDIT", total, f"POS: {label}")
+        credit = (customer.phone, customer.name, total, customer.balance, f"POS: {label}")
+    elif req.payment_method == "NFC_SOUKCARD":
+        paid = await pay_with_soukcard(
+            db, amount=total, merchant_id=merchant.id, reference=f"POS-{lines[0][0].id[:8].upper()}",
+            card_number=req.card_number, nfc_uid=req.nfc_uid, pin=req.pin,
         )
-        db.add(txn)
-        txns.append((txn, product))
+        if not paid["success"]:
+            raise HTTPException(400, paid["error"])  # rolls back sale lines and stock too
+    if req.payment_method in ("NFC_SOUKCARD", "NFC_BANK"):
+        db.add(Payment(
+            merchant_id=merchant.id, order_id=lines[0][0].id, order_type="pos",
+            method=PaymentMethod(req.payment_method), amount=total, currency=merchant.currency or "MAD",
+            status=PaymentStatus.COMPLETED, description=f"Vente POS {len(lines)} article(s)",
+        ))
 
-        if inv:
-            if item.type == "SALE":
-                inv.quantity = float(inv.quantity) - item.quantity
-            elif item.type in ("PURCHASE", "RETURN"):
-                inv.quantity = float(inv.quantity) + item.quantity
-            inv.updated_at = datetime.now(timezone.utc)
-
+    response = [_to_response(t, p).model_dump(mode="json") for t, p in lines]
+    if idempotency_key:
+        claim.response = response
     await db.commit()
 
-    return [
-        TransactionResponse(
-            id=txn.id, merchant_id=txn.merchant_id, product_id=txn.product_id,
-            customer_id=txn.customer_id,
-            product_name_ar=product.name_ar, product_name_fr=product.name_fr,
-            type=txn.type.value, source=txn.source.value,
-            quantity=txn.quantity, unit_price=float(txn.unit_price),
-            total_amount=float(txn.total_amount), created_at=txn.created_at,
-        )
-        for txn, product in txns
-    ]
+    if credit:
+        background.add_task(notify_credit, *credit[:2], merchant.business_name, *credit[2:],
+                            merchant.currency or "MAD")
+    return response
 
 
 @router.post("/{transaction_id}/return", response_model=TransactionResponse, status_code=201)
@@ -184,86 +207,33 @@ async def return_transaction(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Annuler/retourner une vente — recrédite le stock automatiquement."""
-    result = await db.execute(
+    original = (await db.execute(
         select(Transaction).where(
             Transaction.id == transaction_id,
             Transaction.merchant_id == merchant.id,
             Transaction.type == TransactionType.SALE,
-        )
-    )
-    original = result.scalar_one_or_none()
+        ).with_for_update()  # serializes concurrent returns of the same sale
+    )).scalar_one_or_none()
     if not original:
         raise HTTPException(404, "Vente introuvable")
 
-    # Prevent double return: check if a RETURN referencing this exact sale already exists
-    # We use notes field to store the original transaction ID as a reliable reference
-    return_ref = f"return_of:{transaction_id}"
-    existing_return = await db.execute(
-        select(Transaction.id).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.RETURN,
-            Transaction.source == TransactionSource.WEB,
-            Transaction.product_id == original.product_id,
-        ).limit(1)
+    # Returns carry no link to their sale: compare counts of identical sales vs identical returns.
+    same = (
+        Transaction.merchant_id == merchant.id,
+        Transaction.product_id == original.product_id,
+        Transaction.quantity == original.quantity,
+        Transaction.unit_price == original.unit_price,
     )
-    # Also check via quantity+price+customer as fallback for old returns without ref
-    fallback_check = await db.execute(
-        select(func.count(Transaction.id)).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.product_id == original.product_id,
-            Transaction.type == TransactionType.RETURN,
-            Transaction.quantity == original.quantity,
-            Transaction.unit_price == original.unit_price,
-            Transaction.total_amount == original.total_amount,
-        )
-    )
-    return_count = fallback_check.scalar() or 0
-    # Count how many sales with same signature exist
-    sale_count_result = await db.execute(
-        select(func.count(Transaction.id)).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.product_id == original.product_id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.quantity == original.quantity,
-            Transaction.unit_price == original.unit_price,
-            Transaction.total_amount == original.total_amount,
-        )
-    )
-    sale_count = sale_count_result.scalar() or 0
+    return_count = (await db.execute(select(func.count(Transaction.id)).where(
+        *same, Transaction.type == TransactionType.RETURN))).scalar() or 0
+    sale_count = (await db.execute(select(func.count(Transaction.id)).where(
+        *same, Transaction.type == TransactionType.SALE))).scalar() or 0
     if return_count >= sale_count:
         raise HTTPException(409, "Cette vente a déjà été retournée")
 
-    prod_result = await db.execute(select(Product).where(Product.id == original.product_id))
-    product = prod_result.scalar_one_or_none()
-
-    # Create RETURN transaction
-    return_txn = Transaction(
-        merchant_id=merchant.id,
-        product_id=original.product_id,
-        customer_id=original.customer_id,
-        type=TransactionType.RETURN,
-        source=original.source,
-        quantity=original.quantity,
-        unit_price=original.unit_price,
-        total_amount=original.total_amount,
-    )
-    db.add(return_txn)
-
-    # Add stock back
-    inv_result = await db.execute(select(Inventory).where(Inventory.product_id == original.product_id))
-    inv = inv_result.scalar_one_or_none()
-    if inv:
-        inv.quantity = float(inv.quantity) + original.quantity
-        inv.updated_at = datetime.now(timezone.utc)
-
+    [(return_txn, product)] = await _record_items(db, merchant.id, [TransactionCreate(
+        product_id=original.product_id, customer_id=original.customer_id, type="RETURN",
+        source=original.source.value, quantity=original.quantity, unit_price=original.unit_price,
+    )], original.customer_id)
     await db.commit()
-
-    return TransactionResponse(
-        id=return_txn.id, merchant_id=return_txn.merchant_id,
-        product_id=return_txn.product_id, customer_id=return_txn.customer_id,
-        product_name_ar=product.name_ar if product else None,
-        product_name_fr=product.name_fr if product else None,
-        type=return_txn.type.value, source=return_txn.source.value,
-        quantity=return_txn.quantity, unit_price=float(return_txn.unit_price),
-        total_amount=float(return_txn.total_amount), created_at=return_txn.created_at,
-    )
+    return _to_response(return_txn, product)

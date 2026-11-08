@@ -5,7 +5,7 @@ from datetime import datetime
 
 class SoukCardRegister(BaseModel):
     holder_name: str = Field(..., min_length=2, max_length=100)
-    holder_phone: str = Field(..., pattern=r"^212\d{9}$")
+    holder_phone: str = Field(..., pattern=r"^\d{8,15}$")  # E.164 digits, any country
     pin: str = Field(..., min_length=4, max_length=6, pattern=r"^\d{4,6}$")
     nfc_uid: Optional[str] = None
     card_type: str = "CLIENT"  # CLIENT or SUPPLIER

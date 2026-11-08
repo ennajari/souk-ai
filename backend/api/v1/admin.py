@@ -8,7 +8,6 @@ from sqlalchemy import select, func, case
 from core.database import get_db
 from core.deps import get_current_merchant, check_is_admin
 from models.merchant import Merchant
-from app.config import settings
 from models.product import Product
 from models.transaction import Transaction, TransactionType
 from models.customer import Customer

@@ -1632,7 +1632,7 @@ async def _send_daily_sales_report():
                         f"  📊 Total dû: {total_owed:.2f} MAD ({debtors_count} clients)",
                     ]
 
-                lines.append(f"\n💪 Bonne continuation et bonnes ventes demain !")
+                lines.append("\n💪 Bonne continuation et bonnes ventes demain !")
                 lines.append(f"🔗 {settings.FRONTEND_URL}")
                 await send_text_message(merchant.phone_number, "\n".join(lines))
     finally:
@@ -1868,7 +1868,7 @@ async def _send_expiry_alerts():
                 msg = (
                     f"📋 Alerte peremption — {shop}\n\n"
                     + "\n".join(lines)
-                    + f"\n\n💡 Pensez a solder ou retirer ces produits.\n— Souk.AI"
+                    + "\n\n💡 Pensez a solder ou retirer ces produits.\n— Souk.AI"
                 )
 
                 try:

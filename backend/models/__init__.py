@@ -17,6 +17,7 @@ from models.market_benchmark import MarketBenchmark
 from models.souk_card import SoukCard, CardTransaction
 from models.invoice import Invoice
 from models.credit_request import CreditRequest, CreditRequestStatus
+from models.idempotency import IdempotencyKey
 
 __all__ = [
     "Merchant", "Product", "Inventory", "Transaction", "Order",
@@ -24,5 +25,5 @@ __all__ = [
     "Customer", "CreditEntry", "Notification", "Employee",
     "MarketplaceListing", "MarketplaceOrder", "Payment", "MerchantPaymentConfig",
     "MarketBenchmark", "SoukCard", "CardTransaction", "Invoice",
-    "CreditRequest", "CreditRequestStatus",
+    "CreditRequest", "CreditRequestStatus", "IdempotencyKey",
 ]

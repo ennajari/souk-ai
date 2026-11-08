@@ -1,19 +1,20 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from core.database import get_db
 from core.deps import get_current_merchant
 from models.merchant import Merchant
-from models.customer import Customer, CreditEntry, CreditEntryType
+from models.customer import Customer, CreditEntry
 from models.transaction import Transaction
 from models.product import Product
 from schemas.customer import (
     CustomerCreate, CustomerUpdate, CustomerResponse,
     CustomerListResponse, CreditEntryCreate, CreditEntryResponse,
 )
-from services.whatsapp import send_text_message, send_template_message, normalize_phone
+from services.credit_ledger import apply_entry, lock_customer, notify_credit
+from services.whatsapp import normalize_phone, send_text_message
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -113,92 +114,17 @@ async def add_credit_entry(
     data: CreditEntryCreate,
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    background: BackgroundTasks,
 ):
-    result = await db.execute(
-        select(Customer).where(Customer.id == customer_id, Customer.merchant_id == merchant.id)
-    )
-    customer = result.scalar_one_or_none()
-    if not customer:
-        raise HTTPException(404, CLIENT_NOT_FOUND)
-
-    # Check credit limit (0 = no limit)
-    if data.type == "CREDIT" and customer.credit_limit > 0:
-        new_balance = float(customer.balance) + data.amount
-        if new_balance > float(customer.credit_limit):
-            remaining = float(customer.credit_limit) - float(customer.balance)
-            raise HTTPException(
-                400,
-                f"Plafond de crédit atteint — disponible: {remaining:.2f} MAD / limite: {customer.credit_limit:.2f} MAD"
-            )
-
-    entry = CreditEntry(
-        customer_id=customer_id,
-        merchant_id=merchant.id,
-        type=CreditEntryType(data.type),
-        amount=data.amount,
-        description=data.description,
-    )
-    db.add(entry)
-
-    # Update balance
-    if data.type == "CREDIT":
-        customer.balance = float(customer.balance) + data.amount
-    elif data.type == "PAYMENT":
-        current_balance = float(customer.balance)
-        if data.amount > current_balance:
-            raise HTTPException(
-                400,
-                f"Montant du paiement ({data.amount:.2f} MAD) supérieur au solde dû ({current_balance:.2f} MAD)"
-            )
-        customer.balance = current_balance - data.amount
-
+    customer = await lock_customer(db, customer_id, merchant.id)
+    entry = apply_entry(db, customer, merchant.id, data.type, data.amount, data.description)
     await db.commit()
     await db.refresh(entry)
-
-    # Auto-send WhatsApp notification to client for CREDIT entries
-    if data.type == "CREDIT" and customer.phone:
-        try:
-            phone_normalized = normalize_phone(customer.phone)
-            first_name = customer.name.split()[0] if customer.name else "Client"
-            amount_str = f"{data.amount:.2f}"
-            balance_str = f"{float(customer.balance):.2f}"
-            print(f"[WhatsApp Credit] Sending to {customer.name} — raw: {customer.phone}, normalized: {phone_normalized}")
-
-            # Try template first (works even outside 24h window)
-            try:
-                result = await send_template_message(
-                    to=phone_normalized,
-                    template_name="credit_notification",
-                    language="fr",
-                    body_params=[first_name, amount_str, merchant.business_name, balance_str],
-                )
-                print(f"[WhatsApp Credit] ✅ Template sent to {phone_normalized} — result: {result}")
-            except Exception as tmpl_err:
-                print(f"[WhatsApp Credit] Template failed ({tmpl_err}), trying free-form text...")
-                # Fallback: free-form text (only works within 24h window)
-                from datetime import datetime
-                date_str = datetime.now().strftime("%d/%m/%Y")
-                products_line = f"— {data.description}" if data.description else ""
-                msg = (
-                    f"Bonjour {first_name} 👋\n\n"
-                    f"Un crédit a été enregistré sur votre compte :\n\n"
-                    f"💰 Montant : {amount_str} MAD\n"
-                )
-                if products_line:
-                    msg += f"\n🛒 Détails :\n{products_line}\n"
-                msg += (
-                    f"\n📍 Boutique : {merchant.business_name}\n"
-                    f"📅 Date : {date_str}\n"
-                    f"💳 Solde total : {balance_str} MAD\n\n"
-                    f"Merci de régulariser votre situation\n"
-                    f"dès que possible. 🙏\n\n"
-                    f"— Souk.AI"
-                )
-                result = await send_text_message(phone_normalized, msg)
-                print(f"[WhatsApp Credit] ✅ Text fallback sent to {phone_normalized}")
-        except Exception as e:
-            print(f"[WhatsApp Credit] ❌ Failed for {customer.name} ({customer.phone}): {e}")
-
+    if data.type == "CREDIT":
+        background.add_task(
+            notify_credit, customer.phone, customer.name, merchant.business_name,
+            entry.amount, customer.balance, data.description, merchant.currency or "MAD",
+        )
     return entry
 
 

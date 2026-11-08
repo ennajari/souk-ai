@@ -1,10 +1,12 @@
-import re
-import random
+import hmac
+import logging
+import secrets
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select, update
 
 from core.database import get_db
 from core.security import hash_password, verify_password, create_access_token
@@ -12,8 +14,15 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory, AccountType
 from models.supplier import Supplier
 from schemas.auth import RegisterRequest, LoginRequest, AdminLoginRequest, TokenResponse
-from core.deps import check_is_admin
 from app.config import settings
+from core.locale import get_country
+from core.locale import normalize_phone as _normalize_phone
+from core.ratelimit import client_ip, enforce, get_redis, hit
+from core.ratelimit import reset as reset_limit
+
+logger = logging.getLogger("souk_ai")
+OTP_TTL_S = 600
+OTP_MAX_ATTEMPTS = 5
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -25,27 +34,31 @@ class ResetRequestBody(BaseModel):
 class ResetConfirmBody(BaseModel):
     phone_number: str
     code: str = Field(..., min_length=6, max_length=6)
-    new_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
-def normalize_phone(phone: str) -> str:
-    """Normalize phone: 0612345678 -> 212612345678, +212612345678 -> 212612345678"""
-    phone = re.sub(r'[\s\-\.\(\)]', '', phone)
-    phone = phone.lstrip('+')
-    if phone.startswith('0') and len(phone) == 10:
-        phone = '212' + phone[1:]
-    return phone
+def normalize_phone(phone: str, country: str | None = None) -> str:
+    # National numbers are read in the deployment's market; "+<code>…" works everywhere.
+    # shortcut: one default country per instance — add a country picker on login before mixing markets.
+    return _normalize_phone(phone, country or settings.DEFAULT_COUNTRY)
 
 
-def _get_redis():
-    """Get async Redis connection for OTP storage."""
-    import redis.asyncio as aioredis
-    return aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+def _token_response(merchant: Merchant, is_admin: bool = False) -> TokenResponse:
+    return TokenResponse(
+        access_token=create_access_token(merchant.id, merchant.token_version or 0),
+        merchant_id=merchant.id,
+        business_name=merchant.business_name,
+        is_admin=is_admin,
+        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
+    )
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get_db)]):
-    phone = normalize_phone(req.phone_number)
+async def register(req: RegisterRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    # 60/h/IP: carrier-grade NAT and field agents onboarding several shops share one IP
+    await enforce(f"register:{client_ip(request)}", 60, 3600)
+    country = get_country(req.country_code or settings.DEFAULT_COUNTRY)
+    phone = normalize_phone(req.phone_number, country.code)
     existing = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Ce numero de telephone est deja enregistre")
@@ -60,6 +73,9 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
         preferred_language=req.preferred_language,
         business_category=BusinessCategory(req.business_category),
         account_type=acct_type,
+        country_code=country.code,
+        currency=country.currency,
+        timezone=country.timezone,
     )
     db.add(merchant)
     await db.commit()
@@ -77,57 +93,41 @@ async def register(req: RegisterRequest, db: Annotated[AsyncSession, Depends(get
                 linked += 1
         if linked:
             await db.commit()
-            print(f"[Auth] Auto-linked {linked} supplier records to account {merchant.business_name} ({phone})")
+            logger.info("auto-linked %s supplier records to account %s", linked, merchant.id)
 
-    token = create_access_token(merchant.id)
-    return TokenResponse(
-        access_token=token,
-        merchant_id=merchant.id,
-        business_name=merchant.business_name,
-        is_admin=False,
-        account_type=acct_type.value,
-    )
+    return _token_response(merchant)
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)]):
+async def login(req: LoginRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     phone = normalize_phone(req.phone_number)
+    # 10 failures / 15 min per account, 50 / 15 min per IP (shared NATs on mobile networks)
+    await enforce(f"login:ip:{client_ip(request)}", 50, 900)
+    await enforce(f"login:acct:{phone}", 10, 900)
     result = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     merchant = result.scalar_one_or_none()
 
     if not merchant or not verify_password(req.password, merchant.hashed_password):
         raise HTTPException(status_code=401, detail="Numero ou mot de passe incorrect")
 
-    token = create_access_token(merchant.id)
-    return TokenResponse(
-        access_token=token,
-        merchant_id=merchant.id,
-        business_name=merchant.business_name,
-        is_admin=False,
-        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
-    )
+    await reset_limit(f"login:acct:{phone}")
+    return _token_response(merchant)
 
 
 @router.post("/admin-login", response_model=TokenResponse)
-async def admin_login(req: AdminLoginRequest, db: Annotated[AsyncSession, Depends(get_db)]):
-    """Login for Souk.AI startup admin — email-based authentication."""
-    result = await db.execute(select(Merchant).where(Merchant.email == req.email))
+async def admin_login(req: AdminLoginRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    """Login for Souk.AI startup admin — email-based authentication, DB `is_admin` flag required."""
+    await enforce(f"admin-login:{client_ip(request)}", 10, 900)
+    # Emails are not unique: only consider the flagged admin account(s)
+    result = await db.execute(
+        select(Merchant).where(Merchant.email == req.email, Merchant.is_admin == True).limit(1)
+    )
     merchant = result.scalar_one_or_none()
 
     if not merchant or not verify_password(req.password, merchant.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
 
-    if not check_is_admin(merchant):
-        raise HTTPException(status_code=403, detail="Acces reserve a l'administration")
-
-    token = create_access_token(merchant.id)
-    return TokenResponse(
-        access_token=token,
-        merchant_id=merchant.id,
-        business_name=merchant.business_name,
-        is_admin=True,
-        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
-    )
+    return _token_response(merchant, is_admin=True)
 
 
 @router.get("/me")
@@ -141,29 +141,34 @@ async def get_me(merchant: Annotated[Merchant, Depends(get_current_merchant)]):
 
 
 @router.post("/reset-request")
-async def reset_request(body: ResetRequestBody, db: Annotated[AsyncSession, Depends(get_db)]):
-    """Send a 6-digit OTP to the merchant's WhatsApp number."""
+async def reset_request(body: ResetRequestBody, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    """Send a 6-digit OTP to the merchant's WhatsApp number.
+
+    Always answers the same way so the endpoint cannot be used to discover registered numbers.
+    """
     phone = normalize_phone(body.phone_number)
+    await enforce(f"otp-req:ip:{client_ip(request)}", 10, 3600)
+    generic = {"message": "Si ce numero est inscrit, un code a ete envoye par WhatsApp"}
+    if not await hit(f"rl:otp-req:acct:{phone}", 3, 3600):  # also caps WhatsApp cost per number
+        return generic
+
     result = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
-    merchant = result.scalar_one_or_none()
-    if not merchant:
-        raise HTTPException(404, "Aucun compte avec ce numero")
+    if not result.scalar_one_or_none():
+        return generic
 
-    code = str(random.randint(100000, 999999))
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    r = get_redis()
+    await r.setex(f"otp:{phone}", OTP_TTL_S, code)
+    await r.delete(f"otp-fail:{phone}")
 
-    # Store OTP in Redis with 10 min expiry (works across multiple workers)
-    r = await _get_redis()
-    await r.setex(f"otp:{phone}", 600, code)
-    await r.aclose()
-
-    from services.whatsapp import send_otp_message
+    from services import whatsapp
     try:
-        await send_otp_message(phone, code)
-    except Exception as e:
-        print(f"[OTP] Failed to send WhatsApp to {phone}: {e}")
-        raise HTTPException(503, "Impossible d'envoyer le code WhatsApp. Contactez le support au +212 XXX XXXXXX")
+        await whatsapp.send_otp_message(phone, code)
+    except Exception as e:  # noqa: BLE001
+        logger.error("OTP WhatsApp send failed: %s", e)
+        raise HTTPException(503, "Impossible d'envoyer le code WhatsApp. Reessayez plus tard ou contactez le support.")
 
-    return {"message": "Code envoye par WhatsApp"}
+    return generic
 
 
 @router.post("/reset-confirm", response_model=TokenResponse)
@@ -171,19 +176,19 @@ async def reset_confirm(body: ResetConfirmBody, db: Annotated[AsyncSession, Depe
     """Verify OTP code and set new password."""
     phone = normalize_phone(body.phone_number)
 
-    r = await _get_redis()
+    r = get_redis()
     stored_code = await r.get(f"otp:{phone}")
 
     if not stored_code:
-        await r.aclose()
         raise HTTPException(400, "Aucun code demande ou code expire")
-    if stored_code != body.code:
-        await r.aclose()
+    if not hmac.compare_digest(stored_code, body.code):
+        fails = await r.incr(f"otp-fail:{phone}")
+        await r.expire(f"otp-fail:{phone}", OTP_TTL_S)
+        if fails >= OTP_MAX_ATTEMPTS:
+            await r.delete(f"otp:{phone}")  # burn the code: brute force now needs a new OTP
         raise HTTPException(400, "Code incorrect")
 
-    # Code valid — delete OTP
-    await r.delete(f"otp:{phone}")
-    await r.aclose()
+    await r.delete(f"otp:{phone}", f"otp-fail:{phone}")
 
     result = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     merchant = result.scalar_one_or_none()
@@ -191,16 +196,10 @@ async def reset_confirm(body: ResetConfirmBody, db: Annotated[AsyncSession, Depe
         raise HTTPException(404, "Compte introuvable")
 
     merchant.hashed_password = hash_password(body.new_password)
+    merchant.token_version = (merchant.token_version or 0) + 1  # log out every other session
     await db.commit()
 
-    token = create_access_token(merchant.id)
-    return TokenResponse(
-        access_token=token,
-        merchant_id=merchant.id,
-        business_name=merchant.business_name,
-        is_admin=False,
-        account_type=merchant.account_type.value if merchant.account_type else "MERCHANT",
-    )
+    return _token_response(merchant)
 
 
 @router.delete("/account", status_code=204)
@@ -225,6 +224,9 @@ async def delete_account(
     from models.supplier_catalog import SupplierCatalogItem
     from models.payment import Payment, MerchantPaymentConfig
     from models.marketplace import MarketplaceListing, MarketplaceOrder
+    from models.souk_card import CardTransaction
+    from models.invoice import Invoice
+    from models.credit_request import CreditRequest
 
     mid = merchant.id
 
@@ -275,6 +277,12 @@ async def delete_account(
     await db.execute(delete(Forecast).where(Forecast.merchant_id == mid))
     await db.execute(delete(CreditHistory).where(CreditHistory.merchant_id == mid))
     await db.execute(delete(Conversation).where(Conversation.merchant_id == mid))
+
+    # Card ledgers belong to card holders: keep them (balances must stay auditable) but detach this merchant
+    await db.execute(update(CardTransaction).where(CardTransaction.merchant_id == mid).values(merchant_id=None))
+    await db.execute(update(Supplier).where(Supplier.supplier_account_id == mid).values(supplier_account_id=None))
+    await db.execute(delete(Invoice).where(Invoice.merchant_id == mid))
+    await db.execute(delete(CreditRequest).where(CreditRequest.merchant_id == mid))
 
     # Delete merchant
     await db.execute(delete(Merchant).where(Merchant.id == mid))

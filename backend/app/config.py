@@ -1,6 +1,10 @@
-from pydantic_settings import BaseSettings
-from typing import List
 import json
+from typing import List
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
+
+_WEAK_SECRETS = {"", "changeme", "secret", "changeme_generate_with_openssl_rand_hex_32"}
 
 
 class Settings(BaseSettings):
@@ -27,15 +31,29 @@ class Settings(BaseSettings):
     # CMI Payment Gateway
     CMI_STORE_KEY: str = ""  # HMAC key for callback verification
 
-    # Admin
-    ADMIN_PHONE: str = "212763576794"
-    ADMIN_EMAIL: str = "abdellahennajari2018@gmail.com"
+    # Admin — only used once by the migration that seeds `merchants.is_admin`;
+    # authorization itself relies on that DB flag, never on these values.
+    ADMIN_PHONE: str = ""
+    ADMIN_EMAIL: str = ""
+
+    # Locale defaults for new merchants (see core/locale.py)
+    DEFAULT_COUNTRY: str = "MA"
 
     # App
     APP_ENV: str = "development"
-    APP_DEBUG: bool = True
+    APP_DEBUG: bool = False
     BACKEND_CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000"]'
     FRONTEND_URL: str = "http://localhost:8080"
+
+    @property
+    def is_production(self) -> bool:
+        return self.APP_ENV.lower() in ("production", "prod")
+
+    @model_validator(mode="after")
+    def _refuse_weak_secret_in_production(self):
+        if self.is_production and (self.SECRET_KEY in _WEAK_SECRETS or len(self.SECRET_KEY) < 32):
+            raise ValueError("SECRET_KEY must be set to a random value of >= 32 chars in production")
+        return self
 
     @property
     def cors_origins(self) -> List[str]:

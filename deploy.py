@@ -7,9 +7,10 @@ import os
 import paramiko
 from pathlib import Path
 
-HOST = "<VPS_IP>"
-USER = "ubuntu"
-PASSWORD = "***REMOVED***"
+# Credentials come from the environment — never commit them (AUDIT S1). Prefer SSH keys.
+HOST = os.environ["DEPLOY_HOST"]
+USER = os.environ.get("DEPLOY_USER", "ubuntu")
+PASSWORD = os.environ.get("DEPLOY_PASSWORD")  # None → paramiko uses your SSH agent/key
 REMOTE_BASE = "/opt/souk-ai"
 LOCAL_BASE = Path(__file__).parent
 

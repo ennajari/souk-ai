@@ -374,14 +374,12 @@ async def supplier_events(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """SSE endpoint — uses token query param because EventSource doesn't support headers."""
-    from core.security import decode_access_token
+    from core.deps import merchant_from_token
 
-    merchant_id = decode_access_token(token)
-    if not merchant_id:
+    merchant = await merchant_from_token(token, db)
+    if not merchant:
         raise HTTPException(401, "Token invalide")
-    result = await db.execute(select(Merchant).where(Merchant.id == merchant_id))
-    merchant = result.scalar_one_or_none()
-    if not merchant or merchant.account_type != AccountType.SUPPLIER:
+    if merchant.account_type != AccountType.SUPPLIER:
         raise HTTPException(403, "Acces reserve aux fournisseurs")
 
     async def stream():

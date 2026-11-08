@@ -42,6 +42,13 @@ class Merchant(Base):
     location_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
     credit_score: Mapped[int] = mapped_column(Integer, default=500)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Platform admin: set in DB only (migration/`scripts/grant_admin.py`), never from user input
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Bumped on password reset → invalidates every previously issued JWT
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    country_code: Mapped[str] = mapped_column(String(2), default="MA", server_default="MA")
+    currency: Mapped[str] = mapped_column(String(3), default="MAD", server_default="MAD")
+    timezone: Mapped[str] = mapped_column(String(64), default="Africa/Casablanca", server_default="Africa/Casablanca")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     products = relationship("Product", back_populates="merchant", lazy="select")
