@@ -7,6 +7,8 @@ import BarcodeScanner from '../components/BarcodeScanner'
 import SoukCardVisual from '../components/SoukCardVisual'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../context/AuthContext'
+import { useMoney } from '../utils/money'
 
 const PAYMENT_METHODS = [
   { id: 'CASH', label: 'Especes', labelAr: 'نقدي', icon: FiDollarSign, color: 'green' },
@@ -16,6 +18,9 @@ const PAYMENT_METHODS = [
 
 export default function POS() {
   const { t, i18n } = useTranslation()
+  const money = useMoney()
+  const { merchant } = useAuth()
+  const currency = merchant?.currency || 'MAD'
   const isRtl = i18n.language === 'ar'
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState([])
@@ -298,7 +303,7 @@ export default function POS() {
     setMobileCartOpen(false)
     setDetectedCard(null)
     saleKey.current = null
-    toast.success(`${t('pos.saleRegistered')} ${cartTotal.toFixed(2)} MAD`)
+    toast.success(`${t('pos.saleRegistered')} ${money(cartTotal)}`)
   }
 
   // Confirm PIN and pay
@@ -341,7 +346,7 @@ ${receipt.items.map(c => `
 `).join('')}
 <div class="total">
   <span>${t('common.total')}</span>
-  <span>${receipt.total.toFixed(2)} MAD</span>
+  <span>${money(receipt.total)}</span>
 </div>
 <div class="payment">Paye par: ${receipt.paymentMethod || 'Especes'}</div>
 <div class="footer">Merci / شكرا<br/>Souk.AI — Paiement securise</div>
@@ -432,11 +437,11 @@ ${receipt.items.map(c => `
               <div className="flex items-center gap-1">
                 <input type="number" value={item.price} onChange={e => updatePrice(item.product.id, e.target.value)}
                   className="w-20 text-right text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-500" step="0.01" min="0" />
-                <span className="text-xs text-gray-400">MAD</span>
+                <span className="text-xs text-gray-400">{currency}</span>
               </div>
             </div>
             <p className={`text-sm font-bold text-violet-600 mt-1 ${isRtl ? 'text-left' : 'text-right'}`}>
-              {(item.qty * item.price).toFixed(2)} MAD
+              {money((item.qty * item.price))}
             </p>
           </div>
         ))}
@@ -454,7 +459,7 @@ ${receipt.items.map(c => `
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-500">{t('pos.articles')}: {cartCount}</span>
-          <span className="text-xl font-black text-gray-900">{cartTotal.toFixed(2)} MAD</span>
+          <span className="text-xl font-black text-gray-900">{money(cartTotal)}</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { if (cart.length === 0) return toast.error(t('pos.emptyCart')); handleCashCheckout() }} disabled={cart.length === 0 || processing}
@@ -506,7 +511,7 @@ ${receipt.items.map(c => `
                   <p className="font-semibold text-sm text-gray-900 truncate">{isRtl ? (p.name_ar || p.name_fr) : (p.name_fr || p.name_ar)}</p>
                   {p.name_ar && p.name_fr && <p className="text-xs text-gray-400 truncate mt-0.5">{isRtl ? p.name_fr : p.name_ar}</p>}
                   <p className="text-lg font-black text-violet-600 mt-2">{(p.unit_price || 0).toFixed(2)}</p>
-                  <p className="text-xs text-gray-400">MAD / {p.unit || 'piece'}</p>
+                  <p className="text-xs text-gray-400">{currency} / {p.unit || 'piece'}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`text-xs font-medium ${stock > 0 ? 'text-green-600' : 'text-red-500'}`}>{t('pos.stock')}: {stock}</span>
                     {inCart && <span className="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">x{inCart.qty}</span>}
@@ -541,7 +546,7 @@ ${receipt.items.map(c => `
             <span className="font-bold text-sm">{t('pos.cart')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-black">{cartTotal.toFixed(2)} MAD</span>
+            <span className="text-lg font-black">{money(cartTotal)}</span>
             <FiChevronUp className="h-5 w-5" />
           </div>
         </button>
@@ -575,7 +580,7 @@ ${receipt.items.map(c => `
                   <button onClick={() => { stopNfcScan(); setShowPayment(false) }} className="p-1 hover:bg-white/20 rounded-lg"><FiX className="h-5 w-5" /></button>
                 )}
               </div>
-              <p className="text-white text-2xl font-black mt-1">{cartTotal.toFixed(2)} MAD</p>
+              <p className="text-white text-2xl font-black mt-1">{money(cartTotal)}</p>
               <p className="text-violet-200 text-xs">{cartCount} article(s)</p>
             </div>
 
@@ -608,7 +613,7 @@ ${receipt.items.map(c => `
                   else startNfcScan()
                 }}
                   className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all text-base active:scale-[0.98] flex items-center justify-center gap-3">
-                  {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> Confirmer {cartTotal.toFixed(2)} MAD</>}
+                  {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> Confirmer {money(cartTotal)}</>}
                   {payMethod === 'NFC_SOUKCARD' && <><FiSmartphone className="h-5 w-5" /> Scanner la carte Souk.AI</>}
                   {payMethod === 'NFC_BANK' && <><FiCreditCard className="h-5 w-5" /> Scanner la carte bancaire</>}
                 </button>
@@ -634,7 +639,7 @@ ${receipt.items.map(c => `
                     {payMethod === 'NFC_SOUKCARD' ? 'Approchez la carte Souk.AI' : 'Approchez la carte bancaire'}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Placez la carte sur le dos du telephone</p>
-                  <p className="text-xs text-gray-400 mt-3">{cartTotal.toFixed(2)} MAD</p>
+                  <p className="text-xs text-gray-400 mt-3">{money(cartTotal)}</p>
                 </div>
                 <button onClick={() => { stopNfcScan(); setPayStep('select') }}
                   className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Annuler</button>
@@ -656,7 +661,7 @@ ${receipt.items.map(c => `
                 {detectedCard.balance < cartTotal && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center gap-2">
                     <FiX className="h-4 w-4 flex-shrink-0" />
-                    Solde insuffisant ({detectedCard.balance.toFixed(2)} MAD &lt; {cartTotal.toFixed(2)} MAD)
+                    Solde insuffisant ({money(detectedCard.balance)} &lt; {money(cartTotal)})
                   </div>
                 )}
 
@@ -715,7 +720,7 @@ ${receipt.items.map(c => `
                   <FiCheckCircle className="h-12 w-12 text-green-500" />
                 </div>
                 <p className="text-2xl font-black text-gray-900">Paiement reussi!</p>
-                <p className="text-xl text-green-600 font-black mt-2">{cartTotal.toFixed(2)} MAD</p>
+                <p className="text-xl text-green-600 font-black mt-2">{money(cartTotal)}</p>
                 {detectedCard && <p className="text-sm text-gray-500 mt-1">Merci {detectedCard.holder_name}</p>}
               </div>
             )}
@@ -771,7 +776,7 @@ ${receipt.items.map(c => `
                     {p.name_ar && p.name_fr && p.name_ar !== p.name_fr && <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>}
                   </div>
                   <div className="text-right ml-3 flex-shrink-0">
-                    <p className="text-sm font-bold text-violet-600">{(p.unit_price || 0).toFixed(2)} MAD</p>
+                    <p className="text-sm font-bold text-violet-600">{money((p.unit_price || 0))}</p>
                     {p.barcode && <p className="text-[10px] text-gray-400 font-mono">{p.barcode}</p>}
                   </div>
                 </button>
@@ -821,12 +826,12 @@ ${receipt.items.map(c => `
               {lastReceipt.items.map((c, i) => (
                 <div key={i} className="flex justify-between text-sm">
                   <span className="text-gray-600">{c.qty}x {isRtl ? (c.product.name_ar || c.product.name_fr) : (c.product.name_fr || c.product.name_ar)}</span>
-                  <span className="font-medium">{(c.qty * c.price).toFixed(2)} MAD</span>
+                  <span className="font-medium">{money((c.qty * c.price))}</span>
                 </div>
               ))}
               <div className="border-t pt-2 flex justify-between font-bold">
                 <span>{t('common.total')}</span>
-                <span className="text-violet-600">{lastReceipt.total.toFixed(2)} MAD</span>
+                <span className="text-violet-600">{money(lastReceipt.total)}</span>
               </div>
             </div>
             <div className="flex gap-2">
