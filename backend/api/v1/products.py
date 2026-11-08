@@ -3,6 +3,7 @@ import json
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
+from core.money import to_money
 from core.ratelimit import enforce
 from core.uploads import IMAGE_TYPES, read_limited
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ from core.deps import get_current_merchant
 from app.config import settings
 from models.merchant import Merchant
 from models.product import Product
-from models.inventory import Inventory
+from models.inventory import Inventory, InventoryLog
 from schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from services.barcode_service import register_barcode, lookup_barcode
 
@@ -231,6 +232,9 @@ async def merge_products(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Merge two duplicate products: keep one, transfer stock + transactions from the other."""
+    if keep_id == remove_id:
+        # Merging a product into itself doubled its stock, then deleted its inventory row
+        raise HTTPException(400, "Choisissez deux produits differents")
     keep_result = await db.execute(
         select(Product).where(Product.id == keep_id, Product.merchant_id == merchant.id)
     )
@@ -253,8 +257,15 @@ async def merge_products(
         keep.barcode = remove.barcode
     if float(keep.unit_price or 0) == 0 and float(remove.unit_price or 0) > 0:
         keep.unit_price = remove.unit_price
-    if float(keep.cost_price or 0) == 0 and float(remove.cost_price or 0) > 0:
-        keep.cost_price = remove.cost_price
+    keep_qty = to_money(keep.inventory.quantity) if keep.inventory else to_money(0)
+    remove_qty_row = (await db.execute(select(Inventory.quantity).where(Inventory.product_id == remove_id))).scalar()
+    remove_qty = to_money(remove_qty_row or 0)
+    keep_cost, remove_cost = to_money(keep.cost_price), to_money(remove.cost_price)
+    if keep_cost == 0 and remove_cost > 0:
+        keep.cost_price = remove_cost
+    elif keep_cost > 0 and remove_cost > 0 and keep_qty > 0 and remove_qty > 0:
+        # merged stock is valued at the weighted average of both costs
+        keep.cost_price = to_money((keep_qty * keep_cost + remove_qty * remove_cost) / (keep_qty + remove_qty))
 
     from models.transaction import Transaction
     await db.execute(
@@ -273,6 +284,12 @@ async def merge_products(
             remove_inv.product_id = keep_id
         if remove_inv and keep_inv:
             await db.delete(remove_inv)
+        if remove_qty:
+            db.add(InventoryLog(
+                product_id=keep_id, merchant_id=merchant.id, quantity_before=keep_qty,
+                quantity_change=remove_qty, quantity_after=keep_qty + remove_qty,
+                reason="Fusion de doublon", source="merge",
+            ))
 
     remove.is_active = False
     await db.commit()
