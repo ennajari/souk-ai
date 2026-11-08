@@ -111,7 +111,8 @@
     "totalPurchases": "Total purchases",
     "product": "Product",
     "unitPrice": "Unit price",
-    "balance": "Balance"
+    "balance": "Balance",
+    "optIn": "Customer agrees to WhatsApp reminders (max once a week)"
   },
   "settings": {
     "title": "Settings",

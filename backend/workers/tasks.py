@@ -13,7 +13,7 @@ from models.product import Product
 from models.transaction import Transaction, TransactionType, TransactionSource
 from models.conversation import MessageRole, MessageType
 from services.ai_engine import process_message, extract_invoice_data, generate_natural_response
-from services.whatsapp import send_text_message
+from services.whatsapp import send_template_message, send_text_message
 from services.inventory import find_product_by_name, find_most_similar_product, record_sale, get_stock_level, get_low_stock_products
 from services.sales import SaleError
 from services.conversation import get_conversation_history, save_message
@@ -1669,7 +1669,6 @@ async def _send_karni_reminders():
             merchants = result.scalars().all()
 
             now = datetime.now(timezone.utc)
-            today_str = now.strftime("%Y-%m-%d")
             three_days_ago = now - timedelta(days=3)
 
             for merchant in merchants:
@@ -1681,6 +1680,8 @@ async def _send_karni_reminders():
                         Customer.balance > 50,
                         Customer.phone != None,
                         Customer.phone != "",
+                        # WhatsApp policy: business-initiated messages need the customer's opt-in
+                        Customer.whatsapp_opt_in == True,
                     )
                 )
                 customers = cust_result.scalars().all()
@@ -1690,8 +1691,8 @@ async def _send_karni_reminders():
                     if sent_count >= 20:
                         break
 
-                    # Check Redis dedup — skip if already reminded today
-                    dedup_key = f"karni_reminder:{customer.id}:{today_str}"
+                    # At most one automatic reminder per customer per 7 days (was daily)
+                    dedup_key = f"karni_reminder:{customer.id}"
                     already_sent = await redis_client.get(dedup_key)
                     if already_sent:
                         continue
@@ -1712,22 +1713,29 @@ async def _send_karni_reminders():
                     first_name = customer.name.split()[0] if customer.name else "Client"
                     balance_str = f"{float(customer.balance):.2f}"
                     shop_name = merchant.business_name or "Votre boutique"
+                    currency = merchant.currency or "MAD"
                     last_date = last_entry.created_at.strftime("%d/%m/%Y") if last_entry else "—"
 
                     msg = (
                         f"سلام {first_name} 👋\n\n"
-                        f"هذا تذكير بسيط — عندك {balance_str} درهم في الكارني ديال {shop_name}.\n\n"
-                        f"💳 المبلغ: {balance_str} MAD\n"
+                        f"هذا تذكير بسيط — عندك {balance_str} {currency} في الكارني ديال {shop_name}.\n\n"
+                        f"💳 المبلغ: {balance_str} {currency}\n"
                         f"📅 آخر عملية: {last_date}\n\n"
                         f"الله يبارك فيك، خلص وقتما تقدر 🙏\n\n"
                         f"— {shop_name} via Souk.AI"
                     )
 
                     try:
-                        phone_normalized = normalize_phone(customer.phone)
-                        await send_text_message(phone_normalized, msg)
-                        # Mark as sent in Redis with 24h TTL
-                        await redis_client.setex(dedup_key, 86400, "1")
+                        phone_normalized = normalize_phone(customer.phone, merchant.country_code)
+                        try:
+                            # Approved utility template works outside the 24 h window; free text only inside it
+                            await send_template_message(
+                                to=phone_normalized, template_name="karni_reminder", language="ar",
+                                body_params=[first_name, balance_str, currency, shop_name, last_date],
+                            )
+                        except Exception:  # noqa: BLE001
+                            await send_text_message(phone_normalized, msg)
+                        await redis_client.setex(dedup_key, 7 * 86400, "1")
                         sent_count += 1
                     except Exception as e:
                         logger.error(f"Karni reminder failed for {customer.name} ({customer.phone}): {e}")

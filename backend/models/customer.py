@@ -23,6 +23,8 @@ class Customer(Base):
     balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)  # positive = customer owes
     credit_limit: Mapped[float] = mapped_column(Numeric(10, 2), default=0)  # 0 = no limit
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Consent to automatic WhatsApp reminders, recorded by the merchant (WhatsApp policy requires opt-in)
+    whatsapp_opt_in: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     merchant = relationship("Merchant")

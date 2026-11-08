@@ -10,6 +10,7 @@ class CustomerCreate(BaseModel):
     phone: str | None = None
     notes: str | None = None
     credit_limit: float = Field(default=0, ge=0)  # 0 = no limit
+    whatsapp_opt_in: bool = False
 
 
 class CustomerUpdate(BaseModel):
@@ -17,6 +18,7 @@ class CustomerUpdate(BaseModel):
     phone: str | None = None
     notes: str | None = None
     credit_limit: float | None = Field(default=None, ge=0)
+    whatsapp_opt_in: bool | None = None
 
 
 class CreditEntryCreate(BaseModel):
@@ -44,6 +46,7 @@ class CustomerResponse(BaseModel):
     notes: str | None = None
     balance: float = 0
     credit_limit: float = 0
+    whatsapp_opt_in: bool = False
     is_active: bool = True
     created_at: datetime
     entries: list[CreditEntryResponse] = []
@@ -57,6 +60,7 @@ class CustomerListResponse(BaseModel):
     phone: str | None = None
     balance: float = 0
     credit_limit: float = 0
+    whatsapp_opt_in: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
