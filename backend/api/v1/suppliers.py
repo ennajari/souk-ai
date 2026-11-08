@@ -1,6 +1,8 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from datetime import datetime, timezone
+
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -12,6 +14,7 @@ from models.supplier_order import SupplierOrder, SupplierOrderStatus
 from models.product import Product
 from models.notification import Notification
 from schemas.supplier import SupplierCreate, SupplierUpdate, SupplierResponse, SupplierOrderResponse
+from services.sales import receive_supplier_order
 from services.supplier_aggregation import create_aggregated_bulk_order
 from services.payment_service import create_payment
 from services.whatsapp import send_text_message
@@ -142,9 +145,9 @@ async def list_supplier_orders(
 
 class OrderItemRequest(BaseModel):
     product_id: str | None = None
-    product_name: str | None = None
-    unit_price: float | None = None
-    quantity: int
+    product_name: str | None = Field(None, max_length=200)
+    unit_price: float | None = Field(None, ge=0)
+    quantity: int = Field(..., gt=0, le=100_000)  # negative quantities produced negative totals
 
 
 class PlaceOrderRequest(BaseModel):
@@ -160,7 +163,11 @@ async def place_order(
     product_id: str | None = None,
     quantity: int | None = None,
 ):
-    sup_result = await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.is_active == True))
+    # Only the merchant's own suppliers: any id used to work, letting anyone spam another
+    # merchant's supplier (orders + WhatsApp messages in that merchant's name)
+    sup_result = await db.execute(select(Supplier).where(
+        Supplier.id == supplier_id, Supplier.merchant_id == merchant.id, Supplier.is_active == True,
+    ))
     supplier = sup_result.scalar_one_or_none()
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur introuvable")
@@ -308,7 +315,7 @@ async def pay_supplier_order(
             SupplierOrder.id == order_id,
             SupplierOrder.supplier_id == supplier_id,
             SupplierOrder.merchant_id == merchant.id,
-        )
+        ).with_for_update()  # a double click must not pay twice
     )
     order = result.scalar_one_or_none()
     if not order:
@@ -357,3 +364,33 @@ async def pay_supplier_order(
     return payment_result
 
 
+
+
+@router.post("/{supplier_id}/orders/{order_id}/receive")
+async def receive_supplier_order_endpoint(
+    supplier_id: str,
+    order_id: str,
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Merchant confirms the delivery arrived: stock goes up, product costs are re-averaged.
+
+    Needed because most suppliers have no portal account and never mark orders delivered.
+    """
+    order = (await db.execute(
+        select(SupplierOrder).where(
+            SupplierOrder.id == order_id,
+            SupplierOrder.supplier_id == supplier_id,
+            SupplierOrder.merchant_id == merchant.id,
+        ).with_for_update()
+    )).scalar_one_or_none()
+    if not order:
+        raise HTTPException(404, "Commande introuvable")
+    if order.status not in (SupplierOrderStatus.PENDING, SupplierOrderStatus.SUBMITTED,
+                            SupplierOrderStatus.IN_DELIVERY):
+        raise HTTPException(409, f"Commande deja {order.status.value.lower()}")
+    received = await receive_supplier_order(db, order)
+    order.status = SupplierOrderStatus.DELIVERED
+    order.delivered_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"status": "DELIVERED", "lines_received": received}

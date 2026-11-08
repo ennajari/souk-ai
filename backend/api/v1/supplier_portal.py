@@ -14,6 +14,7 @@ from models.supplier import Supplier
 from models.supplier_order import SupplierOrder, SupplierOrderStatus
 from models.payment import Payment
 from models.notification import Notification
+from services.sales import receive_supplier_order
 from services.sse_events import subscribe, publish_event
 
 router = APIRouter(prefix="/supplier-portal", tags=["Supplier Portal"])
@@ -140,7 +141,7 @@ async def update_order_status(
         select(SupplierOrder).where(
             SupplierOrder.id == order_id,
             SupplierOrder.supplier_id.in_(supplier_ids),
-        )
+        ).with_for_update()
     )
     order = result.scalar_one_or_none()
     if not order:
@@ -164,6 +165,8 @@ async def update_order_status(
         order.submitted_at = now
     elif new_status == SupplierOrderStatus.DELIVERED:
         order.delivered_at = now
+        if order.merchant_id:
+            await receive_supplier_order(db, order)  # the merchant's stock goes up on delivery
 
     # Notify the merchant
     if order.merchant_id:

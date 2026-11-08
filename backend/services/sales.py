@@ -96,3 +96,42 @@ async def record_items(
             ))
     await db.flush()
     return out
+
+
+async def receive_supplier_order(db: AsyncSession, order) -> int:
+    """Put a delivered supplier order into stock (caller locks the order and commits).
+
+    Catalog lines (with product_id) become PURCHASE transactions (+stock, journaled) and update the
+    product's cost to the weighted average of stock on hand and the delivered goods.
+    Returns the number of lines received. Call it only on the transition to DELIVERED (terminal),
+    so a delivery can never be stocked twice.
+    """
+    lines = [it for it in (order.items or []) if it.get("product_id") and int(it.get("quantity") or 0) > 0]
+    if not lines:
+        return 0
+    products = {p.id: p for p in (await db.execute(
+        select(Product).where(Product.id.in_([it["product_id"] for it in lines]),
+                              Product.merchant_id == order.merchant_id)
+    )).scalars().all()}
+    stocks = {i.product_id: i for i in (await db.execute(
+        select(Inventory).where(Inventory.product_id.in_(list(products))).order_by(Inventory.product_id)
+        .with_for_update()
+    )).scalars().all()}
+    purchases = []
+    for it in lines:
+        p = products.get(it["product_id"])
+        if not p:
+            continue  # product deleted since the order: keep the order, skip the stock line
+        qty, price = int(it["quantity"]), to_money(it.get("unit_price") or p.cost_price)
+        if p.id not in stocks:
+            inv = Inventory(product_id=p.id, quantity=0)
+            db.add(inv)
+            stocks[p.id] = inv
+        on_hand = max(to_money(stocks[p.id].quantity), to_money(0))
+        if on_hand + qty > 0:
+            p.cost_price = to_money((on_hand * to_money(p.cost_price) + qty * price) / (on_hand + qty))
+        purchases.append(Line(product_id=p.id, quantity=qty, unit_price=price, type="PURCHASE",
+                              source="API", unit_cost=price))
+    await db.flush()
+    await record_items(db, order.merchant_id, purchases)
+    return len(purchases)
