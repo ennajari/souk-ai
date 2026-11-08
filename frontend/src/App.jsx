@@ -1,47 +1,58 @@
+import { lazy, Suspense } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
 import AdminLayout from "./components/AdminLayout"
-import Landing from "./pages/Landing"
-import Login from "./pages/Login"
-import AdminLogin from "./pages/AdminLogin"
-import Register from "./pages/Register"
-import Dashboard from "./pages/Dashboard"
-import Products from "./pages/Products"
-import Inventory from "./pages/Inventory"
-import Sales from "./pages/Sales"
-import Analytics from "./pages/Analytics"
-import Settings from "./pages/Settings"
-import Forecasts from "./pages/Forecasts"
-import Suppliers from "./pages/Suppliers"
-import Credit from "./pages/Credit"
-import SageImport from "./pages/SageImport"
-import AdminDashboard from "./pages/AdminDashboard"
-import AdminMerchants from "./pages/AdminMerchants"
-import AdminCards from "./pages/AdminCards"
-import AdminPayments from "./pages/AdminPayments"
-import AdminCreditRequests from "./pages/AdminCreditRequests"
-import AdminSettings from "./pages/AdminSettings"
-import POS from "./pages/POS"
-import Customers from "./pages/Customers"
-import Profit from "./pages/Profit"
-import Notifications from "./pages/Notifications"
-import CoachIA from "./pages/CoachIA"
-import Employees from "./pages/Employees"
-import Catalogue from "./pages/Catalogue"
-import CataloguePublic from "./pages/CataloguePublic"
-import Marketplace from "./pages/Marketplace"
-import Payments from "./pages/Payments"
-import MarketIntelligence from "./pages/MarketIntelligence"
+const Landing = lazy(() => import("./pages/Landing"))
+const Login = lazy(() => import("./pages/Login"))
+const AdminLogin = lazy(() => import("./pages/AdminLogin"))
+const Register = lazy(() => import("./pages/Register"))
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const Products = lazy(() => import("./pages/Products"))
+const Inventory = lazy(() => import("./pages/Inventory"))
+const Sales = lazy(() => import("./pages/Sales"))
+const Analytics = lazy(() => import("./pages/Analytics"))
+const Settings = lazy(() => import("./pages/Settings"))
+const Forecasts = lazy(() => import("./pages/Forecasts"))
+const Suppliers = lazy(() => import("./pages/Suppliers"))
+const Credit = lazy(() => import("./pages/Credit"))
+const SageImport = lazy(() => import("./pages/SageImport"))
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
+const AdminMerchants = lazy(() => import("./pages/AdminMerchants"))
+const AdminCards = lazy(() => import("./pages/AdminCards"))
+const AdminPayments = lazy(() => import("./pages/AdminPayments"))
+const AdminCreditRequests = lazy(() => import("./pages/AdminCreditRequests"))
+const AdminSettings = lazy(() => import("./pages/AdminSettings"))
+const POS = lazy(() => import("./pages/POS"))
+const Customers = lazy(() => import("./pages/Customers"))
+const Profit = lazy(() => import("./pages/Profit"))
+const Notifications = lazy(() => import("./pages/Notifications"))
+const CoachIA = lazy(() => import("./pages/CoachIA"))
+const Employees = lazy(() => import("./pages/Employees"))
+const Catalogue = lazy(() => import("./pages/Catalogue"))
+const CataloguePublic = lazy(() => import("./pages/CataloguePublic"))
+const Marketplace = lazy(() => import("./pages/Marketplace"))
+const Payments = lazy(() => import("./pages/Payments"))
+const MarketIntelligence = lazy(() => import("./pages/MarketIntelligence"))
 
-import SupplierDashboard from "./pages/SupplierDashboard"
-import SupplierOrders from "./pages/SupplierOrders"
-import SupplierPayments from "./pages/SupplierPayments"
-import SupplierChat from "./pages/SupplierChat"
-import SupplierSettings from "./pages/SupplierSettings"
-import SupplierCatalog from "./pages/SupplierCatalog"
+const SupplierDashboard = lazy(() => import("./pages/SupplierDashboard"))
+const SupplierOrders = lazy(() => import("./pages/SupplierOrders"))
+const SupplierPayments = lazy(() => import("./pages/SupplierPayments"))
+const SupplierChat = lazy(() => import("./pages/SupplierChat"))
+const SupplierSettings = lazy(() => import("./pages/SupplierSettings"))
+const SupplierCatalog = lazy(() => import("./pages/SupplierCatalog"))
 import { useAuth } from "./context/AuthContext"
+
+// Pages are split per route: the till only downloads what it shows (was one 1.2 MB bundle — AUDIT U1)
+function PageLoader() {
+  return (
+    <div className="flex h-screen items-center justify-center" role="status" aria-live="polite">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-200 border-t-violet-600" />
+      <span className="sr-only">Chargement…</span>
+    </div>
+  )
+}
 
 function AdminRoute({ children }) {
   const { merchant } = useAuth()
@@ -64,6 +75,7 @@ function MerchantRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* ── Public pages ── */}
         <Route path="/" element={<Landing />} />
@@ -133,6 +145,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </AuthProvider>
   )
 }
