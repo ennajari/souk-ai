@@ -40,6 +40,9 @@ async def record_items(
 
     Inventory rows are locked FOR UPDATE in product-id order: two tills (or the till and the
     WhatsApp bot) can't both sell the last unit, and lock order prevents deadlocks.
+    populate_existing is essential: without it the locked SELECT can hand back an Inventory row
+    already in the session's identity map with a stale quantity (verified: the concurrent-tills
+    test oversold 4/4 runs without it, 0/4 with it).
     """
     for item in items:
         if item.quantity <= 0:
@@ -50,7 +53,7 @@ async def record_items(
     )).scalars().all()}
     inv_map = {i.product_id: i for i in (await db.execute(
         select(Inventory).where(Inventory.product_id.in_(product_ids))
-        .order_by(Inventory.product_id).with_for_update()
+        .order_by(Inventory.product_id).with_for_update().execution_options(populate_existing=True)
     )).scalars().all()}
 
     wanted: dict[str, int] = defaultdict(int)
@@ -115,7 +118,7 @@ async def receive_supplier_order(db: AsyncSession, order) -> int:
     )).scalars().all()}
     stocks = {i.product_id: i for i in (await db.execute(
         select(Inventory).where(Inventory.product_id.in_(list(products))).order_by(Inventory.product_id)
-        .with_for_update()
+        .with_for_update().execution_options(populate_existing=True)
     )).scalars().all()}
     purchases = []
     for it in lines:

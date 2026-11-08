@@ -162,7 +162,7 @@ async def return_transaction(
             Transaction.id == transaction_id,
             Transaction.merchant_id == merchant.id,
             Transaction.type == TransactionType.SALE,
-        ).with_for_update()  # serializes concurrent returns of the same sale
+        ).with_for_update().execution_options(populate_existing=True)  # serializes concurrent returns of the same sale
     )).scalar_one_or_none()
     if not original:
         raise HTTPException(404, "Vente introuvable")

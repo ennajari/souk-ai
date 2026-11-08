@@ -141,7 +141,7 @@ async def update_order_status(
         select(SupplierOrder).where(
             SupplierOrder.id == order_id,
             SupplierOrder.supplier_id.in_(supplier_ids),
-        ).with_for_update()
+        ).with_for_update().execution_options(populate_existing=True)
     )
     order = result.scalar_one_or_none()
     if not order:

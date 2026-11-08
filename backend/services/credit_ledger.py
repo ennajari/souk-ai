@@ -18,7 +18,7 @@ async def lock_customer(db: AsyncSession, customer_id: str, merchant_id: str) ->
     customer = (await db.execute(
         select(Customer)
         .where(Customer.id == customer_id, Customer.merchant_id == merchant_id)
-        .with_for_update()
+        .with_for_update().execution_options(populate_existing=True)
     )).scalar_one_or_none()
     if not customer:
         raise HTTPException(404, "Client introuvable")

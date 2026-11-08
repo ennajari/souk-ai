@@ -315,7 +315,7 @@ async def pay_supplier_order(
             SupplierOrder.id == order_id,
             SupplierOrder.supplier_id == supplier_id,
             SupplierOrder.merchant_id == merchant.id,
-        ).with_for_update()  # a double click must not pay twice
+        ).with_for_update().execution_options(populate_existing=True)  # a double click must not pay twice
     )
     order = result.scalar_one_or_none()
     if not order:
@@ -382,7 +382,7 @@ async def receive_supplier_order_endpoint(
             SupplierOrder.id == order_id,
             SupplierOrder.supplier_id == supplier_id,
             SupplierOrder.merchant_id == merchant.id,
-        ).with_for_update()
+        ).with_for_update().execution_options(populate_existing=True)
     )).scalar_one_or_none()
     if not order:
         raise HTTPException(404, "Commande introuvable")

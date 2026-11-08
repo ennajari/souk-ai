@@ -120,7 +120,7 @@ async def adjust_inventory(
 
     # Row lock: a sale and an adjustment at the same time must not overwrite each other
     inv = (await db.execute(
-        select(Inventory).where(Inventory.product_id == req.product_id).with_for_update()
+        select(Inventory).where(Inventory.product_id == req.product_id).with_for_update().execution_options(populate_existing=True)
     )).scalar_one_or_none()
     if not inv:
         inv = Inventory(product_id=req.product_id, quantity=0)

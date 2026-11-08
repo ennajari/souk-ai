@@ -185,3 +185,4 @@ async def test_whatsapp_sale_respects_stock_and_journal(client):
     assert await _stock(client, h, p["id"]) == 0
     logs = (await client.get("/api/v1/inventory/logs", headers=h)).json()
     assert [(lg["source"], lg["quantity_change"]) for lg in logs] == [("sale", -2.0)]
+

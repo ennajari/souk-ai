@@ -178,7 +178,7 @@ async def create_order(
     """Place an order on a marketplace listing."""
     # Lock the listing: two buyers can't both take the last units
     listing_q = await db.execute(
-        select(MarketplaceListing).where(MarketplaceListing.id == data.listing_id).with_for_update()
+        select(MarketplaceListing).where(MarketplaceListing.id == data.listing_id).with_for_update().execution_options(populate_existing=True)
     )
     listing = listing_q.scalar_one_or_none()
     if not listing:
@@ -256,7 +256,7 @@ async def update_order_status(
 ):
     """Update order status following an explicit state machine (see _TRANSITIONS)."""
     order = (await db.execute(
-        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id).with_for_update()
+        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id).with_for_update().execution_options(populate_existing=True)
     )).scalar_one_or_none()
     if not order or merchant.id not in (order.seller_id, order.buyer_id):
         raise HTTPException(404, "Commande introuvable")
@@ -272,7 +272,7 @@ async def update_order_status(
     # Release the reserved quantity exactly once: CANCELLED is terminal
     if new_status == MarketplaceOrderStatus.CANCELLED:
         listing = (await db.execute(
-            select(MarketplaceListing).where(MarketplaceListing.id == order.listing_id).with_for_update()
+            select(MarketplaceListing).where(MarketplaceListing.id == order.listing_id).with_for_update().execution_options(populate_existing=True)
         )).scalar_one_or_none()
         if listing:
             listing.available_quantity += order.quantity
