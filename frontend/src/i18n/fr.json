@@ -139,7 +139,8 @@
     },
     "languages": {
       "AR": "العربية / الدارجة",
-      "FR": "Français"
+      "FR": "Français",
+      "EN": "English"
     }
   },
   "notifications": {
@@ -227,5 +228,17 @@
     "syncing": "Synchronisation en cours...",
     "pending": "actions en attente",
     "synced": "Tout est synchronisé ✓"
+  },
+  "money": {
+    "title": "Où est votre argent ?",
+    "toRecover": "À récupérer auprès des clients",
+    "customers_one": "{{count}} client vous doit",
+    "customers_other": "{{count}} clients vous doivent",
+    "lost": "Perdu (stock périmé)",
+    "expiredHint": "{{count}} produit(s) périmé(s) encore en rayon",
+    "atRisk": "À risque",
+    "atRiskHint": "{{soon}} expirent sous 7 j · {{dead}} invendus depuis 30 j",
+    "missedSales": "Marge manquée / semaine",
+    "missedHint": "{{count}} produit(s) demandé(s) en rupture"
   }
 }
