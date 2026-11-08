@@ -55,7 +55,8 @@ def _token_response(merchant: Merchant, is_admin: bool = False) -> TokenResponse
 
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    await enforce(f"register:{client_ip(request)}", 10, 3600)
+    # 60/h/IP: carrier-grade NAT and field agents onboarding several shops share one IP
+    await enforce(f"register:{client_ip(request)}", 60, 3600)
     country = get_country(req.country_code or settings.DEFAULT_COUNTRY)
     phone = normalize_phone(req.phone_number, country.code)
     existing = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
