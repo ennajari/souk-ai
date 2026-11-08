@@ -29,6 +29,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', token)
     localStorage.setItem('merchant', JSON.stringify(merchantData))
     setMerchant(merchantData)
+    // The login response is minimal: fetch the profile (currency, country…) right away
+    authAPI.me().then((res) => setMerchant((m) => ({ ...m, ...res.data, is_admin: m?.is_admin }))).catch(() => {})
   }
 
   const logout = () => {

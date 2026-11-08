@@ -70,6 +70,7 @@ export const analyticsAPI = {
   dashboard: () => client.get('/analytics/dashboard'),
   salesChart: (days = 7) => client.get('/analytics/sales-chart', { params: { days } }),
   profit: (days = 30) => client.get('/analytics/profit', { params: { days } }),
+  moneyReport: () => client.get('/analytics/money-report'),
 }
 
 // ---- Export ----

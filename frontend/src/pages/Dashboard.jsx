@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import StatsCard from '../components/StatsCard'
 import RamadanBanner from '../components/RamadanBanner'
+import MoneyReportCard from '../components/MoneyReportCard'
 import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI, revenueAPI, barcodeAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -209,6 +210,8 @@ export default function Dashboard() {
       </div>
 
       {/* ── Secondary stats ── */}
+      <MoneyReportCard />
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard title="Stock bas" value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
         <StatsCard title="Revenu auj." value={`${(stats?.total_revenue_today || 0).toFixed(0)} MAD`} icon={FiZap} color="green" />

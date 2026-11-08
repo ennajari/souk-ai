@@ -265,3 +265,13 @@ async def get_monthly_revenue(
             "benefice_net": round(net_revenue, 2),
         },
     }
+
+
+@router.get("/money-report")
+async def money_report(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Money to recover (credit book) and money lost / at risk (expiry, dead stock, stock-outs)."""
+    from services.money_report import build_money_report
+    return {"currency": merchant.currency or "MAD", **await build_money_report(db, merchant.id)}
