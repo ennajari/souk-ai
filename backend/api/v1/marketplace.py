@@ -176,8 +176,9 @@ async def create_order(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Place an order on a marketplace listing."""
+    # Lock the listing: two buyers can't both take the last units
     listing_q = await db.execute(
-        select(MarketplaceListing).where(MarketplaceListing.id == data.listing_id)
+        select(MarketplaceListing).where(MarketplaceListing.id == data.listing_id).with_for_update()
     )
     listing = listing_q.scalar_one_or_none()
     if not listing:
@@ -253,33 +254,26 @@ async def update_order_status(
     db: Annotated[AsyncSession, Depends(get_db)],
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
-    """Update order status (seller accepts/ships, buyer confirms delivery)."""
-    result = await db.execute(select(MarketplaceOrder).where(MarketplaceOrder.id == order_id))
-    order = result.scalar_one_or_none()
-    if not order:
+    """Update order status following an explicit state machine (see _TRANSITIONS)."""
+    order = (await db.execute(
+        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id).with_for_update()
+    )).scalar_one_or_none()
+    if not order or merchant.id not in (order.seller_id, order.buyer_id):
         raise HTTPException(404, "Commande introuvable")
 
-    # Seller can: ACCEPTED, SHIPPED, CANCELLED
-    # Buyer can: DELIVERED, DISPUTED, CANCELLED
     new_status = MarketplaceOrderStatus(data.status)
-
-    if merchant.id == order.seller_id and new_status in (
-        MarketplaceOrderStatus.ACCEPTED, MarketplaceOrderStatus.SHIPPED, MarketplaceOrderStatus.CANCELLED
-    ):
-        order.status = new_status
-    elif merchant.id == order.buyer_id and new_status in (
-        MarketplaceOrderStatus.DELIVERED, MarketplaceOrderStatus.DISPUTED, MarketplaceOrderStatus.CANCELLED
-    ):
-        order.status = new_status
-    else:
-        raise HTTPException(403, "Action non autorisee")
-
-    # If cancelled, restore listing quantity
-    if new_status == MarketplaceOrderStatus.CANCELLED:
-        listing_q = await db.execute(
-            select(MarketplaceListing).where(MarketplaceListing.id == order.listing_id)
+    role = "seller" if merchant.id == order.seller_id else "buyer"
+    if new_status not in _TRANSITIONS.get((order.status, role), ()):
+        raise HTTPException(
+            409, f"Transition impossible: {order.status.value} → {new_status.value} ({'vendeur' if role == 'seller' else 'acheteur'})"
         )
-        listing = listing_q.scalar_one_or_none()
+    order.status = new_status
+
+    # Release the reserved quantity exactly once: CANCELLED is terminal
+    if new_status == MarketplaceOrderStatus.CANCELLED:
+        listing = (await db.execute(
+            select(MarketplaceListing).where(MarketplaceListing.id == order.listing_id).with_for_update()
+        )).scalar_one_or_none()
         if listing:
             listing.available_quantity += order.quantity
             if listing.status == ListingStatus.SOLD:
@@ -287,6 +281,20 @@ async def update_order_status(
 
     await db.commit()
     return await _load_order_details(db, order)
+
+
+S = MarketplaceOrderStatus
+# (current status, who) → allowed next statuses. DELIVERED and CANCELLED are terminal.
+# Before: any party could set almost any status at any time — e.g. cancel a delivered order (or the
+# same order twice) and put its quantity back on sale each time.
+_TRANSITIONS = {
+    (S.PENDING, "seller"): (S.ACCEPTED, S.CANCELLED),
+    (S.PENDING, "buyer"): (S.CANCELLED,),
+    (S.ACCEPTED, "seller"): (S.SHIPPED, S.CANCELLED),
+    (S.ACCEPTED, "buyer"): (S.CANCELLED,),
+    (S.SHIPPED, "buyer"): (S.DELIVERED, S.DISPUTED),
+    (S.DISPUTED, "buyer"): (S.DELIVERED,),
+}
 
 
 # ─── Helpers ───
