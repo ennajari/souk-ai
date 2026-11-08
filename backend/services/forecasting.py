@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 from models.transaction import Transaction, TransactionType
 from models.product import Product
-from models.inventory import Inventory
 
 
 async def calculate_forecast(
