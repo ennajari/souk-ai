@@ -85,7 +85,8 @@
     "saleRegistered": "Vente enregistrée!",
     "stock": "Stock",
     "directPrint": "Direct",
-    "noProduct": "Aucun produit trouvé"
+    "noProduct": "Aucun produit trouvé",
+    "expired": "Périmé"
   },
   "customers": {
     "title": "Carnet de crédit",

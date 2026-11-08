@@ -21,6 +21,7 @@ export default function POS() {
   const money = useMoney()
   const { merchant } = useAuth()
   const currency = merchant?.currency || 'MAD'
+  const today = new Date().toISOString().slice(0, 10)  // expiry_date is an ISO date string
   const isRtl = i18n.language === 'ar'
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState([])
@@ -514,6 +515,7 @@ ${receipt.items.map(c => `
                   <p className="text-xs text-gray-400">{currency} / {p.unit || 'piece'}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`text-xs font-medium ${stock > 0 ? 'text-green-600' : 'text-red-500'}`}>{t('pos.stock')}: {stock}</span>
+                    {p.expiry_date && p.expiry_date < today && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{t('pos.expired')}</span>}
                     {inCart && <span className="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">x{inCart.qty}</span>}
                   </div>
                 </button>

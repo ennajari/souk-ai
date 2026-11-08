@@ -85,7 +85,8 @@
     "saleRegistered": "!تم تسجيل البيع",
     "stock": "المخزون",
     "directPrint": "طباعة",
-    "noProduct": "لم يتم العثور على منتج"
+    "noProduct": "لم يتم العثور على منتج",
+    "expired": "فايت الصلاحية"
   },
   "customers": {
     "title": "دفتر الائتمان",

@@ -85,7 +85,8 @@
     "saleRegistered": "Sale recorded!",
     "stock": "Stock",
     "directPrint": "Print",
-    "noProduct": "No product found"
+    "noProduct": "No product found",
+    "expired": "Expired"
   },
   "customers": {
     "title": "Customer tabs",

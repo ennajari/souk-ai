@@ -202,7 +202,7 @@ export default function Dashboard() {
           value={stats?.total_sales_today || 0}
           icon={FiShoppingCart}
           color="blue"
-          subtitle={`${money((stats?.total_revenue_today || 0))} aujourd'hui`}
+          subtitle={`${money(stats?.total_revenue_today || 0, 0)} aujourd'hui`}
         />
         <StatsCard
           title="Produits"
@@ -218,7 +218,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard title="Stock bas" value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
-        <StatsCard title="Revenu auj." value={`${money((stats?.total_revenue_today || 0))}`} icon={FiZap} color="green" />
+        <StatsCard title="Revenu auj." value={`${money(stats?.total_revenue_today || 0, 0)}`} icon={FiZap} color="green" />
         {monthlyRevenue && (
           <div className="bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 hover:shadow-lg transition-all">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Benefice net/mois</p>
