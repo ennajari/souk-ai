@@ -2,6 +2,9 @@ import base64
 import json
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
+from core.ratelimit import enforce
+from core.uploads import IMAGE_TYPES, read_limited
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 
@@ -292,9 +295,12 @@ async def scan_invoice(
     if not settings.OPENAI_API_KEY:
         raise HTTPException(status_code=503, detail="OpenAI non configuré")
 
-    image_bytes = await file.read()
-    b64 = base64.b64encode(image_bytes).decode()
     mime = file.content_type or "image/jpeg"
+    if mime not in IMAGE_TYPES:
+        raise HTTPException(415, "Envoyez une photo (JPEG, PNG, WEBP ou HEIC)")
+    await enforce(f"scan-invoice:{merchant.id}", 30, 3600)  # paid GPT-4o call: cap cost per merchant
+    image_bytes = await read_limited(file)
+    b64 = base64.b64encode(image_bytes).decode()
 
     from openai import AsyncOpenAI
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)

@@ -216,3 +216,23 @@ async def test_redis_cleanup_helper():
     r = aioredis.from_url(os.environ["REDIS_URL"])
     assert await r.ping()
     await r.aclose()
+
+
+async def test_readiness_and_request_id(client):
+    r = await client.get("/health/ready", headers={"x-request-id": "abc123"})
+    assert r.status_code == 200 and r.json()["checks"] == {"database": "ok", "redis": "ok"}
+    assert r.headers["x-request-id"] == "abc123"
+
+
+async def test_upload_size_and_type_limits(client, monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "sk-test")
+    h = await register(client, phone="0688888888")
+    r = await client.post("/api/v1/products/scan-invoice", headers=h,
+                          files={"file": ("x.exe", b"MZ...", "application/octet-stream")})
+    assert r.status_code == 415
+    import core.uploads as up
+    monkeypatch.setattr(up, "MAX_UPLOAD_BYTES", 10)
+    r = await client.post("/api/v1/sage/import/articles", headers=h,
+                          files={"file": ("a.csv", b"x" * 11, "text/csv")})
+    assert r.status_code == 413
