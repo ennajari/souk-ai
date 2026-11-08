@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink, FiCreditCard, FiDollarSign, FiSmartphone, FiShield, FiCheckCircle, FiLoader, FiBookOpen } from 'react-icons/fi'
-import { productsAPI, transactionsAPI, customersAPI } from '../api/client'
+import { productsAPI, transactionsAPI } from '../api/client'
+import { addToSyncQueue } from '../utils/offlineDB'
 import client from '../api/client'
 import BarcodeScanner from '../components/BarcodeScanner'
 import SoukCardVisual from '../components/SoukCardVisual'
@@ -242,86 +243,47 @@ export default function POS() {
     setNfcReading(false)
   }
 
-  // Execute payment (final step after PIN)
-  const executePayment = async (method, cardNum, pin, nfcUid) => {
+  // One idempotency key per sale attempt: retries/double taps/offline replays can't sell twice (AUDIT L5)
+  const saleKey = useRef(null)
+  const cartLines = () => cart.map(c => ({ product_id: c.product.id, quantity: c.qty, unit_price: c.price, type: 'SALE', source: 'WEB' }))
+
+  // Single atomic checkout: sale lines + stock + payment happen in ONE server transaction (AUDIT L2/L3)
+  const checkout = async (method, label, extra = {}) => {
+    if (processing) return
+    if (cart.length === 0) { toast.error(t('pos.emptyCart')); return }
+    if (method === 'CREDIT' && !selectedCustomer) { toast.error('Selectionnez un client pour le credit'); return }
+    // randomUUID needs a secure context and Chrome 92+: fall back for old Android browsers
+    saleKey.current = saleKey.current || (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const body = { items: cartLines(), customer_id: selectedCustomer || null, payment_method: method, ...extra }
+    setProcessing(true)
     setPayStep('processing')
     setPayError('')
     try {
-      const items = cart.map(c => ({
-        product_name: c.product.name_fr || c.product.name_ar,
-        quantity: c.qty,
-        unit_price: c.price,
-      }))
-      const invoiceRes = await client.post('/invoices/', {
-        customer_name: detectedCard?.holder_name || customers.find(c => c.id === selectedCustomer)?.name || null,
-        items,
-        expires_minutes: 5,
-      })
-
-      const payPayload = { method }
-      if (cardNum) payPayload.card_number = cardNum
-      if (pin) payPayload.pin = pin
-      if (nfcUid) payPayload.nfc_uid = nfcUid
-
-      await client.post(`/invoices/pay/${invoiceRes.data.token}`, payPayload)
-
-      await transactionsAPI.createBulk(
-        cart.map(c => ({ product_id: c.product.id, quantity: c.qty, unit_price: c.price, type: 'SALE', source: 'WEB' })),
-        selectedCustomer || null,
-      )
-
-      setPayStep('success')
-      setTimeout(() => finalizeSale(method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : method === 'NFC_BANK' ? 'Carte bancaire NFC' : 'Especes'), 1500)
+      await transactionsAPI.checkout(body, saleKey.current)
+      if (method === 'CASH' || method === 'CREDIT') finalizeSale(label)
+      else { setPayStep('success'); setTimeout(() => finalizeSale(label), 1200) }
     } catch (err) {
+      if (!err.response && method === 'CASH') {
+        // Offline / flaky network: queue the cash sale, it syncs with the same key when back online
+        await addToSyncQueue({ url: '/api/v1/transactions/bulk', method: 'POST', body, headers: { 'Idempotency-Key': saleKey.current } })
+        finalizeSale(`${label} (hors ligne — sera synchronisee)`)
+        return
+      }
+      const msg = err.response?.data?.detail || t('common.error')
       setPayStep('error')
-      setPayError(err.response?.data?.detail || 'Erreur de paiement')
-    }
-  }
-
-  // Cash checkout — single batch call, works both inside modal and standalone
-  const handleCashCheckout = async () => {
-    if (processing) return
-    setProcessing(true)
-    setPayStep('processing')
-    try {
-      await transactionsAPI.createBulk(
-        cart.map(c => ({ product_id: c.product.id, quantity: c.qty, unit_price: c.price, type: 'SALE', source: 'WEB' })),
-        selectedCustomer || null,
-      )
-      finalizeSale('Especes')
-    } catch (err) {
-      setPayStep('error')
-      setPayError(err.response?.data?.detail || t('common.error'))
-      toast.error(err.response?.data?.detail || t('common.error'))
+      setPayError(typeof msg === 'string' ? msg : t('common.error'))
+      toast.error(typeof msg === 'string' ? msg : t('common.error'))
     } finally {
       setProcessing(false)
     }
   }
 
-  // Credit checkout — record sale + add credit entry to customer's carnet
-  const handleCreditCheckout = async () => {
-    if (processing) return
-    if (!selectedCustomer) { toast.error('Selectionnez un client pour le credit'); return }
-    if (cart.length === 0) { toast.error(t('pos.emptyCart')); return }
-    setProcessing(true)
-    try {
-      await transactionsAPI.createBulk(
-        cart.map(c => ({ product_id: c.product.id, quantity: c.qty, unit_price: c.price, type: 'SALE', source: 'WEB' })),
-        selectedCustomer,
-      )
-      const itemNames = cart.map(c => `${c.qty}x ${c.product.name_fr || c.product.name_ar}`).join(', ')
-      await customersAPI.addEntry(selectedCustomer, {
-        type: 'CREDIT',
-        amount: cartTotal,
-        description: `POS: ${itemNames}`,
-      })
-      finalizeSale('Credit')
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t('common.error'))
-    } finally {
-      setProcessing(false)
-    }
-  }
+  const executePayment = (method, cardNum, pin, nfcUid) => checkout(
+    method, method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : 'Carte bancaire NFC',
+    method === 'NFC_SOUKCARD' ? { card_number: nfcUid ? null : cardNum, nfc_uid: nfcUid || null, pin: pin || null } : {},
+  )
+  const handleCashCheckout = () => checkout('CASH', 'Especes')
+  const handleCreditCheckout = () => checkout('CREDIT', 'Credit')
 
   const finalizeSale = (methodLabel) => {
     setLastReceipt({
@@ -335,6 +297,7 @@ export default function POS() {
     setSelectedCustomer('')
     setMobileCartOpen(false)
     setDetectedCard(null)
+    saleKey.current = null
     toast.success(`${t('pos.saleRegistered')} ${cartTotal.toFixed(2)} MAD`)
   }
 

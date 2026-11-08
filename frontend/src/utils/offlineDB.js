@@ -82,7 +82,7 @@ export async function syncPendingActions(client) {
 
   for (const action of queue) {
     try {
-      const headers = { 'Content-Type': 'application/json' }
+      const headers = { 'Content-Type': 'application/json', ...(action.headers || {}) }
       if (token) headers['Authorization'] = `Bearer ${token}`
       const options = {
         method: action.method || 'POST',
@@ -98,6 +98,10 @@ export async function syncPendingActions(client) {
       if (response.ok) {
         await remove('syncQueue', action.id)
         synced++
+      } else if (response.status >= 400 && response.status < 500 && ![401, 408, 429].includes(response.status)) {
+        // Permanently rejected (e.g. stock now insufficient): drop it instead of retrying forever
+        console.warn('[offline-sync] dropped rejected action', action.url, response.status)
+        await remove('syncQueue', action.id)
       }
     } catch {
       // Stop syncing on network error — remaining items stay in queue

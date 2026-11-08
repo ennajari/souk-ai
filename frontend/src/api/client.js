@@ -59,6 +59,9 @@ export const transactionsAPI = {
   list: (type = null, limit = 50) => client.get('/transactions/', { params: { type, limit } }),
   create: (data) => client.post('/transactions/', data),
   createBulk: (items, customer_id = null) => client.post('/transactions/bulk', { items, customer_id }),
+  // body: { items, customer_id, payment_method: CASH|CREDIT|NFC_SOUKCARD|NFC_BANK, card_number?, nfc_uid?, pin? }
+  checkout: (body, idempotencyKey) =>
+    client.post('/transactions/bulk', body, { headers: { 'Idempotency-Key': idempotencyKey } }),
   returnSale: (transactionId) => client.post(`/transactions/${transactionId}/return`),
 }
 
