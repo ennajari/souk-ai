@@ -236,3 +236,15 @@ async def test_upload_size_and_type_limits(client, monkeypatch):
     r = await client.post("/api/v1/sage/import/articles", headers=h,
                           files={"file": ("a.csv", b"x" * 11, "text/csv")})
     assert r.status_code == 413
+
+
+async def test_other_market_signup_and_login(client, monkeypatch):
+    """A French shop registered with a national number can log in with the same number."""
+    from app.config import settings
+    monkeypatch.setattr(settings, "DEFAULT_COUNTRY", "FR")
+    await register(client, phone="06 12 34 56 78")
+    me = (await client.post("/api/v1/auth/login", json={"phone_number": "0612345678", "password": "Sup3r-secret"}))
+    assert me.status_code == 200
+    h = {"Authorization": f"Bearer {me.json()['access_token']}"}
+    prof = (await client.get("/api/v1/auth/me", headers=h)).json()
+    assert prof["phone_number"] == "33612345678" and prof["currency"] == "EUR"

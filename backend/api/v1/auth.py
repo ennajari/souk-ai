@@ -14,6 +14,7 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory, AccountType
 from models.supplier import Supplier
 from schemas.auth import RegisterRequest, LoginRequest, AdminLoginRequest, TokenResponse
+from app.config import settings
 from core.locale import get_country
 from core.locale import normalize_phone as _normalize_phone
 from core.ratelimit import client_ip, enforce, get_redis, hit
@@ -36,8 +37,10 @@ class ResetConfirmBody(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
 
 
-def normalize_phone(phone: str, country: str | None = "MA") -> str:
-    return _normalize_phone(phone, country)
+def normalize_phone(phone: str, country: str | None = None) -> str:
+    # National numbers are read in the deployment's market; "+<code>…" works everywhere.
+    # shortcut: one default country per instance — add a country picker on login before mixing markets.
+    return _normalize_phone(phone, country or settings.DEFAULT_COUNTRY)
 
 
 def _token_response(merchant: Merchant, is_admin: bool = False) -> TokenResponse:
@@ -53,7 +56,7 @@ def _token_response(merchant: Merchant, is_admin: bool = False) -> TokenResponse
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     await enforce(f"register:{client_ip(request)}", 10, 3600)
-    country = get_country(req.country_code)
+    country = get_country(req.country_code or settings.DEFAULT_COUNTRY)
     phone = normalize_phone(req.phone_number, country.code)
     existing = await db.execute(select(Merchant).where(Merchant.phone_number == phone))
     if existing.scalar_one_or_none():

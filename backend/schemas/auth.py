@@ -9,7 +9,7 @@ class RegisterRequest(BaseModel):
     preferred_language: str = Field("AR", max_length=5)
     business_category: str = "GROCERY"
     account_type: str = "MERCHANT"
-    country_code: str = Field("MA", min_length=2, max_length=2)
+    country_code: str | None = Field(None, min_length=2, max_length=2)  # default: settings.DEFAULT_COUNTRY
 
 
 class LoginRequest(BaseModel):
