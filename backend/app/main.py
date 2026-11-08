@@ -8,6 +8,10 @@ app = FastAPI(
     title="Souk.AI API",
     description="AI-Powered Inventory & Sales Management for Moroccan Merchants",
     version="2.0.0",
+    # Public API docs only outside production (AUDIT S20)
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None,
+    openapi_url=None if settings.is_production else "/openapi.json",
 )
 
 app.add_middleware(
