@@ -1,9 +1,11 @@
 import asyncio
+import os
 from sqlalchemy import select
 from datetime import datetime, timezone, timedelta
 import random
 
 from core.database import AsyncSessionLocal
+from core.security import hash_password
 from models.merchant import Merchant
 from models.supplier import Supplier, SupplierCategory
 from models.transaction import Transaction, TransactionType, TransactionSource
@@ -22,7 +24,8 @@ async def seed_data_for_test():
                 phone_number="212600000000",
                 business_name="Test Hanout",
                 owner_name="Ahmed",
-                hashed_password="$2b$12$Mv85q.i04OgFFsjFCxnbYO7f/tkIBtb6rkxn8Xf3dUySggwOgfabi",
+                # Known demo password (override with DEMO_PASSWORD); never use this account in production
+                hashed_password=hash_password(os.getenv("DEMO_PASSWORD", "demo-souk-2026")),
                 email="test@hanout.ma",
                 credit_score=500,
                 is_active=True

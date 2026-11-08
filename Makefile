@@ -17,7 +17,7 @@ logs:            ## Tail backend logs
 migrate:         ## Apply database migrations
 	docker compose exec backend alembic upgrade head
 
-seed:            ## Load demo data (demo merchant 0600000000)
+seed:            ## Demo data: login 0600000000 / $$DEMO_PASSWORD (default demo-souk-2026)
 	docker compose exec backend python -m scripts.seed_test_data
 
 test-up:         ## Start throwaway Postgres + Redis for tests
