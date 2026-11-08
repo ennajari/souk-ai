@@ -40,8 +40,10 @@ async def create_invoice(
     return invoice
 
 
-async def get_invoice_by_token(db: AsyncSession, token: str) -> Invoice | None:
-    result = await db.execute(select(Invoice).where(Invoice.token == token))
+async def get_invoice_by_token(db: AsyncSession, token: str, for_update: bool = False) -> Invoice | None:
+    q = select(Invoice).where(Invoice.token == token)
+    # Row lock serializes concurrent pay attempts on the same invoice (no double debit)
+    result = await db.execute(q.with_for_update() if for_update else q)
     return result.scalar_one_or_none()
 
 

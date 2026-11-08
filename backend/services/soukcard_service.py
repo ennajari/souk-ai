@@ -4,13 +4,41 @@ import hashlib
 import hmac
 import os
 import secrets
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+
+from core.money import to_money
+from core.ratelimit import get_redis
 
 from models.souk_card import SoukCard, CardTransaction, CardStatus, CardTransactionType, CardType
 
 logger = logging.getLogger("souk_ai")
+
+NFC_CONTACTLESS_LIMIT = Decimal("50")
+PIN_MAX_FAILURES = 5
+PIN_LOCK_S = 30 * 60
+# Top-ups are cash the merchant receives on behalf of the card network: cap the daily exposure
+# per merchant until settlement with a licensed e-money partner exists (AUDIT K1).
+MERCHANT_DAILY_TOPUP_CAP = Decimal("10000")
+
+
+async def _pin_locked(card_id: str) -> bool:
+    try:
+        return int(await get_redis().get(f"pinfail:{card_id}") or 0) >= PIN_MAX_FAILURES
+    except Exception:  # noqa: BLE001
+        return False
+
+
+async def _pin_failed(card_id: str) -> None:
+    try:
+        r = get_redis()
+        await r.incr(f"pinfail:{card_id}")
+        await r.expire(f"pinfail:{card_id}", PIN_LOCK_S)
+    except Exception:  # noqa: BLE001
+        logger.warning("could not record PIN failure for card %s", card_id)
 
 
 def _hash_pin(pin: str, salt: bytes | None = None) -> str:
@@ -80,13 +108,15 @@ async def register_card(
     return card
 
 
-async def get_card(db: AsyncSession, card_number: str) -> SoukCard | None:
-    result = await db.execute(select(SoukCard).where(SoukCard.card_number == card_number))
+async def get_card(db: AsyncSession, card_number: str, for_update: bool = False) -> SoukCard | None:
+    q = select(SoukCard).where(SoukCard.card_number == card_number)
+    result = await db.execute(q.with_for_update() if for_update else q)
     return result.scalar_one_or_none()
 
 
-async def get_card_by_nfc(db: AsyncSession, nfc_uid: str) -> SoukCard | None:
-    result = await db.execute(select(SoukCard).where(SoukCard.nfc_uid == nfc_uid))
+async def get_card_by_nfc(db: AsyncSession, nfc_uid: str, for_update: bool = False) -> SoukCard | None:
+    q = select(SoukCard).where(SoukCard.nfc_uid == nfc_uid)
+    result = await db.execute(q.with_for_update() if for_update else q)
     return result.scalar_one_or_none()
 
 
@@ -100,48 +130,67 @@ async def get_card_by_phone(db: AsyncSession, phone: str) -> list[SoukCard]:
 async def top_up_card(
     db: AsyncSession,
     card_number: str,
-    amount: float,
+    amount: float | Decimal,
     bank_reference: str | None = None,
+    merchant_id: str | None = None,
 ) -> dict:
-    card = await get_card(db, card_number)
+    amount = to_money(amount)
+    if amount <= 0 or amount > 5000:
+        return {"success": False, "error": "Montant invalide (1-5000 MAD)"}
+    card = await get_card(db, card_number, for_update=True)
     if not card:
         return {"success": False, "error": "Carte introuvable"}
     if card.status != CardStatus.ACTIVE:
         return {"success": False, "error": "Carte suspendue"}
-    if amount <= 0 or amount > 5000:
-        return {"success": False, "error": "Montant invalide (1-5000 MAD)"}
 
-    card.balance = float(card.balance) + amount
-    new_balance = float(card.balance)
+    if merchant_id:
+        since = datetime.now(timezone.utc) - timedelta(days=1)
+        today_total = (await db.execute(
+            select(func.coalesce(func.sum(CardTransaction.amount), 0)).where(
+                CardTransaction.merchant_id == merchant_id,
+                CardTransaction.type == CardTransactionType.TOP_UP,
+                CardTransaction.created_at >= since,
+            )
+        )).scalar_one()
+        if Decimal(today_total) + amount > MERCHANT_DAILY_TOPUP_CAP:
+            return {"success": False, "error": f"Plafond de recharge sur 24 h atteint ({MERCHANT_DAILY_TOPUP_CAP} MAD)"}
+
+    card.balance = to_money(card.balance) + amount
+    new_balance = card.balance
 
     txn = CardTransaction(
         card_id=card.id,
         type=CardTransactionType.TOP_UP,
         amount=amount,
         balance_after=new_balance,
+        merchant_id=merchant_id,  # who received the cash — needed for settlement/audit
         reference=bank_reference or f"TOPUP-{card.card_number[-4:]}",
         description=f"Recharge +{amount:.2f} MAD",
     )
     db.add(txn)
     await db.flush()
 
-    logger.info(f"Card {card_number} topped up: +{amount} MAD → balance {new_balance}")
-    return {"success": True, "balance": new_balance, "transaction_id": txn.id}
+    logger.info("card ...%s topped up +%s by merchant %s", card_number[-4:], amount, merchant_id)
+    return {"success": True, "balance": float(new_balance), "transaction_id": txn.id}
 
 
 async def pay_with_soukcard(
     db: AsyncSession,
-    amount: float,
+    amount: float | Decimal,
     merchant_id: str,
     reference: str,
     card_number: str | None = None,
     nfc_uid: str | None = None,
     pin: str | None = None,
 ) -> dict:
+    """Debit a card inside the caller's DB transaction (row-locked; the caller commits)."""
+    amount = to_money(amount)
+    if amount <= 0:
+        return {"success": False, "error": "Montant invalide"}
     if nfc_uid:
-        card = await get_card_by_nfc(db, nfc_uid)
+        card = await get_card_by_nfc(db, nfc_uid, for_update=True)
     elif card_number:
-        card = await get_card(db, card_number)
+        card = await get_card(db, card_number, for_update=True)
     else:
         return {"success": False, "error": "Carte requise"}
 
@@ -149,35 +198,37 @@ async def pay_with_soukcard(
         return {"success": False, "error": "Carte introuvable"}
     if card.status != CardStatus.ACTIVE:
         return {"success": False, "error": "Carte suspendue"}
+    if await _pin_locked(card.id):
+        return {"success": False, "error": "Carte bloquee apres trop de codes PIN incorrects. Reessayez dans 30 min."}
 
-    # PIN required for amounts > 50 MAD (NFC contactless limit)
-    NFC_CONTACTLESS_LIMIT = 50.0
-    if amount > NFC_CONTACTLESS_LIMIT and not pin:
-        return {"success": False, "error": f"Code PIN requis pour les paiements > {NFC_CONTACTLESS_LIMIT:.0f} MAD"}
+    # No-PIN contactless only for a physical NFC tap: a typed card number is not proof of possession.
+    pin_required = not nfc_uid or amount > NFC_CONTACTLESS_LIMIT
+    if pin_required and not pin:
+        return {"success": False, "error": "Code PIN requis"}
 
     if pin and not _verify_pin(card, pin):
+        await _pin_failed(card.id)
         return {"success": False, "error": "Code PIN incorrect"}
 
-    if float(card.balance) < amount:
-        return {"success": False, "error": f"Solde insuffisant ({float(card.balance):.2f} MAD < {amount:.2f} MAD)"}
+    balance = to_money(card.balance)
+    if balance < amount:
+        return {"success": False, "error": f"Solde insuffisant ({balance} < {amount})"}
 
-    card.balance = float(card.balance) - amount
-    new_balance = float(card.balance)
-
+    card.balance = balance - amount
     txn = CardTransaction(
         card_id=card.id,
         type=CardTransactionType.PAYMENT,
         amount=amount,
-        balance_after=new_balance,
+        balance_after=card.balance,
         merchant_id=merchant_id,
         reference=reference,
-        description=f"Paiement -{amount:.2f} MAD",
+        description=f"Paiement -{amount}",
     )
     db.add(txn)
     await db.flush()
 
-    logger.info(f"Card {card.card_number} payment: -{amount} MAD → balance {new_balance}")
-    return {"success": True, "balance": new_balance, "transaction_id": txn.id}
+    logger.info("card ...%s paid %s to merchant %s", card.card_number[-4:], amount, merchant_id)
+    return {"success": True, "balance": float(card.balance), "transaction_id": txn.id}
 
 
 async def get_card_transactions(db: AsyncSession, card_id: str, limit: int = 50) -> list[CardTransaction]:

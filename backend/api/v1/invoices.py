@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from core.deps import get_current_merchant
+from core.deps import get_current_merchant, get_optional_merchant
 from models.merchant import Merchant
 from schemas.invoice import InvoiceCreate, InvoiceResponse, InvoicePayRequest
 from services.invoice_service import (
@@ -123,11 +123,18 @@ async def process_invoice_payment(
     token: str,
     data: InvoicePayRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant | None, Depends(get_optional_merchant)],
 ):
-    """Pay an invoice (public endpoint for NFC/card/cash payment)."""
-    invoice = await get_invoice_by_token(db, token)
+    """Pay an invoice. Card/CMI: public (customer pays). CASH/NFC_BANK: only the owning merchant can
+    confirm money was received — a customer must not be able to self-declare an invoice as paid."""
+    invoice = await get_invoice_by_token(db, token, for_update=True)
     if not invoice:
         raise HTTPException(404, "Facture introuvable")
+    if data.method in ("CASH", "NFC_BANK"):
+        if not merchant:
+            raise HTTPException(401, "Connexion du commercant requise pour ce mode de paiement")
+        if merchant.id != invoice.merchant_id:
+            raise HTTPException(403, "Cette facture appartient a un autre commerce")
 
     result = await pay_invoice(
         db=db,

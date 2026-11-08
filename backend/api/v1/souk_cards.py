@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -7,7 +7,7 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant
 from schemas.souk_card import (
     SoukCardRegister, SoukCardResponse, SoukCardTopUp,
-    SoukCardBalanceResponse, CardTransactionResponse,
+    SoukCardBalanceResponse,
 )
 from services.soukcard_service import (
     register_card, get_card, get_card_by_phone, get_card_by_nfc,
@@ -62,6 +62,7 @@ async def topup_souk_card(
         card_number=data.card_number,
         amount=data.amount,
         bank_reference=data.bank_reference,
+        merchant_id=merchant.id,
     )
     if not result["success"]:
         raise HTTPException(400, result["error"])
@@ -75,6 +76,7 @@ async def topup_souk_card(
 async def card_by_nfc(
     nfc_uid: str,
     db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Find a card by its NFC UID (used during contactless payment)."""
     card = await get_card_by_nfc(db, nfc_uid)
@@ -93,6 +95,7 @@ async def card_by_nfc(
 async def cards_by_phone(
     phone: str,
     db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Find all active cards for a phone number."""
     cards = await get_card_by_phone(db, phone)
@@ -114,6 +117,7 @@ async def cards_by_phone(
 async def check_balance(
     card_number: str,
     db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
 ):
     """Check Carte Souk.AI balance (public)."""
     card = await get_card(db, card_number)
@@ -131,8 +135,9 @@ async def check_balance(
 @router.get("/{card_number}/transactions")
 async def card_transaction_history(
     card_number: str,
-    limit: int = 50,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    limit: int = Query(50, le=200),
 ):
     """Get transaction history for a Carte Souk.AI."""
     card = await get_card(db, card_number)
