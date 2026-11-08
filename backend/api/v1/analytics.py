@@ -1,11 +1,14 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from collections import defaultdict
+
+from sqlalchemy import case, func, select
 
 from core.database import get_db
 from core.deps import get_current_merchant
+from core.timeutil import day_start_utc, days_in_month, local_date, local_today, merchant_zone, month_start
 from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory
@@ -20,68 +23,61 @@ MAX_SALES_CHART_DAYS = 90
 MAX_PROFIT_DAYS = 365
 
 
+def _signed(col):
+    """+col for a SALE, -col for a RETURN: every figure below is net of returns."""
+    return case((Transaction.type == TransactionType.RETURN, -col), else_=col)
+
+
+_SALES_AND_RETURNS = Transaction.type.in_([TransactionType.SALE, TransactionType.RETURN])
+# Cost frozen at sale time; rows from before that column existed fall back to the current cost
+_UNIT_COST = func.coalesce(Transaction.unit_cost, Product.cost_price)
+
+
+async def _net_sales(db: AsyncSession, merchant_id: str, since: datetime, until: datetime | None = None):
+    """(number of sale lines, revenue net of returns, cost of goods sold net of returns)."""
+    q = (
+        select(
+            func.count(Transaction.id).filter(Transaction.type == TransactionType.SALE),
+            func.coalesce(func.sum(_signed(Transaction.total_amount)), 0),
+            func.coalesce(func.sum(_signed(Transaction.quantity * _UNIT_COST)), 0),
+        )
+        .join(Product, Product.id == Transaction.product_id)
+        .where(Transaction.merchant_id == merchant_id, _SALES_AND_RETURNS, Transaction.created_at >= since)
+    )
+    if until is not None:
+        q = q.where(Transaction.created_at < until)
+    count, revenue, cogs = (await db.execute(q)).one()
+    return int(count or 0), float(revenue or 0), float(cogs or 0)
+
+
 @router.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    now = datetime.now(timezone.utc)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # "Today" and "this month" are the merchant's local day/month, not UTC (AUDIT pass 2)
+    zone = merchant_zone(merchant)
+    today = local_today(zone)
+    today_start = day_start_utc(today, zone)
+    month_start_ = day_start_utc(month_start(today), zone)
 
-    # Total products
-    prod_result = await db.execute(
-        select(func.count(Product.id)).where(
-            Product.merchant_id == merchant.id, Product.is_active == True
-        )
-    )
-    total_products = prod_result.scalar() or 0
-
-    # Today's sales
-    today_result = await db.execute(
-        select(
-            func.count(Transaction.id),
-            func.coalesce(func.sum(Transaction.total_amount), 0),
-        ).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= today_start,
-        )
-    )
-    row = today_result.one()
-    total_sales_today = row[0] or 0
-    total_revenue_today = float(row[1] or 0)
-
-    # Month's sales
-    month_result = await db.execute(
-        select(
-            func.count(Transaction.id),
-            func.coalesce(func.sum(Transaction.total_amount), 0),
-        ).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= month_start,
-        )
-    )
-    mrow = month_result.one()
-    total_sales_month = mrow[0] or 0
-    total_revenue_month = float(mrow[1] or 0)
-
-    # Low stock count
-    inv_result = await db.execute(
-        select(Inventory)
-        .join(Product)
-        .where(Product.merchant_id == merchant.id, Product.is_active == True)
-    )
-    inventories = inv_result.scalars().all()
-    low_stock_count = sum(1 for i in inventories if float(i.quantity) <= i.reorder_threshold)
+    total_products = (await db.execute(
+        select(func.count(Product.id)).where(Product.merchant_id == merchant.id, Product.is_active == True)
+    )).scalar() or 0
+    total_sales_today, total_revenue_today, _ = await _net_sales(db, merchant.id, today_start)
+    total_sales_month, total_revenue_month, _ = await _net_sales(db, merchant.id, month_start_)
+    low_stock_count = (await db.execute(
+        select(func.count(Inventory.id)).join(Product)
+        .where(Product.merchant_id == merchant.id, Product.is_active == True,
+               Inventory.quantity <= Inventory.reorder_threshold)
+    )).scalar() or 0
 
     return DashboardStats(
         total_products=total_products,
-        total_revenue_today=total_revenue_today,
+        total_revenue_today=round(total_revenue_today, 2),
         total_sales_today=total_sales_today,
         low_stock_count=low_stock_count,
-        total_revenue_month=total_revenue_month,
+        total_revenue_month=round(total_revenue_month, 2),
         total_sales_month=total_sales_month,
     )
 
@@ -90,37 +86,30 @@ async def get_dashboard_stats(
 async def get_sales_chart(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    days: int = Query(7, le=MAX_SALES_CHART_DAYS),
+    days: int = Query(7, ge=1, le=MAX_SALES_CHART_DAYS),
 ):
-    safe_days = min(days, MAX_SALES_CHART_DAYS)
-    now = datetime.now(timezone.utc)
-    start = now - timedelta(days=safe_days)
-
-    result = await db.execute(
-        select(Transaction).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= start,
+    """Net revenue per local calendar day, today included, oldest first."""
+    zone = merchant_zone(merchant)
+    today = local_today(zone)
+    first_day = today - timedelta(days=days - 1)
+    rows = (await db.execute(
+        select(Transaction.created_at, Transaction.type, Transaction.total_amount).where(
+            Transaction.merchant_id == merchant.id, _SALES_AND_RETURNS,
+            Transaction.created_at >= day_start_utc(first_day, zone),
         )
-    )
-    txns = result.scalars().all()
-
-    # Group by date
-    daily: dict[str, dict] = {}
-    for t in txns:
-        day = t.created_at.strftime("%Y-%m-%d")
-        if day not in daily:
-            daily[day] = {"revenue": 0, "count": 0}
-        daily[day]["revenue"] += float(t.total_amount)
-        daily[day]["count"] += 1
-
-    # Fill missing days
+    )).all()
+    daily: dict[str, dict] = defaultdict(lambda: {"revenue": 0.0, "count": 0})
+    for created_at, ttype, amount in rows:
+        d = daily[local_date(created_at, zone).isoformat()]
+        if ttype == TransactionType.RETURN:
+            d["revenue"] -= float(amount)
+        else:
+            d["revenue"] += float(amount)
+            d["count"] += 1
     points = []
-    for i in range(safe_days):
-        d = (start + timedelta(days=i + 1)).strftime("%Y-%m-%d")
-        data = daily.get(d, {"revenue": 0, "count": 0})
-        points.append(SalesChartPoint(date=d, revenue=data["revenue"], count=data["count"]))
-
+    for i in range(days):
+        key = (first_day + timedelta(days=i)).isoformat()
+        points.append(SalesChartPoint(date=key, revenue=round(daily[key]["revenue"], 2), count=daily[key]["count"]))
     return points
 
 
@@ -128,65 +117,43 @@ async def get_sales_chart(
 async def get_profit_analysis(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    days: int = Query(30, le=MAX_PROFIT_DAYS),
+    days: int = Query(30, ge=1, le=MAX_PROFIT_DAYS),
 ):
-    safe_days = min(days, MAX_PROFIT_DAYS)
-    since = datetime.now(timezone.utc) - timedelta(days=safe_days)
-
-    from sqlalchemy.orm import selectinload
-    result = await db.execute(
-        select(Transaction)
-        .options(selectinload(Transaction.product))
-        .where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= since,
+    """Gross margin per product over `days` local days: net of returns, at the cost frozen at sale time."""
+    zone = merchant_zone(merchant)
+    since = day_start_utc(local_today(zone) - timedelta(days=days - 1), zone)
+    rows = (await db.execute(
+        select(
+            Product.id, Product.name_fr, Product.name_ar,
+            func.sum(_signed(Transaction.quantity)),
+            func.sum(_signed(Transaction.total_amount)),
+            func.sum(_signed(Transaction.quantity * _UNIT_COST)),
         )
-    )
-    txns = result.scalars().all()
-
-    # Group by product (products already loaded via selectinload — no N+1)
-    product_map: dict[str, dict] = {}
-    for t in txns:
-        pid = t.product_id
-        if pid not in product_map:
-            product = t.product
-            product_map[pid] = {
-                "product_id": pid,
-                "name_fr": product.name_fr if product else "-",
-                "name_ar": product.name_ar if product else "-",
-                "cost_price": float(product.cost_price) if product else 0,
-                "qty": 0, "revenue": 0,
-            }
-        product_map[pid]["qty"] += t.quantity
-        product_map[pid]["revenue"] += float(t.total_amount)
+        .join(Product, Product.id == Transaction.product_id)
+        .where(Transaction.merchant_id == merchant.id, _SALES_AND_RETURNS, Transaction.created_at >= since)
+        .group_by(Product.id, Product.name_fr, Product.name_ar)
+    )).all()
 
     products = []
-    total_revenue = 0
-    total_cost = 0
-    for pd in product_map.values():
-        cost_total = pd["qty"] * pd["cost_price"]
-        profit = pd["revenue"] - cost_total
-        margin = (profit / pd["revenue"] * 100) if pd["revenue"] > 0 else 0
-        total_revenue += pd["revenue"]
-        total_cost += cost_total
+    for pid, name_fr, name_ar, qty, revenue, cost in rows:
+        revenue, cost = float(revenue or 0), float(cost or 0)
+        if not qty and not revenue:
+            continue  # fully returned
+        profit = revenue - cost
         products.append(ProductProfit(
-            product_id=pd["product_id"],
-            name_fr=pd["name_fr"], name_ar=pd["name_ar"],
-            quantity_sold=pd["qty"], revenue=pd["revenue"],
-            cost_total=cost_total, profit=profit, margin_pct=round(margin, 1),
+            product_id=pid, name_fr=name_fr or "-", name_ar=name_ar or "-",
+            quantity_sold=int(qty or 0), revenue=round(revenue, 2), cost_total=round(cost, 2),
+            profit=round(profit, 2), margin_pct=round(profit / revenue * 100, 1) if revenue > 0 else 0,
         ))
-
-    # Sort by profit descending
     products.sort(key=lambda p: p.profit, reverse=True)
+    total_revenue = sum(p.revenue for p in products)
+    total_cost = sum(p.cost_total for p in products)
     total_profit = total_revenue - total_cost
-    avg_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
-
     return ProfitSummary(
         total_revenue=round(total_revenue, 2),
         total_cost=round(total_cost, 2),
         total_profit=round(total_profit, 2),
-        avg_margin=round(avg_margin, 1),
+        avg_margin=round(total_profit / total_revenue * 100, 1) if total_revenue > 0 else 0,
         products=products,
     )
 
@@ -197,59 +164,34 @@ async def get_monthly_revenue(
     db: Annotated[AsyncSession, Depends(get_db)],
     months: int = Query(1, ge=1, le=12),
 ):
-    """Monthly net revenue = Sales revenue - Supplier costs (paid orders) - Employee salaries."""
-    now = datetime.now(timezone.utc)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    start = month_start - timedelta(days=30 * (months - 1))
+    """Net profit over the current month (+ previous months): sales − returns − cost of goods sold − salaries.
 
-    # 1. Total sales revenue this period
-    rev_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.total_amount), 0)).where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= start,
-        )
-    )
-    total_sales = float(rev_result.scalar() or 0)
+    Supplier payments are NOT subtracted: buying stock turns cash into inventory, and that cost is
+    already counted when the goods are sold (COGS). Subtracting both counted it twice (AUDIT pass 2).
+    They are still returned as `total_supplier_costs` (cash out). The current month's salaries are
+    prorated to the days elapsed, so profit isn't shown negative on the 2nd of the month.
+    """
+    zone = merchant_zone(merchant)
+    today = local_today(zone)
+    start = day_start_utc(month_start(today, months - 1), zone)
+    _, total_sales, total_cogs = await _net_sales(db, merchant.id, start)
 
-    # 2. Total supplier costs (paid orders)
-    sup_result = await db.execute(
+    total_supplier_costs = float((await db.execute(
         select(func.coalesce(func.sum(SupplierOrder.total_amount), 0)).where(
             SupplierOrder.merchant_id == merchant.id,
             SupplierOrder.payment_id != None,
             SupplierOrder.created_at >= start,
         )
-    )
-    total_supplier_costs = float(sup_result.scalar() or 0)
-
-    # 3. Total employee salaries
-    sal_result = await db.execute(
+    )).scalar() or 0)
+    monthly_salaries = float((await db.execute(
         select(func.coalesce(func.sum(EmployeeContract.salary), 0)).where(
             EmployeeContract.merchant_id == merchant.id,
             EmployeeContract.is_active == True,
         )
-    )
-    total_salaries = float(sal_result.scalar() or 0) * months
+    )).scalar() or 0)
+    total_salaries = monthly_salaries * ((months - 1) + today.day / days_in_month(today))
 
-    # 4. Total cost of goods (from profit calculation)
-    from sqlalchemy.orm import selectinload
-    txn_result = await db.execute(
-        select(Transaction)
-        .options(selectinload(Transaction.product))
-        .where(
-            Transaction.merchant_id == merchant.id,
-            Transaction.type == TransactionType.SALE,
-            Transaction.created_at >= start,
-        )
-    )
-    txns = txn_result.scalars().all()
-    total_cogs = sum(
-        t.quantity * float(t.product.cost_price) if t.product else 0
-        for t in txns
-    )
-
-    net_revenue = total_sales - total_cogs - total_supplier_costs - total_salaries
-
+    net_revenue = total_sales - total_cogs - total_salaries
     return {
         "period_months": months,
         "total_sales": round(total_sales, 2),
@@ -260,7 +202,7 @@ async def get_monthly_revenue(
         "breakdown": {
             "ventes": round(total_sales, 2),
             "cout_marchandises": round(total_cogs, 2),
-            "fournisseurs": round(total_supplier_costs, 2),
+            "fournisseurs": round(total_supplier_costs, 2),  # informatif (sortie de trésorerie), pas une charge
             "salaires": round(total_salaries, 2),
             "benefice_net": round(net_revenue, 2),
         },
@@ -274,4 +216,5 @@ async def money_report(
 ):
     """Money to recover (credit book) and money lost / at risk (expiry, dead stock, stock-outs)."""
     from services.money_report import build_money_report
-    return {"currency": merchant.currency or "MAD", **await build_money_report(db, merchant.id)}
+    today = local_today(merchant_zone(merchant))
+    return {"currency": merchant.currency or "MAD", **await build_money_report(db, merchant.id, today=today)}

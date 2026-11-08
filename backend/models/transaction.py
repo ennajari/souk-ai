@@ -34,6 +34,8 @@ class Transaction(Base):
     quantity: Mapped[int] = mapped_column(Integer)
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2))
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2))
+    # Cost price at the time of the transaction (NULL on rows created before it existed)
+    unit_cost: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     merchant = relationship("Merchant", back_populates="transactions")

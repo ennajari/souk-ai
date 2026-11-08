@@ -15,6 +15,7 @@ from models.conversation import MessageRole, MessageType
 from services.ai_engine import process_message, extract_invoice_data, generate_natural_response
 from services.whatsapp import send_text_message
 from services.inventory import find_product_by_name, find_most_similar_product, record_sale, get_stock_level, get_low_stock_products
+from services.sales import SaleError
 from services.conversation import get_conversation_history, save_message
 from services.speech_to_text import download_whatsapp_media, transcribe_audio
 
@@ -858,14 +859,18 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                             product = similar
                     if product:
                         price = float(product.unit_price)
-                        await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
-                        stock = await get_stock_level(db, product.id)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
-                        data_ctx = (
-                            "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
-                            " de " + str(display_name) + " — " + str(round(quantity * price, 2)) + " MAD." +
-                            " Stock restant: " + str(stock) + " " + str(product.unit) + "."
-                        )
+                        try:
+                            await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
+                            stock = await get_stock_level(db, product.id)
+                            data_ctx = (
+                                "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
+                                " de " + str(display_name) + " — " + str(round(quantity * price, 2)) + " MAD." +
+                                " Stock restant: " + str(stock) + " " + str(product.unit) + "."
+                            )
+                        except SaleError as e:  # e.g. not enough stock: nothing recorded, tell the merchant why
+                            data_ctx = "Vente NON enregistree pour " + str(display_name) + ": " + e.message + \
+                                ". Corrigez le stock (ajustement) puis renvoyez la vente."
                         response_text = await generate_natural_response(text, data_ctx, lang, history)
                     else:
                         # No match at all — list available products to help user
@@ -1349,10 +1354,13 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                             ex_prod = ex_sim
                     if ex_prod:
                         ex_price = float(ex_prod.unit_price)
-                        await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
-                        ex_stock = await get_stock_level(db, ex_prod.id)
                         ex_dname = ex_prod.name_fr if lang in ("fr", "en") and ex_prod.name_fr else ex_prod.name_ar
-                        ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
+                        try:
+                            await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
+                            ex_stock = await get_stock_level(db, ex_prod.id)
+                            ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
+                        except SaleError as e:
+                            ex_ctx = "Vente NON enregistree pour " + str(ex_dname) + ": " + e.message + "."
                         ex_resp = await generate_natural_response(text, ex_ctx, lang, history)
                         extra_parts.append(ex_resp)
             if extra_parts:

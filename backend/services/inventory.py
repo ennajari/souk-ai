@@ -3,11 +3,10 @@ import unicodedata
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from datetime import datetime, timezone
 
 from models.product import Product
 from models.inventory import Inventory
-from models.transaction import Transaction, TransactionType, TransactionSource
+from models.transaction import Transaction, TransactionSource
 from services.vector_db import search_similar_products
 
 
@@ -162,28 +161,14 @@ async def record_sale(
     db: AsyncSession, merchant_id: str, product_id: str, quantity: int, unit_price: float,
     source: TransactionSource = TransactionSource.WHATSAPP,
 ) -> Transaction:
-    """Record a sale and update inventory."""
-    if quantity <= 0:
-        raise ValueError("Sale quantity must be positive")
-    txn = Transaction(
-        merchant_id=merchant_id,
-        product_id=product_id,
-        type=TransactionType.SALE,
-        source=source,
-        quantity=quantity,
-        unit_price=unit_price,
-        total_amount=quantity * unit_price,
-    )
-    db.add(txn)
+    """WhatsApp/voice sale: same locked, stock-checked, journaled path as the POS.
 
-    # Update inventory
-    inv_result = await db.execute(select(Inventory).where(Inventory.product_id == product_id))
-    inv = inv_result.scalar_one_or_none()
-    if inv:
-        inv.quantity = float(inv.quantity) - quantity
-        inv.updated_at = datetime.now(timezone.utc)
-
-    await db.flush()
+    Raises services.sales.SaleError (e.g. not enough stock) — callers reply to the merchant with it.
+    """
+    from services.sales import Line, record_items
+    [(txn, _)] = await record_items(db, merchant_id, [Line(
+        product_id=product_id, quantity=int(quantity), unit_price=unit_price, source=source.value,
+    )])
     return txn
 
 
