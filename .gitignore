@@ -41,3 +41,11 @@ souk-ai-logo.svg
 .sonar/.sonar_lock
 ruff-report.json
 .sonar/report-task.txt
+
+# Audit S1/A7: never commit archives, state files or local secrets
+*.tar.gz
+*.zip
+celerybeat-schedule*
+.env.*
+!.env.example
+.venv/

@@ -4,16 +4,14 @@ Register the reset_password_otp WhatsApp template via Meta Graph API.
 Run this ONCE from any machine that has internet access:
     python scripts/create_otp_template.py
 """
-import httpx
 import json
+import os
+
+import httpx
 
 # ── Config ───────────────────────────────────────────────────────────────────
-WABA_ID = "***WABA_ID***"
-TOKEN   = (
-    "***REMOVED***"
-    "***REMOVED***"
-    "***REMOVED***"
-)
+WABA_ID = os.environ["WHATSAPP_WABA_ID"]
+TOKEN = os.environ["WHATSAPP_ACCESS_TOKEN"]  # never hardcode: see docs/audit/REPORT.md
 # ─────────────────────────────────────────────────────────────────────────────
 
 TEMPLATE_NAME = "souk_reset_otp"   # new name (reset_password_otp was rejected as UTILITY)

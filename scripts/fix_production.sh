@@ -6,9 +6,9 @@
 set -e
 cd /opt/souk-ai
 
-APP_SECRET="***REMOVED***"
-WABA_ID="***WABA_ID***"
-TOKEN="***REMOVED***"
+APP_SECRET="${WHATSAPP_APP_SECRET:?export WHATSAPP_APP_SECRET first}"
+WABA_ID="${WHATSAPP_WABA_ID:?export WHATSAPP_WABA_ID first}"
+TOKEN="${WHATSAPP_ACCESS_TOKEN:?export WHATSAPP_ACCESS_TOKEN first}"
 
 echo "╔══════════════════════════════════════════════════╗"
 echo "║  Souk.AI — Production Fix (3 issues)            ║"
@@ -17,8 +17,7 @@ echo ""
 
 # ── FIX 3: Re-enable HMAC security ──────────────────────────
 echo "▶ [1/3] Re-enabling HMAC signature verification..."
-if grep -q "^WHATSAPP_APP_SECRET=" .env; then
-    sed -i "s|^WHATSAPP_APP_SECRET=.*|WHATSAPP_APP_SECRET=${APP_SECRET}|" .env
+if grep -q "^WHATSAPP_APP_SECRET="${WHATSAPP_APP_SECRET:?export WHATSAPP_APP_SECRET first}"s|^WHATSAPP_APP_SECRET=.*|WHATSAPP_APP_SECRET=${APP_SECRET}|" .env
 else
     echo "WHATSAPP_APP_SECRET=${APP_SECRET}" >> .env
 fi
