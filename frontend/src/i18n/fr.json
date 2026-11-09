@@ -196,7 +196,17 @@
     "product": "Produit",
     "unitPrice": "Prix unit.",
     "balance": "Solde",
-    "optIn": "Le client accepte les rappels WhatsApp (1 par semaine max)"
+    "optIn": "Le client accepte les rappels WhatsApp (1 par semaine max)",
+    "noPhone": "Ce client n'a pas de numéro de téléphone",
+    "noBalance": "Ce client ne doit rien",
+    "reminderSent": "Rappel WhatsApp envoyé",
+    "added": "Client ajouté",
+    "deleted": "Client supprimé",
+    "updated": "Client modifié",
+    "sendReminder": "Envoyer un rappel WhatsApp",
+    "namePlaceholder": "Ex : Fatima Benali",
+    "phonePlaceholder": "06 12 34 56 78",
+    "notesPlaceholder": "Notes (facultatif)…"
   },
   "settings": {
     "title": "Paramètres",

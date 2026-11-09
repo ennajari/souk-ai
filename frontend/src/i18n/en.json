@@ -196,7 +196,17 @@
     "product": "Product",
     "unitPrice": "Unit price",
     "balance": "Balance",
-    "optIn": "Customer agrees to WhatsApp reminders (max once a week)"
+    "optIn": "Customer agrees to WhatsApp reminders (max once a week)",
+    "noPhone": "This customer has no phone number",
+    "noBalance": "This customer owes nothing",
+    "reminderSent": "WhatsApp reminder sent",
+    "added": "Customer added",
+    "deleted": "Customer removed",
+    "updated": "Customer updated",
+    "sendReminder": "Send a WhatsApp reminder",
+    "namePlaceholder": "e.g. Maria Lopez",
+    "phonePlaceholder": "Phone number",
+    "notesPlaceholder": "Notes (optional)…"
   },
   "settings": {
     "title": "Settings",
