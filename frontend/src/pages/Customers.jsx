@@ -3,9 +3,11 @@ import { FiPlus, FiSearch, FiPhone, FiChevronRight, FiX, FiArrowUp, FiArrowDown,
 import client from '../api/client'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import { useMoney } from '../utils/money'
 
 export default function Customers() {
   const { t, i18n } = useTranslation()
+  const money = useMoney()
   const isRtl = i18n.language === 'ar'
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -26,12 +28,12 @@ export default function Customers() {
   const [sendingReminder, setSendingReminder] = useState(false)
 
   const handleRemind = async () => {
-    if (!detail?.phone) return toast.error('Ce client n\'a pas de numéro de téléphone')
-    if (detail.balance <= 0) return toast.error('Ce client n\'a pas de solde en cours')
+    if (!detail?.phone) return toast.error(t('customers.noPhone'))
+    if (detail.balance <= 0) return toast.error(t('customers.noBalance'))
     setSendingReminder(true)
     try {
       await client.post(`/customers/${selected}/remind`)
-      toast.success('Rappel WhatsApp envoyé ✅')
+      toast.success(t('customers.reminderSent'))
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Échec de l\'envoi du rappel')
     } finally {
@@ -43,14 +45,14 @@ export default function Customers() {
     setLoading(true)
     client.get('/customers/')
       .then(r => setCustomers(r.data))
-      .catch(() => toast.error('Erreur chargement clients'))
+      .catch(() => toast.error(t('common.error')))
       .finally(() => setLoading(false))
   }
 
   const fetchDetail = (id) => {
     client.get(`/customers/${id}`)
       .then(r => { setDetail(r.data); setSelected(id); setActiveTab('entries') })
-      .catch(() => toast.error('Erreur chargement detail'))
+      .catch(() => toast.error(t('common.error')))
     client.get(`/customers/${id}/purchases`)
       .then(r => setPurchases(r.data))
       .catch(() => setPurchases([]))
@@ -70,7 +72,7 @@ export default function Customers() {
     setSaving(true)
     try {
       await client.post('/customers/', form)
-      toast.success('Client ajoute')
+      toast.success(t('customers.added'))
       setShowAdd(false)
       setForm({ name: '', phone: '', notes: '', whatsapp_opt_in: false })
       fetchCustomers()
@@ -105,11 +107,11 @@ export default function Customers() {
   const handleDelete = async (id) => {
     try {
       await client.delete(`/customers/${id}`)
-      toast.success('Client supprime')
+      toast.success(t('customers.deleted'))
       if (selected === id) { setSelected(null); setDetail(null) }
       fetchCustomers()
       setConfirmDelete(null)
-    } catch { toast.error('Erreur suppression') }
+    } catch { toast.error(t('common.error')) }
   }
 
   const openEdit = () => {
@@ -123,7 +125,7 @@ export default function Customers() {
     setEditSaving(true)
     try {
       await client.patch(`/customers/${selected}`, editForm)
-      toast.success('Client modifie')
+      toast.success(t('customers.updated'))
       setShowEdit(false)
       fetchDetail(selected)
       fetchCustomers()
@@ -141,7 +143,7 @@ export default function Customers() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t('customers.title')}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{t('customers.totalOwed')}: <span className="font-bold text-red-600">{totalOwed.toFixed(2)} MAD</span></p>
+            <p className="text-sm text-gray-500 mt-0.5">{t('customers.totalOwed')}: <span className="font-bold text-red-600">{money(totalOwed)}</span></p>
           </div>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700">
             <FiPlus className="h-4 w-4" /> {t('customers.newClient')}
@@ -178,7 +180,7 @@ export default function Customers() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-bold ${c.balance > 0 ? 'text-red-600' : c.balance < 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                  {c.balance > 0 ? `${c.balance.toFixed(2)}` : c.balance < 0 ? `+${Math.abs(c.balance).toFixed(2)}` : '0'} MAD
+                  {c.balance < 0 ? '+' : ''}{money(Math.abs(c.balance))}
                 </span>
                 <FiChevronRight className="h-4 w-4 text-gray-300" />
               </div>
@@ -208,7 +210,7 @@ export default function Customers() {
                 <div className="flex gap-1">
                   {detail.phone && detail.balance > 0 && (
                     <button onClick={handleRemind} disabled={sendingReminder}
-                      className="p-2 hover:bg-green-100 rounded-xl transition-colors disabled:opacity-50" title="Rappel WhatsApp">
+                      className="p-2 hover:bg-green-100 rounded-xl transition-colors disabled:opacity-50" title={t('customers.sendReminder')} aria-label={t('customers.sendReminder')}>
                       <FiMessageCircle className="h-4 w-4 text-green-600" />
                     </button>
                   )}
@@ -222,7 +224,7 @@ export default function Customers() {
                 <div className="text-right">
                   <p className="text-xs text-gray-500">{t('customers.balance')}</p>
                   <p className={`text-xl font-black ${detail.balance > 0 ? 'text-red-600' : detail.balance < 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    {detail.balance.toFixed(2)} MAD
+                    {money(detail.balance)}
                   </p>
                 </div>
               </div>
@@ -296,11 +298,11 @@ export default function Customers() {
                             {entry.type === 'CREDIT' ? t('customers.credit') : t('customers.payment')}
                           </p>
                           {entry.description && <p className="text-xs text-gray-500">{entry.description}</p>}
-                          <p className="text-xs text-gray-500">{new Date(entry.created_at).toLocaleString(isRtl ? 'ar-MA' : 'fr-FR')}</p>
+                          <p className="text-xs text-gray-500">{new Date(entry.created_at).toLocaleString(i18n.language)}</p>
                         </div>
                       </div>
                       <span className={`text-sm font-bold ${entry.type === 'CREDIT' ? 'text-red-600' : 'text-green-600'}`}>
-                        {entry.type === 'CREDIT' ? '+' : '-'}{entry.amount.toFixed(2)} MAD
+                        {entry.type === 'CREDIT' ? '+' : '−'}{money(entry.amount)}
                       </span>
                     </div>
                   ))}
@@ -333,15 +335,15 @@ export default function Customers() {
                           <td className="px-6 py-3 font-medium text-gray-900">{p.product_name}</td>
                           <td className="text-center px-3 py-3 text-gray-600">{p.quantity}</td>
                           <td className="text-right px-3 py-3 text-gray-600">{p.unit_price.toFixed(2)}</td>
-                          <td className="text-right px-3 py-3 font-bold text-gray-900">{p.total.toFixed(2)} MAD</td>
-                          <td className={`${isRtl ? 'text-left' : 'text-right'} px-6 py-3 text-gray-500 text-xs`}>{new Date(p.date).toLocaleDateString(isRtl ? 'ar-MA' : 'fr-FR')}</td>
+                          <td className="text-right px-3 py-3 font-bold text-gray-900">{money(p.total)}</td>
+                          <td className={`${isRtl ? 'text-left' : 'text-right'} px-6 py-3 text-gray-500 text-xs`}>{new Date(p.date).toLocaleDateString(i18n.language)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot className="bg-gray-50 border-t-2">
                       <tr>
                         <td colSpan="3" className="px-6 py-3 font-bold text-gray-700">{t('customers.totalPurchases')}</td>
-                        <td className="text-right px-3 py-3 font-black text-brand-600">{purchases.reduce((s, p) => s + p.total, 0).toFixed(2)} MAD</td>
+                        <td className="text-right px-3 py-3 font-black text-brand-600">{money(purchases.reduce((s, p) => s + p.total, 0))}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -430,19 +432,19 @@ export default function Customers() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
                 <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={isRtl ? 'مثال: أحمد بنعلي' : 'Ex: Ahmed Benali'} />
+                  placeholder={t('customers.namePlaceholder')} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.phone')}</label>
                 <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="+212 6XX XXX XXX" />
+                  placeholder={t('customers.phonePlaceholder')} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={isRtl ? 'ملاحظات اختيارية...' : 'Notes optionnelles...'} rows={2} />
+                  placeholder={t('customers.notesPlaceholder')} rows={2} />
               </div>
               <label className="flex items-start gap-2 text-sm text-gray-700">
                 <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={!!form.whatsapp_opt_in}

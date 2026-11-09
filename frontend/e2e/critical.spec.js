@@ -36,3 +36,24 @@ test('sale: add a product at the till, pay cash, stock goes down', async ({ page
   const after = await (await request.get(`/api/v1/products/${prod.id}`, { headers })).json()
   expect(after.stock_quantity).toBe(4)
 })
+
+test('login through the UI with a national number typed with spaces', async ({ page, request }) => {
+  const digits = phone()
+  await request.post('/api/v1/auth/register', { data: { phone_number: digits, password: PASSWORD, business_name: 'Hanout Login' } })
+  await page.goto('/login')
+  await page.locator('input[type="tel"], input[placeholder="0612345678"]').first().fill(digits.replace(/(\d{2})(?=\d)/g, '$1 '))
+  await page.locator('input[type="password"]').first().fill(PASSWORD)
+  await page.locator('button[type="submit"]').first().click()
+  await expect(page).toHaveURL(/\/dashboard/)
+})
+
+test('a shop in France signs up and works in euros', async ({ page }) => {
+  await page.goto('/register')
+  await page.fill('input[name="business_name"]', 'Épicerie Lyon')
+  await page.fill('input[name="phone_number"]', '06' + String(Math.floor(10_000_000 + Math.random() * 89_999_999)))
+  await page.fill('input[name="password"]', PASSWORD)
+  await page.selectOption('select[name="country_code"]', 'FR')
+  await page.click('button[type="submit"]')
+  await expect(page).toHaveURL(/\/dashboard/)
+  await expect(page.getByText(/€/).first()).toBeVisible()
+})

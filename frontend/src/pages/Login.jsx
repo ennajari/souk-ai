@@ -4,22 +4,24 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client, { authAPI } from '../api/client'
 import toast from 'react-hot-toast'
-import { FiEye, FiEyeOff, FiMessageSquare, FiPackage, FiTrendingUp, FiShield, FiArrowLeft } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { FiEye, FiEyeOff, FiPhone, FiMessageSquare, FiPackage, FiTrendingUp, FiShield, FiArrowLeft } from 'react-icons/fi'
 
 const FEATURES = [
-  { icon: FiMessageSquare, color: 'from-brand-600 to-brand-700', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
-  { icon: FiPackage, color: 'from-blue-500 to-cyan-600', title: 'Inventaire intelligent', desc: 'Alertes stock bas automatiques' },
-  { icon: FiTrendingUp, color: 'from-emerald-500 to-green-600', title: 'Prévisions 7 jours', desc: 'Anticipez vos besoins en stock' },
-  { icon: FiShield, color: 'from-orange-500 to-amber-500', title: 'Carnet de crédit', desc: 'Qui vous doit quoi, toujours à jour' },
+  { icon: FiMessageSquare, color: 'from-brand-600 to-brand-700', title: 'login.f1t', desc: 'login.f1d' },
+  { icon: FiPackage, color: 'from-blue-500 to-cyan-600', title: 'login.f2t', desc: 'login.f2d' },
+  { icon: FiTrendingUp, color: 'from-emerald-500 to-green-600', title: 'login.f3t', desc: 'login.f3d' },
+  { icon: FiShield, color: 'from-orange-500 to-amber-500', title: 'login.f4t', desc: 'login.f4d' },
 ]
 
 const STATS = [
-  { value: '2 taps', label: 'par vente' },
-  { value: '24/7', label: 'Disponible' },
-  { value: '3 langues', label: 'Supportées' },
+  { value: 'login.s1v', label: 'login.s1l' },
+  { value: 'login.s2v', label: 'login.s2l' },
+  { value: 'login.s3v', label: 'login.s3l' },
 ]
 
 export default function Login() {
+  const { t } = useTranslation()
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,10 +41,10 @@ export default function Login() {
     setResetLoading(true)
     try {
       await client.post('/auth/reset-request', { phone_number: normalizePhone(resetPhone) })
-      toast.success('Code envoyé sur WhatsApp!')
+      toast.success(t('login.codeSent'))
       setResetMode('code')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur de connexion au serveur')
+      toast.error(err.response?.data?.detail || t('login.serverError'))
     } finally {
       setResetLoading(false)
     }
@@ -58,22 +60,18 @@ export default function Login() {
         new_password: newPassword,
       })
       login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(resetPhone), is_admin: false, account_type: data.account_type || 'MERCHANT' })
-      toast.success('Mot de passe changé avec succès!')
+      toast.success(t('login.passwordChanged'))
       navigate(data.account_type === 'SUPPLIER' ? '/supplier-dashboard' : '/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur de connexion au serveur')
+      toast.error(err.response?.data?.detail || t('login.serverError'))
     } finally {
       setResetLoading(false)
     }
   }
 
-  const normalizePhone = (value) => {
-    let digits = value.replace(/[^\d]/g, '')
-    if (digits.startsWith('0') && digits.length >= 2) {
-      digits = '212' + digits.slice(1)
-    }
-    return digits
-  }
+  // The server normalises numbers with the shop's country (DEFAULT_COUNTRY); forcing "212" here
+  // made a French or US shop unable to log in with its national number.
+  const normalizePhone = (value) => value.trim()
 
   const handlePhoneChange = (e) => {
     setPhone(e.target.value)
@@ -85,11 +83,11 @@ export default function Login() {
     try {
       const { data } = await authAPI.login(normalizePhone(phone), password)
       login(data.access_token, { id: data.merchant_id, business_name: data.business_name, phone_number: normalizePhone(phone), is_admin: data.is_admin, account_type: data.account_type || 'MERCHANT' })
-      toast.success(`Bienvenue ${data.business_name}!`)
+      toast.success(t('login.welcome', { name: data.business_name }))
       if (data.account_type === 'SUPPLIER') navigate('/supplier-dashboard')
       else navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur de connexion')
+      toast.error(err.response?.data?.detail || t('login.serverError'))
     } finally {
       setLoading(false)
     }
@@ -116,16 +114,15 @@ export default function Login() {
             <BrandMark className="h-10 w-10" />
             <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
           </div>
-          <p className="text-gray-500 text-sm mt-2 ml-0.5">La caisse qui vous dit où est votre argent</p>
+          <p className="text-gray-500 text-sm mt-2 ml-0.5">{t('landing.footer.tag')}</p>
         </div>
 
         {/* Main pitch */}
         <div className="relative z-10 space-y-6">
           <div>
-            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">VOTRE CAISSE INTELLIGENTE</p>
+            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">{t('login.eyebrow')}</p>
             <h2 className="text-white text-4xl font-black leading-tight">
-              Gérez votre<br />
-              commerce depuis<br />
+              {t('login.headline')}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-500">WhatsApp</span>
             </h2>
           </div>
@@ -137,8 +134,8 @@ export default function Login() {
                   <f.icon className="h-4 w-4 text-white" strokeWidth={2} />
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-sm">{f.title}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{f.desc}</p>
+                  <p className="text-white font-semibold text-sm">{t(f.title)}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{t(f.desc)}</p>
                 </div>
               </div>
             ))}
@@ -148,8 +145,8 @@ export default function Login() {
           <div className="grid grid-cols-3 gap-3 pt-2">
             {STATS.map(({ value, label }) => (
               <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                <p className="text-white font-black text-lg leading-none">{value}</p>
-                <p className="text-gray-500 text-xs mt-1">{label}</p>
+                <p className="text-white font-black text-lg leading-none">{t(value)}</p>
+                <p className="text-gray-500 text-xs mt-1">{t(label)}</p>
               </div>
             ))}
           </div>
@@ -167,17 +164,17 @@ export default function Login() {
 
         <div className="max-w-sm w-full mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-gray-900">Bon retour</h1>
-            <p className="text-gray-500 text-sm mt-1.5">Connectez-vous pour gérer votre commerce</p>
+            <h1 className="text-3xl font-black text-gray-900">{t('login.title')}</h1>
+            <p className="text-gray-500 text-sm mt-1.5">{t('login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de téléphone</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('login.phone')}</label>
               <div className="relative">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-                  <span className="text-base">🇲🇦</span>
+                  <FiPhone className="h-4 w-4 text-gray-500" aria-hidden="true" />
                   <div className="w-px h-4 bg-gray-200" />
                 </div>
                 <input
@@ -189,12 +186,12 @@ export default function Login() {
                   className="w-full pl-14 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1.5">Format: 06XXXXXXXX ou 212XXXXXXXXX</p>
+              <p className="text-xs text-gray-500 mt-1.5">{t('login.phoneHint')}</p>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Mot de passe</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('login.password')}</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -221,7 +218,7 @@ export default function Login() {
                 onClick={() => { setResetMode('phone'); setResetPhone(phone) }}
                 className="text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors"
               >
-                Mot de passe oublié ?
+                {t('login.forgot')}
               </button>
             </div>
 
@@ -237,9 +234,9 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Connexion en cours...
+                  {t('login.signingIn')}
                 </span>
-              ) : 'Se connecter →'}
+              ) : `${t('login.signIn')} →`}
             </button>
           </form>
 
@@ -254,22 +251,22 @@ export default function Login() {
               <FiMessageSquare className="h-5 w-5 text-white" strokeWidth={2} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-emerald-900">Tester le bot WhatsApp</p>
-              <p className="text-xs text-emerald-600 mt-0.5">+212 763 576794 · Gratuit</p>
+              <p className="text-sm font-bold text-emerald-900">{t('login.tryBot')}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">+212 763 576794 · {t('login.free')}</p>
             </div>
             <span className="text-emerald-400 group-hover:translate-x-1 transition-transform font-bold">→</span>
           </a>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Pas encore de compte?{' '}
+            {t('login.noAccount')}{' '}
             <Link to="/register" className="text-brand-600 hover:text-brand-700 font-bold transition-colors">
-              Créer un compte gratuit
+              {t('login.createFree')}
             </Link>
           </p>
 
           {/* Copyright */}
           <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-100 pt-4">
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.
+            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — {t('common.allRightsReserved')}.
           </p>
         </div>
       </div>
@@ -281,17 +278,17 @@ export default function Login() {
               onClick={() => { setResetMode(null); setResetCode(''); setNewPassword('') }}
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4"
             >
-              <FiArrowLeft className="w-4 h-4" /> Retour
+              <FiArrowLeft className="w-4 h-4" /> {t('login.back')}
             </button>
 
             {resetMode === 'phone' ? (
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Réinitialiser le mot de passe</h2>
-                  <p className="text-sm text-gray-500 mt-1">Entrez votre numéro puis récupérez le code</p>
+                  <h2 className="text-xl font-bold text-gray-900">{t('login.resetTitle')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('login.resetSub')}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de téléphone</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('login.phone')}</label>
                   <input
                     type="tel"
                     value={resetPhone}
@@ -309,16 +306,16 @@ export default function Login() {
                   className="flex items-center gap-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors text-sm"
                 >
                   <FiMessageSquare className="h-4 w-4 flex-shrink-0" />
-                  <span>Obtenir le code via WhatsApp Bot</span>
-                  <span className="ml-auto text-xs font-normal opacity-80">Recommandé</span>
+                  <span>{t('login.viaBot')}</span>
+                  <span className="ml-auto text-xs font-normal opacity-80">{t('login.recommended')}</span>
                 </a>
                 <p className="text-xs text-gray-500 text-center -mt-1">
-                  Envoyez "code" au bot → il vous répond avec votre code
+                  {t('login.viaBotHint')}
                 </p>
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-xs text-gray-500">ou</span>
+                  <span className="text-xs text-gray-500">{t('login.or')}</span>
                   <div className="flex-1 h-px bg-gray-100" />
                 </div>
 
@@ -329,21 +326,21 @@ export default function Login() {
                     disabled={resetLoading || !resetPhone}
                     className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
                   >
-                    {resetLoading ? 'Envoi en cours...' : 'Envoyer par API'}
+                    {resetLoading ? t('login.sending') : t('login.sendCode')}
                   </button>
                   <p className="text-xs text-gray-500 text-center">
-                    (fonctionne si vous avez messagé le bot récemment)
+                    {t('login.sendCodeHint')}
                   </p>
                 </form>
               </div>
             ) : (
               <form onSubmit={handleResetConfirm} className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Entrez le code</h2>
-                  <p className="text-sm text-gray-500 mt-1">Code envoyé au {resetPhone}</p>
+                  <h2 className="text-xl font-bold text-gray-900">{t('login.enterCode')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('login.codeSentTo', { phone: resetPhone })}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Code à 6 chiffres</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('login.code6')}</label>
                   <input
                     type="text"
                     required
@@ -356,7 +353,7 @@ export default function Login() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nouveau mot de passe</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('login.newPassword')}</label>
                   <input
                     type="password"
                     required
@@ -372,14 +369,14 @@ export default function Login() {
                   disabled={resetLoading || resetCode.length < 6}
                   className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
                 >
-                  {resetLoading ? 'Changement...' : 'Changer le mot de passe'}
+                  {resetLoading ? t('login.changing') : t('login.changePassword')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setResetMode('phone')}
                   className="w-full text-sm text-gray-500 hover:text-brand-600 transition-colors"
                 >
-                  Renvoyer le code
+                  {t('login.resend')}
                 </button>
               </form>
             )}

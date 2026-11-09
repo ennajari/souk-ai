@@ -27,6 +27,7 @@ client.interceptors.response.use(
 // ---- Auth ----
 export const authAPI = {
   register: (data) => client.post('/auth/register', data),
+  countries: () => client.get('/auth/countries'),
   login: (phone_number, password) => client.post('/auth/login', { phone_number, password }),
   adminLogin: (email, password) => client.post('/auth/admin-login', { email, password }),
   me: () => client.get('/auth/me'),

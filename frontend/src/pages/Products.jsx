@@ -4,6 +4,7 @@ import { RiScanLine, RiBarcodeLine } from 'react-icons/ri'
 import { productsAPI, inventoryAPI, merchantsAPI } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { useMoney } from '../utils/money'
 import toast from 'react-hot-toast'
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -30,6 +31,7 @@ function namesAreSimilar(a, b) {
 
 export default function Products() {
   const { t } = useTranslation()
+  const money = useMoney()
   const { merchant } = useAuth()
   const currency = merchant?.currency || 'MAD'
   const [taxInfo, setTaxInfo] = useState({ label: 'TVA', rates: [] })
@@ -63,7 +65,7 @@ export default function Products() {
   const loadProducts = () => {
     productsAPI.list()
       .then((res) => setProducts(res.data))
-      .catch(() => toast.error('Erreur chargement produits'))
+      .catch(() => toast.error(t('common.error')))
       .finally(() => setLoading(false))
   }
 
@@ -178,7 +180,7 @@ export default function Products() {
       toast.success(`"${keep.name_fr || keep.name_ar}" fusionné — doublon supprimé`)
       loadProducts()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur fusion')
+      toast.error(err.response?.data?.detail || t('common.error'))
     } finally {
       setMerging(null)
     }
@@ -206,10 +208,10 @@ export default function Products() {
     setEditingExpiry(null)
     try {
       await productsAPI.update(productId, { expiry_date: newDate || null })
-      toast.success('Date d\'expiration mise à jour')
+      toast.success(t('products.expiryUpdated'))
       loadProducts()
     } catch {
-      toast.error('Erreur mise à jour expiration')
+      toast.error(t('common.error'))
     }
   }
 
@@ -241,12 +243,12 @@ export default function Products() {
             reason: `Ajustement manuel (${delta > 0 ? '+' : ''}${delta})`,
           })
         }
-        toast.success('Produit mis à jour')
+        toast.success(t('products.updated'))
       } else {
         const { stock_quantity, ...productData } = form
         const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null, tax_rate: productData.tax_rate === '' || productData.tax_rate == null ? null : parseFloat(productData.tax_rate) }
         await productsAPI.create({ ...cleanData, initial_stock: parseFloat(stock_quantity) || 0 })
-        toast.success('Produit ajouté')
+        toast.success(t('products.added'))
       }
       setShowModal(false)
       loadProducts()
@@ -259,10 +261,10 @@ export default function Products() {
     if (!confirm('Supprimer ce produit?')) return
     try {
       await productsAPI.delete(id)
-      toast.success('Produit supprimé')
+      toast.success(t('products.deleted'))
       loadProducts()
     } catch {
-      toast.error('Erreur suppression')
+      toast.error(t('common.error'))
     }
   }
 
@@ -273,14 +275,14 @@ export default function Products() {
     setShowBarcodeScanner(true)
 
     if (!('BarcodeDetector' in window)) {
-      setScannerError('Votre navigateur ne supporte pas le scan. Utilisez Chrome sur Android.')
+      setScannerError(t('products.scanUnsupported'))
       return
     }
 
     try {
       detectorRef.current = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] })
     } catch {
-      setScannerError('Impossible de créer le détecteur de code-barres.')
+      setScannerError(t('products.scanUnsupported'))
       return
     }
 
@@ -305,7 +307,7 @@ export default function Products() {
           setScannerDetected(code)
           closeBarcodeScanner()
           setForm(prev => ({ ...prev, barcode: code }))
-          toast.success(`Code-barres détecté: ${code}`)
+          toast.success(t('products.barcodeDetected', { code }))
         }
       } catch { /* ignore frame errors */ }
     }, 300)
@@ -351,7 +353,7 @@ export default function Products() {
       items.forEach(it => { sel[it._id] = true })
       setScanSelected(sel)
     } catch (err) {
-      toast.error('Erreur analyse facture')
+      toast.error(t('products.scanError'))
       setShowScanModal(false)
     } finally {
       setScanLoading(false)
@@ -376,7 +378,7 @@ export default function Products() {
 
   const handleImportSelected = async () => {
     const toImport = scanItems.filter(it => scanSelected[it._id])
-    if (!toImport.length) return toast.error('Sélectionnez au moins un produit')
+    if (!toImport.length) return toast.error(t('products.selectOne'))
     setImporting(true)
     let created = 0, updated = 0, failed = 0
 
@@ -439,8 +441,8 @@ export default function Products() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{products.length} produit(s) au total</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('nav.productsStock')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('products.total', { count: products.length })}</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Scan invoice button */}
@@ -449,7 +451,7 @@ export default function Products() {
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
           >
             <RiScanLine className="h-4 w-4" />
-            Scan Facture
+            {t('products.scanInvoiceBtn')}
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleScanFile} />
 
@@ -457,7 +459,7 @@ export default function Products() {
             onClick={openAdd}
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm"
           >
-            <FiPlus className="h-4 w-4" /> Ajouter
+            <FiPlus className="h-4 w-4" /> {t('common.add')}
           </button>
         </div>
       </div>
@@ -498,9 +500,9 @@ export default function Products() {
                     <span className="text-sm font-semibold text-gray-800">{b.name_fr || b.name_ar}</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Prix: {a.unit_price > 0 ? `${Number(a.unit_price).toFixed(2)} MAD` : 'manquant'}
+                    {t('common.price')}: {a.unit_price > 0 ? money(a.unit_price) : t('products.missing')}
                     {' / '}
-                    {b.unit_price > 0 ? `${Number(b.unit_price).toFixed(2)} MAD` : 'manquant'}
+                    {b.unit_price > 0 ? money(b.unit_price) : t('products.missing')}
                     {' · Stock: '}{a.stock_quantity ?? 0}{' / '}{b.stock_quantity ?? 0}
                   </p>
                 </div>
@@ -515,7 +517,7 @@ export default function Products() {
                   <button
                     onClick={() => dismissDup(a, b)}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                    title="Pas un doublon — ignorer"
+                    title={t('products.notDuplicate')}
                   >
                     <FiX className="h-4 w-4" />
                   </button>
@@ -532,7 +534,7 @@ export default function Products() {
           <div className="flex items-center gap-2 mb-2">
             <FiClock className="h-5 w-5 text-red-500" />
             <p className="text-sm font-bold text-red-800">
-              {expiringProducts.length} produit(s) proche(s) de l'expiration
+              {t('products.expiringSoon', { count: expiringProducts.length })}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -540,7 +542,7 @@ export default function Products() {
               <span key={p.id} className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                 p.expired ? 'bg-red-200 text-red-800' : 'bg-orange-100 text-orange-700'
               }`}>
-                {p.expired ? '❌' : '⏰'} {p.name_fr || p.name_ar} {p.days_left !== null ? `(${p.days_left}j)` : ''}
+                {p.expired ? '❌' : '⏰'} {p.name_fr || p.name_ar} {p.days_left !== null ? `(${t('dashboard.days', { count: p.days_left })})` : ''}
               </span>
             ))}
           </div>
@@ -554,7 +556,7 @@ export default function Products() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={`Rechercher parmi ${products.length} produits...`}
+            placeholder={t('products.searchAmong', { count: products.length })}
             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
@@ -591,12 +593,12 @@ export default function Products() {
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix vente</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiration</th>
-                <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('customers.product')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('products.unit')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('products.salePrice')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('pos.stock')}</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dashboard.expiry')}</th>
+                <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -616,14 +618,14 @@ export default function Products() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{p.unit}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600">{t(`products.units.${p.unit}`, { defaultValue: p.unit })}</td>
                     <td className="px-5 py-3.5">
                       {hasNoPrice ? (
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium">
                           <FiAlertCircle className="h-3 w-3" /> Prix manquant
                         </span>
                       ) : (
-                        <span className="text-sm font-semibold text-gray-800">{Number(p.unit_price).toFixed(2)} MAD</span>
+                        <span className="text-sm font-semibold text-gray-800">{money(p.unit_price)}</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
@@ -667,7 +669,7 @@ export default function Products() {
                                   return 'bg-green-50 text-green-700 hover:bg-green-100'
                                 })()
                           }`}
-                          title="Cliquer pour modifier"
+                          title={t('common.edit')}
                         >
                           {!p.expiry_date ? (
                             <span className="flex items-center gap-1"><FiClock className="h-3 w-3" /> —</span>
@@ -678,9 +680,9 @@ export default function Products() {
                             const diff = Math.ceil((exp - today) / 86400000)
                             const dateStr = exp.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
                             if (diff <= 0) return <><span>❌</span> {dateStr}</>
-                            if (diff <= 3) return <><span>🔴</span> {dateStr} ({diff}j)</>
-                            if (diff <= 7) return <><span>🟠</span> {dateStr} ({diff}j)</>
-                            if (diff <= 30) return <><span>🟡</span> {dateStr} ({diff}j)</>
+                            if (diff <= 3) return <><span>🔴</span> {dateStr} ({t('dashboard.days', { count: diff })})</>
+                            if (diff <= 7) return <><span>🟠</span> {dateStr} ({t('dashboard.days', { count: diff })})</>
+                            if (diff <= 30) return <><span>🟡</span> {dateStr} ({t('dashboard.days', { count: diff })})</>
                             return <><span>✅</span> {dateStr}</>
                           })()}
                         </button>
@@ -715,37 +717,37 @@ export default function Products() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h2 className="text-xl font-bold mb-5 text-gray-900">{editId ? 'Modifier' : 'Ajouter'} un produit</h2>
+            <h2 className="text-xl font-bold mb-5 text-gray-900">{editId ? t('products.editTitle') : t('products.addTitle')}</h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Nom arabe *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.nameAr')} *</label>
                   <input name="name_ar" value={form.name_ar} onChange={handleChange} placeholder="طماطم" required
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Nom français *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.nameFr')} *</label>
                   <input name="name_fr" value={form.name_fr} onChange={handleChange} placeholder="Tomates" required
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Unité</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.unit')}</label>
                   <select name="unit" value={form.unit} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm">
-                    <option value="piece">Pièce</option>
-                    <option value="kg">Kilogramme</option>
-                    <option value="litre">Litre</option>
-                    <option value="carton">Carton</option>
+                    <option value="piece">{t('products.units.piece')}</option>
+                    <option value="kg">{t('products.units.kg')}</option>
+                    <option value="litre">{t('products.units.litre')}</option>
+                    <option value="carton">{t('products.units.carton')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Code-barres</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.barcode')}</label>
                   <div className="flex gap-1.5">
-                    <input name="barcode" value={form.barcode} onChange={handleChange} placeholder="Optionnel"
+                    <input name="barcode" value={form.barcode} onChange={handleChange} placeholder={t('products.optional')}
                       className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
-                    <button type="button" onClick={openBarcodeScanner} title="Scanner avec la caméra"
+                    <button type="button" onClick={openBarcodeScanner} title={t('products.scanCamera')} aria-label={t('products.scanCamera')}
                       className="flex-shrink-0 px-2.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors">
                       <RiBarcodeLine className="h-4 w-4 text-emerald-600" />
                     </button>
@@ -754,12 +756,12 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix vente ({currency})</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.salePrice')} ({currency})</label>
                   <input name="unit_price" type="text" inputMode="decimal" placeholder="0.00" value={form.unit_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat ({currency})</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.costPrice')} ({currency})</label>
                   <input name="cost_price" type="text" inputMode="decimal" placeholder="0.00" value={form.cost_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
@@ -779,7 +781,7 @@ export default function Products() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">
-                    {editId ? 'Stock actuel' : 'Stock initial'}
+                    {editId ? t('products.currentStock') : t('products.initialStock')}
                   </label>
                   <input name="stock_quantity" type="text" inputMode="numeric" placeholder="0"
                     value={form.stock_quantity} onChange={handleChange}
@@ -798,12 +800,12 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Date fabrication</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.mfgDate')}</label>
                   <input name="manufacture_date" type="date" value={form.manufacture_date} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Date expiration</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('products.expiryDate')}</label>
                   <input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange}
                     className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm ${
                       form.expiry_date && new Date(form.expiry_date) <= new Date() ? 'border-red-300 bg-red-50' : 'border-gray-200'
@@ -812,7 +814,7 @@ export default function Products() {
                     const today = new Date(); today.setHours(0,0,0,0)
                     const exp = new Date(form.expiry_date + 'T00:00:00')
                     const diff = Math.ceil((exp - today) / 86400000)
-                    if (diff <= 0) return <p className="text-xs mt-1 font-medium text-red-600">❌ Produit expiré</p>
+                    if (diff <= 0) return <p className="text-xs mt-1 font-medium text-red-600">❌ {t('pos.expired')}</p>
                     if (diff <= 7) return <p className="text-xs mt-1 font-medium text-orange-600">⚠️ Expire dans {diff} jour(s)</p>
                     return null
                   })()}
@@ -821,11 +823,11 @@ export default function Products() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-700">
-                  Annuler
+                  {t('common.cancel')}
                 </button>
                 <button type="submit"
                   className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-medium">
-                  {editId ? 'Enregistrer' : 'Ajouter'}
+                  {editId ? t('common.save') : t('common.add')}
                 </button>
               </div>
             </form>
@@ -840,7 +842,7 @@ export default function Products() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <RiBarcodeLine className="h-5 w-5 text-emerald-600" />
-                <span className="font-bold text-gray-900 text-sm">Scanner code-barres</span>
+                <span className="font-bold text-gray-900 text-sm">{t('products.scanBarcode')}</span>
               </div>
               <button onClick={closeBarcodeScanner} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <FiX className="h-4 w-4 text-gray-500" />
@@ -851,9 +853,9 @@ export default function Products() {
               {scannerError ? (
                 <div className="text-center py-6">
                   <FiAlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-                  <p className="text-sm text-red-600 font-medium mb-1">Scanner non disponible</p>
+                  <p className="text-sm text-red-600 font-medium mb-1">{t('products.scannerUnavailable')}</p>
                   <p className="text-xs text-gray-500 mb-4">{scannerError}</p>
-                  <p className="text-xs text-gray-500">Entrez le code manuellement ci-dessus</p>
+                  <p className="text-xs text-gray-500">{t('products.typeCode')}</p>
                 </div>
               ) : (
                 <>
@@ -899,8 +901,8 @@ export default function Products() {
                   <RiScanLine className="h-5 w-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">Scan Facture Fournisseur</h2>
-                  <p className="text-xs text-gray-500">Import automatique via IA (GPT-4o Vision)</p>
+                  <h2 className="text-base font-bold text-gray-900">{t('products.invoiceScan')}</h2>
+                  <p className="text-xs text-gray-500">{t('products.invoiceScanSub')}</p>
                 </div>
               </div>
               <button onClick={() => setShowScanModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -918,13 +920,13 @@ export default function Products() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-gray-800">Analyse en cours...</p>
-                    <p className="text-sm text-gray-500 mt-1">GPT-4o Vision extrait les produits de votre facture</p>
+                    <p className="font-semibold text-gray-800">{t('products.analyzing')}</p>
+                    <p className="text-sm text-gray-500 mt-1">{t('products.analyzingSub')}</p>
                   </div>
                 </div>
               ) : scanItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
-                  <p className="text-sm">Aucun produit extrait. Réessayez avec une image plus nette.</p>
+                  <p className="text-sm">{t('products.nothingExtracted')}</p>
                 </div>
               ) : (
                 <>
@@ -934,9 +936,9 @@ export default function Products() {
                       {Object.values(scanSelected).filter(Boolean).length} / {scanItems.length} produits sélectionnés
                     </p>
                     <div className="flex gap-2">
-                      <button onClick={() => toggleAll(true)} className="text-xs text-brand-600 hover:underline font-semibold">Tout sélectionner</button>
+                      <button onClick={() => toggleAll(true)} className="text-xs text-brand-600 hover:underline font-semibold">{t('products.selectAll')}</button>
                       <span className="text-gray-300">·</span>
-                      <button onClick={() => toggleAll(false)} className="text-xs text-gray-500 hover:underline">Désélectionner</button>
+                      <button onClick={() => toggleAll(false)} className="text-xs text-gray-500 hover:underline">{t('products.selectNone')}</button>
                     </div>
                   </div>
 
@@ -976,8 +978,8 @@ export default function Products() {
                                 ? `${it.quantity} carton(s) × ${packSize} = `
                                 : 'Qté: '}
                               <span className="font-semibold text-gray-600">{effectiveQty} unité(s)</span>
-                              {' · '}Prix vente: {it.unit_price ? `${Number(it.unit_price).toFixed(2)} MAD` : '—'}
-                              {' · '}Prix achat: {it.cost_price ? `${Number(it.cost_price).toFixed(2)} MAD` : '—'}
+                              {' · '}{t('products.salePrice')}: {it.unit_price ? money(it.unit_price) : '—'}
+                              {' · '}{t('products.costPrice')}: {it.cost_price ? money(it.cost_price) : '—'}
                               {matchedProduct && (
                                 <span className="text-blue-500"> · correspond à "{matchedProduct.name_fr}"</span>
                               )}
@@ -1001,7 +1003,7 @@ export default function Products() {
                   onClick={() => setShowScanModal(false)}
                   className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleImportSelected}
