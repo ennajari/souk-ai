@@ -203,7 +203,7 @@ export default function Register() {
                   required
                   value={form.phone_number}
                   onChange={handleChange}
-                  placeholder="212612345678"
+                  placeholder="06 12 34 56 78"
                   className={inputCls}
                 />
               </div>
