@@ -582,5 +582,30 @@
     "changing": "Saving…",
     "changePassword": "Change password",
     "resend": "Resend the code"
+  },
+  "register": {
+    "b1": "Free — no credit card",
+    "b2": "Up and running in 2 minutes",
+    "b3": "In English, French and Arabic",
+    "b4": "Your data stays yours: export or delete anytime",
+    "created": "Account created!",
+    "eyebrow": "Join the pilot",
+    "headline1": "Your shop,",
+    "headline2": "clearer from today",
+    "title": "Create an account",
+    "subtitle": "Your till, stock and customer tabs in minutes",
+    "iAm": "I am a",
+    "merchant": "Shop owner",
+    "merchantDesc": "I sell to customers",
+    "supplier": "Supplier",
+    "supplierDesc": "I deliver to shops",
+    "shopNamePh": "e.g. Corner Grocery",
+    "supplierNamePh": "e.g. Atlas Distribution",
+    "email": "Email",
+    "passwordPh": "At least 8 characters",
+    "creating": "Creating…",
+    "haveAccount": "Already have an account?",
+    "country": "Country",
+    "countryDefault": "Platform default country"
   }
 }

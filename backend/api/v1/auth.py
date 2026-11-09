@@ -287,3 +287,10 @@ async def delete_account(
     # Delete merchant
     await db.execute(delete(Merchant).where(Merchant.id == mid))
     await db.commit()
+
+
+@router.get("/countries")
+async def countries():
+    """Supported countries for sign-up (currency, phone prefix). Names are localised by the browser."""
+    from core.locale import COUNTRIES
+    return [{"code": c.code, "currency": c.currency, "calling_code": c.calling_code} for c in COUNTRIES.values()]

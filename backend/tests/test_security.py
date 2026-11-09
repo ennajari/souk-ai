@@ -257,3 +257,10 @@ async def test_no_mock_loan_offers_and_market_data_is_admin_only(client):
     assert offers["offers"] == [] and offers["eligibility"] is False
     assert (await client.post("/api/v1/credit/request", json={}, headers=h)).status_code == 410
     assert (await client.get("/api/v1/market/overview", headers=h)).status_code == 403
+
+
+async def test_countries_list_is_public(client):
+    r = await client.get("/api/v1/auth/countries")
+    assert r.status_code == 200
+    codes = {c["code"]: c for c in r.json()}
+    assert codes["FR"]["currency"] == "EUR" and codes["US"]["calling_code"] == "1"

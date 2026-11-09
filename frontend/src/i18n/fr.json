@@ -582,5 +582,30 @@
     "changing": "Modification…",
     "changePassword": "Changer le mot de passe",
     "resend": "Renvoyer le code"
+  },
+  "register": {
+    "b1": "Gratuit — aucune carte bancaire",
+    "b2": "Opérationnel en 2 minutes",
+    "b3": "En français, arabe et anglais",
+    "b4": "Vos données restent à vous : export et suppression à tout moment",
+    "created": "Compte créé !",
+    "eyebrow": "Rejoignez le pilote",
+    "headline1": "Votre commerce,",
+    "headline2": "plus clair dès aujourd'hui",
+    "title": "Créer un compte",
+    "subtitle": "Votre caisse, votre stock et votre carnet en quelques minutes",
+    "iAm": "Je suis",
+    "merchant": "Commerçant",
+    "merchantDesc": "Je vends à des clients",
+    "supplier": "Fournisseur",
+    "supplierDesc": "Je livre des commerçants",
+    "shopNamePh": "Ex. : Épicerie du Coin",
+    "supplierNamePh": "Ex. : Distribution Atlas",
+    "email": "Email",
+    "passwordPh": "8 caractères minimum",
+    "creating": "Création…",
+    "haveAccount": "Déjà un compte ?",
+    "country": "Pays",
+    "countryDefault": "Pays par défaut de la plateforme"
   }
 }

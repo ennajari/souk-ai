@@ -46,3 +46,14 @@ test('login through the UI with a national number typed with spaces', async ({ p
   await page.locator('button[type="submit"]').first().click()
   await expect(page).toHaveURL(/\/dashboard/)
 })
+
+test('a shop in France signs up and works in euros', async ({ page }) => {
+  await page.goto('/register')
+  await page.fill('input[name="business_name"]', 'Épicerie Lyon')
+  await page.fill('input[name="phone_number"]', '06' + String(Math.floor(10_000_000 + Math.random() * 89_999_999)))
+  await page.fill('input[name="password"]', PASSWORD)
+  await page.selectOption('select[name="country_code"]', 'FR')
+  await page.click('button[type="submit"]')
+  await expect(page).toHaveURL(/\/dashboard/)
+  await expect(page.getByText(/€/).first()).toBeVisible()
+})
