@@ -823,7 +823,7 @@ export default function Products() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-700">
-                  Annuler
+                  {t('common.cancel')}
                 </button>
                 <button type="submit"
                   className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-medium">
@@ -1003,7 +1003,7 @@ export default function Products() {
                   onClick={() => setShowScanModal(false)}
                   className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleImportSelected}
