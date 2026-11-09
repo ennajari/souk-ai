@@ -164,3 +164,25 @@ async def test_credit_score_is_net_of_returns(client):
     async with AsyncSessionLocal() as db:
         score = await calculate_credit_score(db, me["id"])
     assert score["factors"]["volume_points"] == 0
+
+
+async def test_whatsapp_sale_respects_stock_and_journal(client):
+    """Bot sales go through the same checked, journaled path as the POS (logic pass 2)."""
+    import pytest
+
+    from core.database import AsyncSessionLocal
+    from services.inventory import record_sale
+    from services.sales import SaleError
+    h = await register(client)
+    me = (await client.get("/api/v1/auth/me", headers=h)).json()
+    p = await make_product(client, h, stock=2, price=5)
+    async with AsyncSessionLocal() as db:
+        with pytest.raises(SaleError):
+            await record_sale(db, me["id"], p["id"], 3, 5.0)
+        await db.rollback()
+        await record_sale(db, me["id"], p["id"], 2, 5.0)
+        await db.commit()
+    assert await _stock(client, h, p["id"]) == 0
+    logs = (await client.get("/api/v1/inventory/logs", headers=h)).json()
+    assert [(lg["source"], lg["quantity_change"]) for lg in logs] == [("sale", -2.0)]
+

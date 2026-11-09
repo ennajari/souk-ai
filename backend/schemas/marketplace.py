@@ -17,11 +17,11 @@ class ListingCreate(BaseModel):
 
 
 class ListingUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = None
-    unit_price: Optional[float] = None
-    min_quantity: Optional[int] = None
-    available_quantity: Optional[int] = None
+    unit_price: Optional[float] = Field(None, gt=0)
+    min_quantity: Optional[int] = Field(None, ge=1)
+    available_quantity: Optional[int] = Field(None, ge=0)
     city: Optional[str] = None
     delivery_zones: Optional[list[str]] = None
     status: Optional[str] = None

@@ -111,7 +111,8 @@
     "totalPurchases": "Total achats",
     "product": "Produit",
     "unitPrice": "Prix unit.",
-    "balance": "Solde"
+    "balance": "Solde",
+    "optIn": "Le client accepte les rappels WhatsApp (1 par semaine max)"
   },
   "settings": {
     "title": "Paramètres",

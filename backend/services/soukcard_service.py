@@ -110,13 +110,13 @@ async def register_card(
 
 async def get_card(db: AsyncSession, card_number: str, for_update: bool = False) -> SoukCard | None:
     q = select(SoukCard).where(SoukCard.card_number == card_number)
-    result = await db.execute(q.with_for_update() if for_update else q)
+    result = await db.execute(q.with_for_update().execution_options(populate_existing=True) if for_update else q)
     return result.scalar_one_or_none()
 
 
 async def get_card_by_nfc(db: AsyncSession, nfc_uid: str, for_update: bool = False) -> SoukCard | None:
     q = select(SoukCard).where(SoukCard.nfc_uid == nfc_uid)
-    result = await db.execute(q.with_for_update() if for_update else q)
+    result = await db.execute(q.with_for_update().execution_options(populate_existing=True) if for_update else q)
     return result.scalar_one_or_none()
 
 

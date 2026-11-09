@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.deps import get_current_merchant
+from core.money import to_money
 from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory, InventoryLog
@@ -69,7 +70,7 @@ async def get_alerts(
 @router.get("/logs")
 async def get_inventory_logs(
     product_id: str | None = None,
-    limit: int = 50,
+    limit: int = Query(50, ge=1, le=500),
     merchant: Annotated[Merchant, Depends(get_current_merchant)] = None,
     db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
@@ -108,43 +109,44 @@ async def adjust_inventory(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # Verify product belongs to merchant
-    prod_result = await db.execute(
+    """Manual correction (stock count, breakage, theft). Logged; never leaves stock below zero."""
+    if req.quantity_change == 0:
+        raise HTTPException(422, "La variation de stock ne peut pas etre nulle")
+    product = (await db.execute(
         select(Product).where(Product.id == req.product_id, Product.merchant_id == merchant.id)
-    )
-    product = prod_result.scalar_one_or_none()
+    )).scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Produit introuvable")
 
-    result = await db.execute(select(Inventory).where(Inventory.product_id == req.product_id))
-    inv = result.scalar_one_or_none()
+    # Row lock: a sale and an adjustment at the same time must not overwrite each other
+    inv = (await db.execute(
+        select(Inventory).where(Inventory.product_id == req.product_id).with_for_update().execution_options(populate_existing=True)
+    )).scalar_one_or_none()
     if not inv:
         inv = Inventory(product_id=req.product_id, quantity=0)
         db.add(inv)
-        await db.commit()
+        await db.flush()
 
-    qty_before = float(inv.quantity)
-    inv.quantity = qty_before + req.quantity_change
+    qty_before = to_money(inv.quantity)
+    qty_after = qty_before + to_money(req.quantity_change)
+    if qty_after < 0:
+        raise HTTPException(400, f"Le stock ne peut pas etre negatif (actuel: {float(qty_before):g})")
+    inv.quantity = qty_after
     inv.updated_at = datetime.now(timezone.utc)
-
-    # Audit log
-    log = InventoryLog(
-        product_id=req.product_id,
-        merchant_id=merchant.id,
-        quantity_before=qty_before,
-        quantity_change=req.quantity_change,
-        quantity_after=float(inv.quantity),
-        reason=req.reason or "Ajustement manuel",
-        source="manual",
-    )
-    db.add(log)
-
+    db.add(InventoryLog(
+        product_id=req.product_id, merchant_id=merchant.id, quantity_before=qty_before,
+        quantity_change=to_money(req.quantity_change), quantity_after=qty_after,
+        reason=req.reason or "Ajustement manuel", source="manual",
+    ))
     await db.commit()
+    return await _load_response(db, inv.id)
 
-    result = await db.execute(
-        select(Inventory).options(selectinload(Inventory.product)).where(Inventory.id == inv.id)
-    )
-    inv = result.scalar_one()
+
+async def _load_response(db: AsyncSession, inventory_id: str) -> InventoryResponse:
+    # Eager-load the product: lazy loading in async code raises MissingGreenlet
+    inv = (await db.execute(
+        select(Inventory).options(selectinload(Inventory.product)).where(Inventory.id == inventory_id)
+    )).scalar_one()
     return _to_response(inv)
 
 
@@ -155,15 +157,13 @@ async def update_threshold(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    result = await db.execute(
+    inv = (await db.execute(
         select(Inventory).join(Product).where(
             Inventory.product_id == product_id, Product.merchant_id == merchant.id
         )
-    )
-    inv = result.scalar_one_or_none()
+    )).scalar_one_or_none()
     if not inv:
         raise HTTPException(status_code=404, detail="Inventaire introuvable")
-
     inv.reorder_threshold = req.reorder_threshold
     await db.commit()
-    return _to_response(inv)
+    return await _load_response(db, inv.id)

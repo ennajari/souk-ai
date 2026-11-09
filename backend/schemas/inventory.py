@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
@@ -16,10 +16,10 @@ class InventoryResponse(BaseModel):
 
 
 class InventoryAdjust(BaseModel):
-    product_id: str
-    quantity_change: float
-    reason: str = ""
+    product_id: str = Field(..., max_length=36)
+    quantity_change: float = Field(..., ge=-1_000_000, le=1_000_000)
+    reason: str = Field("", max_length=255)
 
 
 class ThresholdUpdate(BaseModel):
-    reorder_threshold: int
+    reorder_threshold: int = Field(..., ge=0, le=1_000_000)

@@ -13,8 +13,9 @@ from models.product import Product
 from models.transaction import Transaction, TransactionType, TransactionSource
 from models.conversation import MessageRole, MessageType
 from services.ai_engine import process_message, extract_invoice_data, generate_natural_response
-from services.whatsapp import send_text_message
+from services.whatsapp import send_template_message, send_text_message
 from services.inventory import find_product_by_name, find_most_similar_product, record_sale, get_stock_level, get_low_stock_products
+from services.sales import SaleError
 from services.conversation import get_conversation_history, save_message
 from services.speech_to_text import download_whatsapp_media, transcribe_audio
 
@@ -858,14 +859,18 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                             product = similar
                     if product:
                         price = float(product.unit_price)
-                        await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
-                        stock = await get_stock_level(db, product.id)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
-                        data_ctx = (
-                            "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
-                            " de " + str(display_name) + " — " + str(round(quantity * price, 2)) + " MAD." +
-                            " Stock restant: " + str(stock) + " " + str(product.unit) + "."
-                        )
+                        try:
+                            await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
+                            stock = await get_stock_level(db, product.id)
+                            data_ctx = (
+                                "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
+                                " de " + str(display_name) + " — " + str(round(quantity * price, 2)) + " MAD." +
+                                " Stock restant: " + str(stock) + " " + str(product.unit) + "."
+                            )
+                        except SaleError as e:  # e.g. not enough stock: nothing recorded, tell the merchant why
+                            data_ctx = "Vente NON enregistree pour " + str(display_name) + ": " + e.message + \
+                                ". Corrigez le stock (ajustement) puis renvoyez la vente."
                         response_text = await generate_natural_response(text, data_ctx, lang, history)
                     else:
                         # No match at all — list available products to help user
@@ -1349,10 +1354,13 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                             ex_prod = ex_sim
                     if ex_prod:
                         ex_price = float(ex_prod.unit_price)
-                        await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
-                        ex_stock = await get_stock_level(db, ex_prod.id)
                         ex_dname = ex_prod.name_fr if lang in ("fr", "en") and ex_prod.name_fr else ex_prod.name_ar
-                        ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
+                        try:
+                            await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
+                            ex_stock = await get_stock_level(db, ex_prod.id)
+                            ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
+                        except SaleError as e:
+                            ex_ctx = "Vente NON enregistree pour " + str(ex_dname) + ": " + e.message + "."
                         ex_resp = await generate_natural_response(text, ex_ctx, lang, history)
                         extra_parts.append(ex_resp)
             if extra_parts:
@@ -1661,7 +1669,6 @@ async def _send_karni_reminders():
             merchants = result.scalars().all()
 
             now = datetime.now(timezone.utc)
-            today_str = now.strftime("%Y-%m-%d")
             three_days_ago = now - timedelta(days=3)
 
             for merchant in merchants:
@@ -1673,6 +1680,8 @@ async def _send_karni_reminders():
                         Customer.balance > 50,
                         Customer.phone != None,
                         Customer.phone != "",
+                        # WhatsApp policy: business-initiated messages need the customer's opt-in
+                        Customer.whatsapp_opt_in == True,
                     )
                 )
                 customers = cust_result.scalars().all()
@@ -1682,8 +1691,8 @@ async def _send_karni_reminders():
                     if sent_count >= 20:
                         break
 
-                    # Check Redis dedup — skip if already reminded today
-                    dedup_key = f"karni_reminder:{customer.id}:{today_str}"
+                    # At most one automatic reminder per customer per 7 days (was daily)
+                    dedup_key = f"karni_reminder:{customer.id}"
                     already_sent = await redis_client.get(dedup_key)
                     if already_sent:
                         continue
@@ -1704,22 +1713,29 @@ async def _send_karni_reminders():
                     first_name = customer.name.split()[0] if customer.name else "Client"
                     balance_str = f"{float(customer.balance):.2f}"
                     shop_name = merchant.business_name or "Votre boutique"
+                    currency = merchant.currency or "MAD"
                     last_date = last_entry.created_at.strftime("%d/%m/%Y") if last_entry else "—"
 
                     msg = (
                         f"سلام {first_name} 👋\n\n"
-                        f"هذا تذكير بسيط — عندك {balance_str} درهم في الكارني ديال {shop_name}.\n\n"
-                        f"💳 المبلغ: {balance_str} MAD\n"
+                        f"هذا تذكير بسيط — عندك {balance_str} {currency} في الكارني ديال {shop_name}.\n\n"
+                        f"💳 المبلغ: {balance_str} {currency}\n"
                         f"📅 آخر عملية: {last_date}\n\n"
                         f"الله يبارك فيك، خلص وقتما تقدر 🙏\n\n"
                         f"— {shop_name} via Souk.AI"
                     )
 
                     try:
-                        phone_normalized = normalize_phone(customer.phone)
-                        await send_text_message(phone_normalized, msg)
-                        # Mark as sent in Redis with 24h TTL
-                        await redis_client.setex(dedup_key, 86400, "1")
+                        phone_normalized = normalize_phone(customer.phone, merchant.country_code)
+                        try:
+                            # Approved utility template works outside the 24 h window; free text only inside it
+                            await send_template_message(
+                                to=phone_normalized, template_name="karni_reminder", language="ar",
+                                body_params=[first_name, balance_str, currency, shop_name, last_date],
+                            )
+                        except Exception:  # noqa: BLE001
+                            await send_text_message(phone_normalized, msg)
+                        await redis_client.setex(dedup_key, 7 * 86400, "1")
                         sent_count += 1
                     except Exception as e:
                         logger.error(f"Karni reminder failed for {customer.name} ({customer.phone}): {e}")

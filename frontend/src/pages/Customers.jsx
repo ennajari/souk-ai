@@ -11,7 +11,7 @@ export default function Customers() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', phone: '', notes: '' })
+  const [form, setForm] = useState({ name: '', phone: '', notes: '', whatsapp_opt_in: false })
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -72,7 +72,7 @@ export default function Customers() {
       await client.post('/customers/', form)
       toast.success('Client ajoute')
       setShowAdd(false)
-      setForm({ name: '', phone: '', notes: '' })
+      setForm({ name: '', phone: '', notes: '', whatsapp_opt_in: false })
       fetchCustomers()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erreur')
@@ -114,7 +114,7 @@ export default function Customers() {
 
   const openEdit = () => {
     if (!detail) return
-    setEditForm({ name: detail.name, phone: detail.phone || '', notes: detail.notes || '' })
+    setEditForm({ name: detail.name, phone: detail.phone || '', notes: detail.notes || '', whatsapp_opt_in: !!detail.whatsapp_opt_in })
     setShowEdit(true)
   }
 
@@ -378,6 +378,11 @@ export default function Customers() {
                 <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500" rows={2} />
               </div>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet-600" checked={!!editForm.whatsapp_opt_in}
+                  onChange={e => setEditForm(f => ({ ...f, whatsapp_opt_in: e.target.checked }))} />
+                <span>{t('customers.optIn')}</span>
+              </label>
               <button type="submit" disabled={editSaving}
                 className="w-full py-2.5 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-700 disabled:opacity-50">
                 {editSaving ? t('common.saving') : t('common.save')}
@@ -439,6 +444,11 @@ export default function Customers() {
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder={isRtl ? 'ملاحظات اختيارية...' : 'Notes optionnelles...'} rows={2} />
               </div>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet-600" checked={!!form.whatsapp_opt_in}
+                  onChange={e => setForm(f => ({ ...f, whatsapp_opt_in: e.target.checked }))} />
+                <span>{t('customers.optIn')}</span>
+              </label>
               <button type="submit" disabled={saving}
                 className="w-full py-2.5 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-700 disabled:opacity-50">
                 {saving ? t('common.saving') : t('common.add')}

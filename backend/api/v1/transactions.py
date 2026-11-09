@@ -1,5 +1,3 @@
-from collections import defaultdict
-from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 
@@ -11,21 +9,18 @@ from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.deps import get_current_merchant
-from core.money import to_money
 from models.customer import Customer
 from models.idempotency import IdempotencyKey
-from models.inventory import Inventory
 from models.merchant import Merchant
 from models.payment import Payment, PaymentMethod, PaymentStatus
 from models.product import Product
-from models.transaction import Transaction, TransactionSource, TransactionType
+from models.transaction import Transaction, TransactionType
 from schemas.transaction import BulkTransactionCreate, TransactionCreate, TransactionResponse
 from services.credit_ledger import apply_entry, lock_customer, notify_credit
+from services.sales import SaleError, record_items
 from services.soukcard_service import pay_with_soukcard
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
-
-_STOCK_IN = {"PURCHASE", "RETURN"}
 
 
 def _to_response(txn: Transaction, product: Product | None) -> TransactionResponse:
@@ -51,56 +46,11 @@ async def _check_customer(db: AsyncSession, merchant_id: str, customer_id: str |
 async def _record_items(
     db: AsyncSession, merchant_id: str, items: list[TransactionCreate], customer_id: str | None,
 ) -> list[tuple[Transaction, Product]]:
-    """Create transactions and move stock atomically.
-
-    Inventory rows are locked (FOR UPDATE, in product-id order to avoid deadlocks) so two tills
-    selling the last unit cannot both succeed (AUDIT L4).
-    """
-    product_ids = sorted({i.product_id for i in items})
-    products = {p.id: p for p in (await db.execute(
-        select(Product).where(Product.id.in_(product_ids), Product.merchant_id == merchant_id)
-    )).scalars().all()}
-    inv_map = {i.product_id: i for i in (await db.execute(
-        select(Inventory).where(Inventory.product_id.in_(product_ids))
-        .order_by(Inventory.product_id).with_for_update()
-    )).scalars().all()}
-
-    wanted: dict[str, int] = defaultdict(int)
-    for item in items:
-        product = products.get(item.product_id)
-        if not product:
-            raise HTTPException(404, f"Produit introuvable: {item.product_id}")
-        if item.type == "SALE":
-            wanted[item.product_id] += item.quantity
-    for pid, qty in wanted.items():
-        inv = inv_map.get(pid)
-        if inv and to_money(inv.quantity) < qty:
-            p = products[pid]
-            raise HTTPException(
-                400, f"Stock insuffisant pour {p.name_fr or p.name_ar} — disponible: {float(inv.quantity):g}, demandé: {qty}"
-            )
-
-    now = datetime.now(timezone.utc)
-    out = []
-    for item in items:
-        unit_price = to_money(item.unit_price)
-        txn = Transaction(
-            merchant_id=merchant_id, product_id=item.product_id,
-            customer_id=customer_id or item.customer_id,
-            type=TransactionType(item.type), source=TransactionSource(item.source),
-            quantity=item.quantity, unit_price=unit_price, total_amount=to_money(unit_price * item.quantity),
-        )
-        db.add(txn)
-        out.append((txn, products[item.product_id]))
-        inv = inv_map.get(item.product_id)
-        if inv:
-            if item.type == "SALE":
-                inv.quantity = to_money(inv.quantity) - item.quantity
-            elif item.type in _STOCK_IN:
-                inv.quantity = to_money(inv.quantity) + item.quantity
-            inv.updated_at = now
-    await db.flush()
-    return out
+    """services.sales.record_items with business errors mapped to HTTP."""
+    try:
+        return await record_items(db, merchant_id, items, customer_id)
+    except SaleError as e:
+        raise HTTPException(e.status, e.message) from None
 
 
 @router.get("/", response_model=list[TransactionResponse])
@@ -212,7 +162,7 @@ async def return_transaction(
             Transaction.id == transaction_id,
             Transaction.merchant_id == merchant.id,
             Transaction.type == TransactionType.SALE,
-        ).with_for_update()  # serializes concurrent returns of the same sale
+        ).with_for_update().execution_options(populate_existing=True)  # serializes concurrent returns of the same sale
     )).scalar_one_or_none()
     if not original:
         raise HTTPException(404, "Vente introuvable")
@@ -235,5 +185,7 @@ async def return_transaction(
         product_id=original.product_id, customer_id=original.customer_id, type="RETURN",
         source=original.source.value, quantity=original.quantity, unit_price=original.unit_price,
     )], original.customer_id)
+    if original.unit_cost is not None:
+        return_txn.unit_cost = original.unit_cost  # a return reverses the cost of the sale it cancels
     await db.commit()
     return _to_response(return_txn, product)
