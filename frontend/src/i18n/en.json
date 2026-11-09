@@ -251,7 +251,8 @@
   "reports": {
     "sales": "Sales",
     "margins": "Margins",
-    "restock": "Restock"
+    "restock": "Restock",
+    "tax": "Tax"
   },
   "sales": {
     "title": "Sales",
@@ -372,5 +373,27 @@
       "tag": "The till that tells you where your money is.",
       "rights": "All rights reserved."
     }
+  },
+  "products": {
+    "taxIncluded": "included",
+    "taxUnset": "Not set"
+  },
+  "tax": {
+    "title": "VAT collected",
+    "subtitle": "Per rate, net of returns. Selling prices include tax.",
+    "month": "Month",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "monthsAgo_one": "{{count}} month ago",
+    "monthsAgo_other": "{{count}} months ago",
+    "rate": "Rate",
+    "gross": "Sales incl. tax",
+    "net": "Excl. tax",
+    "tax": "Tax",
+    "total": "Total tax",
+    "empty": "No sales with a tax rate this month.",
+    "unsetWarning": "{{amount}} of sales are for products without a tax rate.",
+    "setRates": "Set rates",
+    "disclaimer": "A calculation aid, not a tax document: have your filing checked by your accountant."
   }
 }

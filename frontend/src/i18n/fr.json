@@ -251,7 +251,8 @@
   "reports": {
     "sales": "Ventes",
     "margins": "Marges",
-    "restock": "Réassort"
+    "restock": "Réassort",
+    "tax": "TVA"
   },
   "sales": {
     "title": "Ventes",
@@ -372,5 +373,27 @@
       "tag": "La caisse qui vous dit où est votre argent.",
       "rights": "Tous droits réservés."
     }
+  },
+  "products": {
+    "taxIncluded": "incluse",
+    "taxUnset": "Non renseignée"
+  },
+  "tax": {
+    "title": "TVA collectée",
+    "subtitle": "Par taux, nette des retours. Prix de vente TTC.",
+    "month": "Mois",
+    "thisMonth": "Ce mois-ci",
+    "lastMonth": "Mois dernier",
+    "monthsAgo_one": "Il y a {{count}} mois",
+    "monthsAgo_other": "Il y a {{count}} mois",
+    "rate": "Taux",
+    "gross": "Ventes TTC",
+    "net": "HT",
+    "tax": "TVA",
+    "total": "Total TVA",
+    "empty": "Aucune vente avec un taux de TVA ce mois-ci.",
+    "unsetWarning": "{{amount}} de ventes concernent des produits sans taux de TVA.",
+    "setRates": "Renseigner les taux",
+    "disclaimer": "Aide au calcul, pas un document fiscal : faites valider votre déclaration par votre comptable."
   }
 }

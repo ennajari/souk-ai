@@ -71,6 +71,7 @@ export const analyticsAPI = {
   salesChart: (days = 7) => client.get('/analytics/sales-chart', { params: { days } }),
   profit: (days = 30) => client.get('/analytics/profit', { params: { days } }),
   moneyReport: () => client.get('/analytics/money-report'),
+  taxSummary: (monthOffset = 0) => client.get('/analytics/tax-summary', { params: { month_offset: monthOffset } }),
 }
 
 // ---- Export ----
@@ -85,6 +86,7 @@ export const merchantsAPI = {
   me: () => client.get('/merchants/me'),
   update: (data) => client.patch('/merchants/me', data),
   exportData: () => client.get('/merchants/me/export'),
+  taxRates: () => client.get('/merchants/me/tax-rates'),
 }
 
 export default client

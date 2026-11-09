@@ -3,11 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
+from decimal import Decimal
 
 from sqlalchemy import case, func, select
 
 from core.database import get_db
 from core.deps import get_current_merchant
+from core.money import to_money
 from core.timeutil import day_start_utc, days_in_month, local_date, local_today, merchant_zone, month_start
 from models.merchant import Merchant
 from models.product import Product
@@ -218,3 +220,44 @@ async def money_report(
     from services.money_report import build_money_report
     today = local_today(merchant_zone(merchant))
     return {"currency": merchant.currency or "MAD", **await build_money_report(db, merchant.id, today=today)}
+
+
+
+@router.get("/tax-summary")
+async def tax_summary(
+    merchant: Annotated[Merchant, Depends(get_current_merchant)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    month_offset: int = Query(0, ge=0, le=24, description="0 = current month, 1 = previous month…"),
+):
+    """VAT collected per rate for a calendar month, net of returns (prices are tax-inclusive).
+
+    tax = gross × rate / (100 + rate). Lines without a rate are reported separately as `unset`
+    so the merchant sees what still needs a rate before filing.
+    """
+    zone = merchant_zone(merchant)
+    start_day = month_start(local_today(zone), month_offset)
+    end_day = month_start(start_day.replace(day=28) + timedelta(days=7))  # first day of next month
+    rows = (await db.execute(
+        select(Transaction.tax_rate, func.coalesce(func.sum(_signed(Transaction.total_amount)), 0))
+        .where(Transaction.merchant_id == merchant.id, _SALES_AND_RETURNS,
+               Transaction.created_at >= day_start_utc(start_day, zone),
+               Transaction.created_at < day_start_utc(end_day, zone))
+        .group_by(Transaction.tax_rate)
+    )).all()
+    lines, unset = [], 0.0
+    for rate, gross in rows:
+        gross = Decimal(str(gross))
+        if rate is None:
+            unset = float(gross)
+            continue
+        rate = Decimal(str(rate))
+        tax = to_money(gross * rate / (100 + rate))
+        lines.append({"rate": float(rate), "gross": float(gross), "tax": float(tax), "net": float(gross - tax)})
+    lines.sort(key=lambda x: -x["rate"])
+    return {
+        "period": start_day.strftime("%Y-%m"),
+        "currency": merchant.currency or "MAD",
+        "lines": lines,
+        "total_tax": round(sum(x["tax"] for x in lines), 2),
+        "gross_without_rate": round(unset, 2),
+    }

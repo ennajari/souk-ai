@@ -17,6 +17,8 @@ class Product(Base):
     unit: Mapped[str] = mapped_column(String(20), default="piece")  # piece, kg, litre, carton
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     cost_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    # VAT % included in unit_price (retail prices are tax-inclusive); NULL = not set
+    tax_rate: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     manufacture_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)

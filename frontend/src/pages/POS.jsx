@@ -314,6 +314,18 @@ export default function POS() {
     executePayment('NFC_SOUKCARD', detectedCard?.card_number, cardPin, detectedCard?.nfc_uid)
   }
 
+  // VAT included in tax-inclusive prices, per rate: gross × r / (100 + r). Products without a rate are skipped.
+  const taxLines = (items) => {
+    const by = {}
+    items.forEach(c => {
+      const r = c.product.tax_rate
+      if (r == null || r === '') return
+      by[r] = (by[r] || 0) + c.qty * c.price
+    })
+    return Object.entries(by).map(([r, gross]) => ({ rate: Number(r), tax: gross * Number(r) / (100 + Number(r)) }))
+      .sort((a, b) => b.rate - a.rate)
+  }
+
   const generateReceiptHTML = (receipt) => `<!DOCTYPE html>
 <html dir="${isRtl ? 'rtl' : 'ltr'}"><head><title>Ticket</title>
 <style>
@@ -349,6 +361,7 @@ ${receipt.items.map(c => `
   <span>${t('common.total')}</span>
   <span>${money(receipt.total)}</span>
 </div>
+${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.rate} % (${t('products.taxIncluded')})</span><span>${money(l.tax)}</span></div>`).join('')}
 <div class="payment">Paye par: ${receipt.paymentMethod || 'Especes'}</div>
 <div class="footer">Merci / شكرا<br/>Souk.AI — Paiement securise</div>
 </body></html>`
@@ -835,6 +848,12 @@ ${receipt.items.map(c => `
                 <span>{t('common.total')}</span>
                 <span className="text-brand-600">{money(lastReceipt.total)}</span>
               </div>
+              {taxLines(lastReceipt.items).map(l => (
+                <div key={l.rate} className="flex justify-between text-xs text-gray-500">
+                  <span>{t('tax.tax')} {l.rate} % ({t('products.taxIncluded')})</span>
+                  <span className="tabular-nums">{money(l.tax)}</span>
+                </div>
+              ))}
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowReceipt(false)}

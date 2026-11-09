@@ -18,6 +18,10 @@ from models.inventory import Inventory, InventoryLog
 from schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from services.barcode_service import register_barcode, lookup_barcode
 
+def _rate(p) -> float | None:
+    return float(p.tax_rate) if p.tax_rate is not None else None
+
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -39,7 +43,7 @@ async def list_products(
         response.append(ProductResponse(
             id=p.id, merchant_id=p.merchant_id, name_ar=p.name_ar, name_fr=p.name_fr,
             barcode=p.barcode, unit=p.unit, unit_price=float(p.unit_price),
-            cost_price=float(p.cost_price), is_active=p.is_active,
+            cost_price=float(p.cost_price), tax_rate=_rate(p), is_active=p.is_active,
             manufacture_date=p.manufacture_date, expiry_date=p.expiry_date,
             created_at=p.created_at, stock_quantity=stock,
         ))
@@ -104,7 +108,7 @@ async def create_product(
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
         name_fr=product.name_fr, barcode=product.barcode, unit=product.unit,
-        unit_price=float(product.unit_price), cost_price=float(product.cost_price),
+        unit_price=float(product.unit_price), cost_price=float(product.cost_price), tax_rate=_rate(product),
         is_active=product.is_active, created_at=product.created_at, stock_quantity=initial_stock,
     )
 
@@ -126,7 +130,7 @@ async def get_product(
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
         name_fr=product.name_fr, barcode=product.barcode, unit=product.unit,
-        unit_price=float(product.unit_price), cost_price=float(product.cost_price),
+        unit_price=float(product.unit_price), cost_price=float(product.cost_price), tax_rate=_rate(product),
         is_active=product.is_active, created_at=product.created_at, stock_quantity=stock,
     )
 
@@ -153,7 +157,7 @@ async def update_product(
     return ProductResponse(
         id=product.id, merchant_id=product.merchant_id, name_ar=product.name_ar,
         name_fr=product.name_fr, barcode=product.barcode, unit=product.unit,
-        unit_price=float(product.unit_price), cost_price=float(product.cost_price),
+        unit_price=float(product.unit_price), cost_price=float(product.cost_price), tax_rate=_rate(product),
         is_active=product.is_active, created_at=product.created_at, stock_quantity=stock,
     )
 
@@ -298,7 +302,7 @@ async def merge_products(
     return ProductResponse(
         id=keep.id, merchant_id=keep.merchant_id, name_ar=keep.name_ar,
         name_fr=keep.name_fr, barcode=keep.barcode, unit=keep.unit,
-        unit_price=float(keep.unit_price), cost_price=float(keep.cost_price),
+        unit_price=float(keep.unit_price), cost_price=float(keep.cost_price), tax_rate=_rate(keep),
         is_active=keep.is_active, created_at=keep.created_at, stock_quantity=stock,
     )
 

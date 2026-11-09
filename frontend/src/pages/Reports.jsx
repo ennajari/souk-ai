@@ -7,6 +7,7 @@ const TABS = [
   { id: 'sales', label: 'reports.sales', Page: lazy(() => import('./Analytics')) },
   { id: 'margins', label: 'reports.margins', Page: lazy(() => import('./Profit')) },
   { id: 'restock', label: 'reports.restock', Page: lazy(() => import('./Forecasts')) },
+  { id: 'tax', label: 'reports.tax', Page: lazy(() => import('./TaxReport')) },
 ]
 
 export default function Reports() {
