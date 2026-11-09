@@ -40,7 +40,7 @@ export default function Profit() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600" /></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div>
   }
 
   if (!data) return null
@@ -56,7 +56,7 @@ export default function Profit() {
         </div>
         <div className="flex items-center gap-3">
           <select value={days} onChange={e => setDays(parseInt(e.target.value))}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500">
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
             <option value={7}>7 jours</option>
             <option value={30}>30 jours</option>
             <option value={90}>90 jours</option>
@@ -73,11 +73,11 @@ export default function Profit() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <p className="text-xs text-gray-500">Chiffre d'affaires</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_revenue.toFixed(0)} <span className="text-sm font-normal text-gray-400">MAD</span></p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_revenue.toFixed(0)} <span className="text-sm font-normal text-gray-500">MAD</span></p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <p className="text-xs text-gray-500">Cout total</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_cost.toFixed(0)} <span className="text-sm font-normal text-gray-400">MAD</span></p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_cost.toFixed(0)} <span className="text-sm font-normal text-gray-500">MAD</span></p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <p className="text-xs text-gray-500">Profit net</p>
@@ -96,7 +96,7 @@ export default function Profit() {
       {/* Products profit table */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center gap-2">
-          <FiTrendingUp className="h-4 w-4 text-violet-600" />
+          <FiTrendingUp className="h-4 w-4 text-brand-600" />
           <h2 className="font-semibold text-gray-900 text-sm">Profit par produit</h2>
         </div>
         <div className="overflow-x-auto">
@@ -114,12 +114,12 @@ export default function Profit() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {data.products.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 text-sm">Aucune vente sur cette periode</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">Aucune vente sur cette periode</td></tr>
               ) : data.products.map(p => (
                 <tr key={p.product_id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <p className="text-sm font-medium text-gray-900">{p.name_fr}</p>
-                    <p className="text-xs text-gray-400">{p.name_ar}</p>
+                    <p className="text-xs text-gray-500">{p.name_ar}</p>
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-600">{p.quantity_sold}</td>
                   <td className="px-4 py-3 text-right text-sm text-gray-600">{p.revenue.toFixed(2)}</td>

@@ -4,7 +4,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import client from '../api/client'
 import toast from 'react-hot-toast'
 
-const trendIcon = { UP: <FiArrowUp className="text-green-500" />, DOWN: <FiArrowDown className="text-red-500" />, STABLE: <FiMinus className="text-gray-400" /> }
+const trendIcon = { UP: <FiArrowUp className="text-green-500" />, DOWN: <FiArrowDown className="text-red-500" />, STABLE: <FiMinus className="text-gray-500" /> }
 const recColor = { COMPETITIVE: 'text-green-600 bg-green-50', ABOVE_MARKET: 'text-red-600 bg-red-50', BELOW_MARKET: 'text-blue-600 bg-blue-50' }
 const recLabel = { COMPETITIVE: 'Competitif', ABOVE_MARKET: 'Au-dessus du marche', BELOW_MARKET: 'En dessous du marche' }
 
@@ -28,7 +28,7 @@ export default function MarketIntelligence() {
     ]).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Chargement de l'intelligence marche...</div>
+  if (loading) return <div className="text-center py-12 text-gray-500">Chargement de l'intelligence marche...</div>
 
   return (
     <div className="space-y-6">
@@ -40,7 +40,7 @@ export default function MarketIntelligence() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit flex-wrap">
         {[['overview', 'Vue globale', FiBarChart2], ['benchmark', 'Mon positionnement', FiUsers], ['trending', 'Tendances', FiTrendingUp], ['prices', 'Prix', FiDollarSign]].map(([key, label, Icon]) => (
-          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === key ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === key ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <Icon size={16} /> {label}
           </button>
         ))}
@@ -62,7 +62,7 @@ export default function MarketIntelligence() {
               {overview.top_categories.map((c, i) => (
                 <div key={i} className="flex justify-between items-center py-2 border-b last:border-0">
                   <span className="text-sm">{c.category}</span>
-                  <span className="text-sm font-medium text-purple-600">{c.count} commercants</span>
+                  <span className="text-sm font-medium text-brand-600">{c.count} commercants</span>
                 </div>
               ))}
             </div>
@@ -76,7 +76,7 @@ export default function MarketIntelligence() {
                     <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v) => [`${v} MAD`, 'Volume']} />
-                    <Area type="monotone" dataKey="total_volume" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="total_volume" stroke="#C2410C" fill="#C2410C" fillOpacity={0.1} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -84,9 +84,9 @@ export default function MarketIntelligence() {
           </div>
 
           {overview.avg_basket_size > 0 && (
-            <div className="bg-purple-50 rounded-xl border border-purple-200 p-5">
-              <p className="text-sm text-purple-600 font-medium">Panier moyen du marche</p>
-              <p className="text-3xl font-bold text-purple-700">{overview.avg_basket_size.toFixed(2)} MAD</p>
+            <div className="bg-brand-50 rounded-xl border border-brand-200 p-5">
+              <p className="text-sm text-brand-600 font-medium">Panier moyen du marche</p>
+              <p className="text-3xl font-bold text-brand-700">{overview.avg_basket_size.toFixed(2)} MAD</p>
             </div>
           )}
         </div>
@@ -103,7 +103,7 @@ export default function MarketIntelligence() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Percentile</p>
-                <p className="text-3xl font-bold text-purple-600">Top {(100 - benchmark.your_rank_percentile).toFixed(0)}%</p>
+                <p className="text-3xl font-bold text-brand-600">Top {(100 - benchmark.your_rank_percentile).toFixed(0)}%</p>
               </div>
             </div>
 
@@ -120,7 +120,7 @@ export default function MarketIntelligence() {
       {tab === 'trending' && (
         <div className="bg-white rounded-xl border overflow-x-auto">
           {trending.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
+            <div className="p-12 text-center text-gray-500">
               <FiTrendingUp size={48} className="mx-auto mb-3 opacity-30" />
               <p>Pas assez de donnees</p>
             </div>
@@ -147,7 +147,7 @@ export default function MarketIntelligence() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${Math.min(100, p.demand_score)}%` }} />
+                          <div className="bg-brand-600 h-2 rounded-full" style={{ width: `${Math.min(100, p.demand_score)}%` }} />
                         </div>
                         <span className="text-xs text-gray-500">{p.demand_score}</span>
                       </div>
@@ -164,7 +164,7 @@ export default function MarketIntelligence() {
       {tab === 'prices' && (
         <div className="bg-white rounded-xl border overflow-x-auto">
           {prices.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
+            <div className="p-12 text-center text-gray-500">
               <FiDollarSign size={48} className="mx-auto mb-3 opacity-30" />
               <p>Ajoutez des produits pour comparer les prix</p>
             </div>
@@ -207,7 +207,7 @@ export default function MarketIntelligence() {
 function StatCard({ label, value, icon }) {
   return (
     <div className="bg-white rounded-xl border p-4">
-      <div className="flex items-center gap-2 text-gray-400 mb-1">{icon}<span className="text-sm">{label}</span></div>
+      <div className="flex items-center gap-2 text-gray-500 mb-1">{icon}<span className="text-sm">{label}</span></div>
       <p className="text-xl font-bold text-gray-900">{value}</p>
     </div>
   )
@@ -222,7 +222,7 @@ function CompareCard({ label, yours, avg, unit }) {
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xl font-bold text-gray-900">{typeof yours === 'number' ? yours.toFixed(yours > 100 ? 0 : 2) : yours} {unit}</p>
-          <p className="text-xs text-gray-400">Moy: {typeof avg === 'number' ? avg.toFixed(avg > 100 ? 0 : 2) : avg} {unit}</p>
+          <p className="text-xs text-gray-500">Moy: {typeof avg === 'number' ? avg.toFixed(avg > 100 ? 0 : 2) : avg} {unit}</p>
         </div>
         <span className={`text-sm font-medium ${isAbove ? 'text-green-600' : 'text-red-600'}`}>
           {isAbove ? '+' : ''}{diff}%

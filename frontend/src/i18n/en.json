@@ -19,7 +19,12 @@
     "coach": "AI coach",
     "employees": "Staff",
     "catalogue": "Catalog",
-    "settings": "Settings"
+    "settings": "Settings",
+    "productsStock": "Products & stock",
+    "reports": "Reports",
+    "more": "MORE",
+    "payments": "Payments & cards",
+    "marketplace": "B2B marketplace"
   },
   "common": {
     "save": "Save",
@@ -242,5 +247,130 @@
     "atRiskHint": "{{soon}} expiring within 7 days · {{dead}} not sold in 30 days",
     "missedSales": "Missed profit / week",
     "missedHint": "{{count}} best-seller(s) out of stock"
+  },
+  "reports": {
+    "sales": "Sales",
+    "margins": "Margins",
+    "restock": "Restock"
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Sales and returns history. To sell, use the checkout.",
+    "newSale": "New sale",
+    "empty": "No sales yet.",
+    "return": "Return",
+    "doReturn": "Return",
+    "confirmReturn": "Confirm return",
+    "returned": "Return recorded, stock updated"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "pilot": "Pilot program",
+      "faq": "FAQ",
+      "login": "Log in",
+      "start": "Start free"
+    },
+    "hero": {
+      "eyebrow": "Checkout · stock · customer tabs · WhatsApp",
+      "title1": "The till that tells you",
+      "title2": "where your money is.",
+      "sub": "Ring up a sale in 2 taps, track who owes you what, spot what's about to expire and know what to reorder. On the phone you already have, even when the network drops.",
+      "cta": "Create my free account",
+      "cta2": "See how it works",
+      "note": "No credit card · ready in 2 minutes"
+    },
+    "money": {
+      "title": "Every week, money leaks through four holes",
+      "sub": "Souk.AI measures them and tells you what to do, right on your home screen.",
+      "recover": "To collect",
+      "recoverDesc": "Customer tabs with per-customer limits, receipts and reminders (with the customer's consent).",
+      "lost": "Lost",
+      "lostDesc": "Expired goods still on the shelf, valued at what you paid for them.",
+      "risk": "At risk",
+      "riskDesc": "What expires within 7 days and what hasn't sold in 30 days.",
+      "missed": "Missed",
+      "missedDesc": "The margin you lose when a best seller is out of stock."
+    },
+    "how": {
+      "title": "Up and running in a morning",
+      "s1": "Create your account",
+      "s1d": "A phone number and a password. Pick your language.",
+      "s2": "Add your products",
+      "s2d": "One by one, by scanning barcodes, by photographing a supplier invoice or importing from Sage.",
+      "s3": "Sell",
+      "s3d": "Tap the product, choose cash, tab or card. Stock, margins and reports update themselves."
+    },
+    "features": {
+      "title": "Everything you need, nothing you don't",
+      "items": [
+        [
+          "Fast checkout",
+          "Big buttons, camera or scanner, cash sales even offline."
+        ],
+        [
+          "Customer tabs",
+          "Per-customer limits, repayments, WhatsApp receipts."
+        ],
+        [
+          "Stock & expiry",
+          "Low-stock and expiry alerts, a log of every movement."
+        ],
+        [
+          "Smart restock",
+          "7-day demand forecast per product, tested against simple baselines."
+        ],
+        [
+          "Suppliers",
+          "Orders, deliveries that update stock, recalculated average cost."
+        ],
+        [
+          "WhatsApp assistant",
+          "\"Sold 3 bread\" or \"sugar 12\": record it without opening the app."
+        ],
+        [
+          "Honest reports",
+          "Sales net of returns, margins at real cost, in your time zone."
+        ],
+        [
+          "Your data",
+          "Full export in one click, delete your account anytime."
+        ]
+      ]
+    },
+    "pilot": {
+      "title": "Pilot program",
+      "sub": "Souk.AI is young. We're looking for neighborhood shops — grocers, convenience stores, bakeries, small restaurants — to use it every day and tell us what's missing.",
+      "b1": "Free during the pilot",
+      "b2": "Hands-on help to get started",
+      "b3": "Your feedback shapes what's next",
+      "cta": "Join the pilot"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        [
+          "Do I need a computer?",
+          "No. An Android phone or an iPhone is enough; tablets and PCs work too."
+        ],
+        [
+          "What if the internet goes down?",
+          "Cash sales are kept on the phone and sent as soon as you're back online, without duplicates."
+        ],
+        [
+          "Which languages?",
+          "French, Arabic and English in the app; the WhatsApp assistant also understands Moroccan Darija."
+        ],
+        [
+          "Is my data mine?",
+          "Yes. You can export everything or delete your account from Settings."
+        ]
+      ]
+    },
+    "footer": {
+      "tag": "The till that tells you where your money is.",
+      "rights": "All rights reserved."
+    }
   }
 }

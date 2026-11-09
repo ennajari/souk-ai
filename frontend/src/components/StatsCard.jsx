@@ -2,10 +2,10 @@ import { FiTrendingUp, FiTrendingDown, FiMinus } from 'react-icons/fi'
 
 const configs = {
   purple: {
-    gradient: 'bg-gradient-to-br from-violet-500 to-purple-600',
-    shadow: 'hover:shadow-violet-100',
-    border: 'border-violet-100',
-    badge: 'bg-violet-50 text-violet-700',
+    gradient: 'bg-gradient-to-br from-brand-600 to-brand-700',
+    shadow: 'hover:shadow-brand-100',
+    border: 'border-brand-100',
+    badge: 'bg-brand-50 text-brand-700',
   },
   green: {
     gradient: 'bg-gradient-to-br from-emerald-500 to-green-600',
@@ -32,10 +32,10 @@ const configs = {
     badge: 'bg-red-50 text-red-700',
   },
   indigo: {
-    gradient: 'bg-gradient-to-br from-indigo-500 to-blue-600',
-    shadow: 'hover:shadow-indigo-100',
-    border: 'border-indigo-100',
-    badge: 'bg-indigo-50 text-indigo-700',
+    gradient: 'bg-gradient-to-br from-brand-600 to-blue-600',
+    shadow: 'hover:shadow-brand-200',
+    border: 'border-brand-200',
+    badge: 'bg-brand-100 text-brand-800',
   },
 }
 
@@ -50,7 +50,7 @@ export default function StatsCard({ title, value, icon: Icon, color = 'purple', 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">{title}</p>
           <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-1.5 truncate leading-none tabular-nums">{value}</p>
-          {subtitle && <p className="text-xs text-gray-400 mt-1 truncate">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-gray-500 mt-1 truncate">{subtitle}</p>}
           {trend !== undefined && (
             <div className="flex items-center gap-1 mt-2">
               <span className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-md ${
@@ -59,7 +59,7 @@ export default function StatsCard({ title, value, icon: Icon, color = 'purple', 
                 {isUp ? <FiTrendingUp className="h-3 w-3" /> : isDown ? <FiTrendingDown className="h-3 w-3" /> : <FiMinus className="h-3 w-3" />}
                 {Math.abs(trend)}%
               </span>
-              {trendLabel && <span className="text-xs text-gray-400">{trendLabel}</span>}
+              {trendLabel && <span className="text-xs text-gray-500">{trendLabel}</span>}
             </div>
           )}
         </div>

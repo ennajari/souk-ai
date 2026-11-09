@@ -31,8 +31,8 @@ export default function Catalogue() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-          <FiShoppingBag className="w-5 h-5 text-violet-600" />
+        <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+          <FiShoppingBag className="w-5 h-5 text-brand-600" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('catalogue.title')}</h1>
@@ -48,7 +48,7 @@ export default function Catalogue() {
           </div>
           <div>
             <h2 className="font-semibold text-gray-900">{t('catalogue.yourLink')}</h2>
-            <p className="text-xs text-gray-400">{t('catalogue.linkHint')}</p>
+            <p className="text-xs text-gray-500">{t('catalogue.linkHint')}</p>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ export default function Catalogue() {
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               copied
                 ? 'bg-emerald-100 text-emerald-600'
-                : 'bg-violet-600 text-white hover:bg-violet-700'
+                : 'bg-brand-600 text-white hover:bg-brand-700'
             }`}
           >
             {copied ? <FiCheck className="w-5 h-5" /> : <FiCopy className="w-5 h-5" />}
@@ -100,9 +100,9 @@ export default function Catalogue() {
       </div>
 
       {/* Tips */}
-      <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
-        <h3 className="font-semibold text-violet-900 mb-3">{t('catalogue.tipsTitle')}</h3>
-        <ul className={`space-y-2 text-sm text-violet-700 ${isRtl ? 'pr-4' : 'pl-4'}`}>
+      <div className="bg-gradient-to-br from-brand-50 to-brand-50 rounded-2xl p-6 border border-brand-100">
+        <h3 className="font-semibold text-brand-900 mb-3">{t('catalogue.tipsTitle')}</h3>
+        <ul className={`space-y-2 text-sm text-brand-700 ${isRtl ? 'pr-4' : 'pl-4'}`}>
           <li className="list-disc">{t('catalogue.tip1')}</li>
           <li className="list-disc">{t('catalogue.tip2')}</li>
           <li className="list-disc">{t('catalogue.tip3')}</li>

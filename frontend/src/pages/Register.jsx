@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BrandMark from '../components/BrandMark'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../api/client'
@@ -62,17 +63,17 @@ export default function Register() {
     }
   }
 
-  const inputCls = "w-full pl-10 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm transition font-medium"
+  const inputCls = "w-full pl-10 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-gray-50 text-sm transition font-medium"
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-sand-100">
 
       {/* ── Left panel: branding ── */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gray-950 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-ink-950 flex-col justify-between p-12 relative overflow-hidden">
         {/* Background decoration */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/40 via-gray-950 to-indigo-900/30" />
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-600/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-indigo-600/10 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/40 via-ink-950 to-brand-950/30" />
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-brand-600/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-brand-700/10 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl" />
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
           backgroundSize: '40px 40px'
@@ -81,22 +82,20 @@ export default function Register() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-violet-900/50">
-              <span className="text-white font-black text-lg">S</span>
-            </div>
+            <BrandMark className="h-10 w-10" />
             <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
           </div>
-          <p className="text-gray-500 text-sm mt-2">Gestion Intelligente pour Commerçants Marocains</p>
+          <p className="text-gray-500 text-sm mt-2">La caisse qui vous dit où est votre argent</p>
         </div>
 
         {/* Pitch */}
         <div className="relative z-10 space-y-6">
           <div>
-            <p className="text-violet-400 text-xs font-bold tracking-widest uppercase mb-3">REJOIGNEZ-NOUS</p>
+            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">REJOIGNEZ-NOUS</p>
             <h2 className="text-white text-4xl font-black leading-tight">
               Votre commerce,<br />
               plus intelligent<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">dès aujourd'hui</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-500">dès aujourd'hui</span>
             </h2>
           </div>
 
@@ -105,7 +104,7 @@ export default function Register() {
             {BENEFITS.map((b) => (
               <div key={b.text} className="flex items-center gap-3">
                 <b.icon className="h-4 w-4 text-emerald-400 flex-shrink-0" strokeWidth={2.5} />
-                <p className="text-gray-400 text-sm">{b.text}</p>
+                <p className="text-gray-500 text-sm">{b.text}</p>
               </div>
             ))}
           </div>
@@ -113,7 +112,7 @@ export default function Register() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { value: '500+', label: 'Commerçants' },
+              { value: '2 taps', label: 'par vente' },
               { value: '24/7', label: 'Disponible' },
               { value: '3', label: 'Langues' },
             ].map(({ value, label }) => (
@@ -128,8 +127,7 @@ export default function Register() {
         {/* Copyright */}
         <div className="relative z-10">
           <p className="text-gray-600 text-xs">
-            © {new Date().getFullYear()} Souk.AI — Tous droits réservés.<br />
-            Plateforme réservée aux commerçants marocains.
+            © {new Date().getFullYear()} Souk.AI — Tous droits réservés.
           </p>
         </div>
       </div>
@@ -138,9 +136,7 @@ export default function Register() {
       <div className="flex-1 flex flex-col justify-center px-6 py-10 lg:px-12 overflow-y-auto">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-black text-sm">S</span>
-          </div>
+          <BrandMark className="h-8 w-8" />
           <span className="text-gray-900 text-xl font-black">Souk.AI</span>
         </div>
 
@@ -166,12 +162,12 @@ export default function Register() {
                     onClick={() => setForm({ ...form, account_type: opt.value })}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
                       form.account_type === opt.value
-                        ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-200'
+                        ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-200'
                         : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                     }`}
                   >
-                    <opt.icon className={`h-5 w-5 mb-1.5 ${form.account_type === opt.value ? 'text-violet-600' : 'text-gray-400'}`} />
-                    <p className={`text-sm font-bold ${form.account_type === opt.value ? 'text-violet-700' : 'text-gray-700'}`}>{opt.label}</p>
+                    <opt.icon className={`h-5 w-5 mb-1.5 ${form.account_type === opt.value ? 'text-brand-600' : 'text-gray-500'}`} />
+                    <p className={`text-sm font-bold ${form.account_type === opt.value ? 'text-brand-700' : 'text-gray-700'}`}>{opt.label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
                   </button>
                 ))}
@@ -184,7 +180,7 @@ export default function Register() {
                 {form.account_type === 'SUPPLIER' ? "Nom de l'entreprise" : 'Nom du commerce'}
               </label>
               <div className="relative">
-                <FiShoppingBag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <FiShoppingBag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
                   name="business_name"
                   required
@@ -200,7 +196,7 @@ export default function Register() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de téléphone</label>
               <div className="relative">
-                <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
                   name="phone_number"
                   type="tel"
@@ -216,10 +212,10 @@ export default function Register() {
             {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email <span className="text-gray-400 font-normal">(optionnel)</span>
+                Email <span className="text-gray-500 font-normal">(optionnel)</span>
               </label>
               <div className="relative">
-                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
                   name="email"
                   type="email"
@@ -235,7 +231,7 @@ export default function Register() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Mot de passe</label>
               <div className="relative">
-                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
                   name="password"
                   type={showPass ? 'text' : 'password'}
@@ -244,12 +240,12 @@ export default function Register() {
                   onChange={handleChange}
                   placeholder="Minimum 8 caractères"
                   minLength={8}
-                  className="w-full pl-10 pr-12 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm transition font-medium"
+                  className="w-full pl-10 pr-12 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-gray-50 text-sm transition font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors p-1"
                 >
                   {showPass ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
                 </button>
@@ -262,12 +258,12 @@ export default function Register() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
                   <div className="relative">
-                    <FiGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <FiGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                     <select
                       name="business_category"
                       value={form.business_category}
                       onChange={handleChange}
-                      className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
+                      className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
                     >
                       {categories.map((c) => (
                         <option key={c.value} value={c.value}>{c.label}</option>
@@ -279,12 +275,12 @@ export default function Register() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Langue</label>
                 <div className="relative">
-                  <FiGlobe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <FiGlobe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                   <select
                     name="preferred_language"
                     value={form.preferred_language}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
+                    className="w-full pl-9 pr-3 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-gray-50 text-sm appearance-none font-medium"
                   >
                     <option value="AR">Darija / عربية</option>
                     <option value="FR">Français</option>
@@ -297,7 +293,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-xl shadow-violet-200 disabled:opacity-50 disabled:shadow-none text-sm flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-xl transition-all shadow-xl shadow-brand-200 disabled:opacity-50 disabled:shadow-none text-sm flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
@@ -318,15 +314,14 @@ export default function Register() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Déjà un compte?{' '}
-            <Link to="/login" className="text-violet-600 hover:text-violet-700 font-bold transition-colors">
+            <Link to="/login" className="text-brand-600 hover:text-brand-700 font-bold transition-colors">
               Se connecter
             </Link>
           </p>
 
           {/* Copyright */}
-          <p className="text-center text-xs text-gray-400 mt-8 border-t border-gray-100 pt-4">
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.<br />
-            Plateforme réservée aux commerçants marocains.
+          <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-100 pt-4">
+            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.
           </p>
         </div>
       </div>

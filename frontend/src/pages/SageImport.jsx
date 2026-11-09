@@ -8,8 +8,8 @@ const importTypes = [
     label: "Articles / Produits",
     description: "Importer la liste des articles avec prix et stock",
     icon: FiPackage,
-    activeBorder: "border-violet-500 bg-violet-50 shadow-md",
-    activeText: "text-violet-600",
+    activeBorder: "border-brand-500 bg-brand-50 shadow-md",
+    activeText: "text-brand-600",
     accept: ".csv,.txt",
   },
   {
@@ -108,7 +108,7 @@ export default function SageImport() {
               }`}
             >
               <type.icon className={`h-6 w-6 mb-2 ${
-                selectedType === type.id ? type.activeText : "text-gray-400"
+                selectedType === type.id ? type.activeText : "text-gray-500"
               }`} />
               <p className="font-semibold text-sm text-gray-900">{type.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">{type.description}</p>
@@ -122,7 +122,7 @@ export default function SageImport() {
         <div>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">2. Fichier CSV</h2>
           <div
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
+            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors"
             onClick={() => fileRef.current?.click()}
           >
             <input
@@ -132,7 +132,7 @@ export default function SageImport() {
               className="hidden"
               onChange={(e) => { setFile(e.target.files[0]); setResult(null); setError(null) }}
             />
-            <FiUploadCloud className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+            <FiUploadCloud className="h-10 w-10 mx-auto text-gray-500 mb-3" />
             {file ? (
               <div>
                 <p className="font-medium text-gray-900">{file.name}</p>
@@ -141,7 +141,7 @@ export default function SageImport() {
             ) : (
               <div>
                 <p className="font-medium text-gray-700">Cliquez pour choisir un fichier</p>
-                <p className="text-sm text-gray-400 mt-1">CSV ou TXT — Export Sage 100</p>
+                <p className="text-sm text-gray-500 mt-1">CSV ou TXT — Export Sage 100</p>
               </div>
             )}
           </div>
@@ -154,7 +154,7 @@ export default function SageImport() {
           <button
             onClick={handleImport}
             disabled={loading}
-            className="px-6 py-2.5 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             {loading ? (
               <>

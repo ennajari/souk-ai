@@ -14,11 +14,11 @@ export default function SoukCardVisual({ cardNumber, holderName, balance, cardTy
 
   const gradient = isSupplier
     ? 'from-blue-600 via-cyan-600 to-teal-700'
-    : 'from-purple-600 via-violet-600 to-indigo-700'
+    : 'from-brand-600 via-brand-600 to-brand-800'
 
   const badgeColor = isSupplier
     ? 'bg-cyan-400/20 text-cyan-200'
-    : 'bg-purple-400/20 text-purple-200'
+    : 'bg-brand-400/20 text-brand-200'
 
   const formatted = cardNumber
     ? cardNumber.replace(/(.{4})/g, '$1 ').trim()

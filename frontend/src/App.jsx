@@ -10,13 +10,10 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"))
 const Register = lazy(() => import("./pages/Register"))
 const Dashboard = lazy(() => import("./pages/Dashboard"))
 const Products = lazy(() => import("./pages/Products"))
-const Inventory = lazy(() => import("./pages/Inventory"))
 const Sales = lazy(() => import("./pages/Sales"))
-const Analytics = lazy(() => import("./pages/Analytics"))
+const Reports = lazy(() => import("./pages/Reports"))
 const Settings = lazy(() => import("./pages/Settings"))
-const Forecasts = lazy(() => import("./pages/Forecasts"))
 const Suppliers = lazy(() => import("./pages/Suppliers"))
-const Credit = lazy(() => import("./pages/Credit"))
 const SageImport = lazy(() => import("./pages/SageImport"))
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
 const AdminMerchants = lazy(() => import("./pages/AdminMerchants"))
@@ -26,7 +23,6 @@ const AdminCreditRequests = lazy(() => import("./pages/AdminCreditRequests"))
 const AdminSettings = lazy(() => import("./pages/AdminSettings"))
 const POS = lazy(() => import("./pages/POS"))
 const Customers = lazy(() => import("./pages/Customers"))
-const Profit = lazy(() => import("./pages/Profit"))
 const Notifications = lazy(() => import("./pages/Notifications"))
 const CoachIA = lazy(() => import("./pages/CoachIA"))
 const Employees = lazy(() => import("./pages/Employees"))
@@ -48,7 +44,7 @@ import { useAuth } from "./context/AuthContext"
 function PageLoader() {
   return (
     <div className="flex h-screen items-center justify-center" role="status" aria-live="polite">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-200 border-t-violet-600" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
       <span className="sr-only">Chargement…</span>
     </div>
   )
@@ -113,21 +109,24 @@ export default function App() {
           {/* ── Merchant-only pages ── */}
           <Route path="dashboard" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
           <Route path="products" element={<MerchantRoute><Products /></MerchantRoute>} />
-          <Route path="inventory" element={<MerchantRoute><Inventory /></MerchantRoute>} />
+          <Route path="inventory" element={<Navigate to="/products" replace />} />
           <Route path="sales" element={<MerchantRoute><Sales /></MerchantRoute>} />
           <Route path="pos" element={<MerchantRoute><POS /></MerchantRoute>} />
-          <Route path="analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />
-          <Route path="forecasts" element={<MerchantRoute><Forecasts /></MerchantRoute>} />
+          <Route path="reports" element={<MerchantRoute><Reports /></MerchantRoute>} />
+          <Route path="analytics" element={<Navigate to="/reports?tab=sales" replace />} />
+          <Route path="forecasts" element={<Navigate to="/reports?tab=restock" replace />} />
           <Route path="suppliers" element={<MerchantRoute><Suppliers /></MerchantRoute>} />
-          <Route path="credit" element={<MerchantRoute><Credit /></MerchantRoute>} />
+          {/* Removed: loan offers were mock data (no licensed lending partner yet) — docs/audit/DECISIONS.md D13 */}
+          <Route path="credit" element={<Navigate to="/dashboard" replace />} />
           <Route path="customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
-          <Route path="profit" element={<MerchantRoute><Profit /></MerchantRoute>} />
+          <Route path="profit" element={<Navigate to="/reports?tab=margins" replace />} />
           <Route path="coach" element={<MerchantRoute><CoachIA /></MerchantRoute>} />
           <Route path="employees" element={<MerchantRoute><Employees /></MerchantRoute>} />
           <Route path="my-catalogue" element={<MerchantRoute><Catalogue /></MerchantRoute>} />
           <Route path="sage-import" element={<MerchantRoute><SageImport /></MerchantRoute>} />
           <Route path="marketplace" element={<MerchantRoute><Marketplace /></MerchantRoute>} />
-          <Route path="market-intelligence" element={<MerchantRoute><MarketIntelligence /></MerchantRoute>} />
+          {/* Admin only until benchmarks are anonymised (k >= 5 merchants) — D14 */}
+          <Route path="market-intelligence" element={<AdminRoute><MarketIntelligence /></AdminRoute>} />
 
           {/* ── Shared pages (both merchant & supplier) ── */}
           <Route path="notifications" element={<Notifications />} />

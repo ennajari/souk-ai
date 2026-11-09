@@ -1,48 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-
-  <!-- Background -->
-  <rect width="1024" height="1024" rx="120" fill="#0f172a"/>
-
-  <!-- Hexagon -->
-  <polygon points="512,118 740,246 740,502 512,630 284,502 284,246" fill="#10b981" opacity="0.08"/>
-  <polygon points="512,130 730,253 730,493 512,618 294,493 294,253" fill="none" stroke="#10b981" stroke-width="4" opacity="0.3"/>
-
-  <!-- Neural network outer nodes -->
-  <circle cx="512" cy="178" r="26" fill="#10b981" opacity="0.9"/>
-  <circle cx="668" cy="455" r="26" fill="#10b981" opacity="0.9"/>
-  <circle cx="356" cy="455" r="26" fill="#10b981" opacity="0.9"/>
-
-  <!-- Central hub -->
-  <circle cx="512" cy="370" r="44" fill="#10b981"/>
-  <circle cx="512" cy="370" r="30" fill="#0f172a"/>
-  <circle cx="512" cy="370" r="14" fill="#10b981"/>
-
-  <!-- Lines: outer nodes to center -->
-  <line x1="512" y1="178" x2="512" y2="326" stroke="#10b981" stroke-width="8" opacity="0.7" stroke-linecap="round"/>
-  <line x1="668" y1="455" x2="548" y2="400" stroke="#10b981" stroke-width="8" opacity="0.7" stroke-linecap="round"/>
-  <line x1="356" y1="455" x2="476" y2="400" stroke="#10b981" stroke-width="8" opacity="0.7" stroke-linecap="round"/>
-
-  <!-- Triangle edges (subtle) -->
-  <line x1="512" y1="178" x2="668" y2="455" stroke="#10b981" stroke-width="3" opacity="0.18"/>
-  <line x1="512" y1="178" x2="356" y2="455" stroke="#10b981" stroke-width="3" opacity="0.18"/>
-  <line x1="668" y1="455" x2="356" y2="455" stroke="#10b981" stroke-width="3" opacity="0.18"/>
-
-  <!-- Wordmark -->
-  <text x="512" y="770"
-        font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
-        font-weight="900"
-        font-size="148"
-        fill="white"
-        text-anchor="middle"
-        letter-spacing="-4">SOUK<tspan fill="#10b981">.AI</tspan></text>
-
-  <!-- Tagline -->
-  <text x="512" y="850"
-        font-family="Arial, Helvetica, sans-serif"
-        font-weight="400"
-        font-size="28"
-        fill="#64748b"
-        text-anchor="middle"
-        letter-spacing="10">INTELLIGENCE COMMERCIALE</text>
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232 64" role="img" aria-label="Souk.AI">
+  <rect width="64" height="64" rx="15" fill="#C2410C"/>
+  <!-- Shop awning: any small store, anywhere -->
+  <path d="M12 11h40v13.5a5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0Z" fill="#FAF7F2"/>
+  <path d="M22 19.5v5M32 19.5v5M42 19.5v5" stroke="#C2410C" stroke-width="2"/>
+  <!-- Rising line: the shop's money, going the right way -->
+  <path d="M15 52l10-8 7 4 15-12M39 36h8v8" fill="none" stroke="#5EEAD4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="45" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="38" font-weight="800" letter-spacing="-1" fill="#1C1917">Souk<tspan fill="#C2410C">.AI</tspan></text>
 </svg>

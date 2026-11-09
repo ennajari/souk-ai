@@ -54,3 +54,23 @@ Format : décision · alternatives · raison · réversibilité. ⚠ = à valide
 
 **D12 — Pas de refonte visuelle globale (design system, dark mode)**
 - Raison : 38 pages ; une refonte non testée visuellement (extension Chrome indisponible, voir BLOCKERS) risquait des régressions. Priorité donnée à l'intégrité de l'argent, à la vitesse (bundle −68 %) et au rapport « argent ».
+
+## Passe 2 — produit (2026-11-09)
+
+**D13 — Offres de prêt retirées** : `/credit/offers` renvoyait des montants et frais codés en dur (« mock ») présentés
+comme de vraies offres, et le commerçant pouvait les « demander ». Le crédit est réglementé : plus aucune offre tant
+qu'un partenaire financier agréé ne les fournit ; page retirée du menu, `/credit/request` → 410. Le score reste calculé
+(il servira au partenaire). Réversible : endpoints conservés, logique à rebrancher sur l'API du partenaire.
+
+**D14 — Intelligence de marché réservée à l'admin** : elle exposait à chaque commerçant les totaux de toute la
+plateforme et des prix moyens par produit et par ville (avec peu de commerçants, cela révèle les prix d'un concurrent).
+Rouvrir quand chaque agrégat impose au moins 5 commerçants contributeurs (k-anonymat).
+
+**D15 — Fusions de pages** : Analytics + Profits + Prévisions → **Rapports** (onglets Ventes / Marges / Réassort) ;
+Inventaire → **Produits & stock** (la page Produits faisait déjà les ajustements) ; la saisie manuelle de vente de la
+page Ventes (doublon lent de la caisse) est remplacée par un historique avec **retours** (aucune interface ne
+permettait d'annuler une vente). Les anciennes URL redirigent. Menu : 3 groupes (Principal, Commerce, Plus) au lieu
+de pages introuvables (Paiements, Catalogue, Import Sage, Employés n'étaient pas dans le menu).
+
+**D16 — Identité visuelle neutre** : à la demande du fondateur, aucune référence culturelle ou régionale dans le
+logo ; auvent de boutique + courbe montante, palette terracotta/menthe/sable/encre (docs/BRAND.md).

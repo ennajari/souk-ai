@@ -50,7 +50,7 @@ export default function SupplierSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     )
   }
@@ -59,7 +59,7 @@ export default function SupplierSettings() {
     <div className="space-y-2 max-w-2xl">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Parametres</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Configuration de votre compte fournisseur</p>
+        <p className="text-sm text-gray-500 mt-0.5">Configuration de votre compte fournisseur</p>
       </div>
 
       <div className="space-y-5 pt-2">
@@ -67,30 +67,30 @@ export default function SupplierSettings() {
         {/* Profile form */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-4">
-            <FiTruck className="h-4 w-4 text-violet-600" />
+            <FiTruck className="h-4 w-4 text-brand-600" />
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Informations de l'entreprise</h2>
           </div>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Nom de l'entreprise</label>
               <input name="business_name" value={form.business_name} onChange={handleChange}
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm" />
+                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Email</label>
               <input name="email" type="email" value={form.email} onChange={handleChange}
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm" />
+                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Langue preferee</label>
               <select name="preferred_language" value={form.preferred_language} onChange={handleChange}
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm">
+                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm">
                 <option value="AR">Arabe / Darija</option>
                 <option value="FR">Francais</option>
               </select>
             </div>
             <button type="submit" disabled={saving}
-              className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 text-sm font-semibold disabled:opacity-50 shadow-sm transition-all">
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 text-sm font-semibold disabled:opacity-50 shadow-sm transition-all">
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
           </form>
@@ -102,7 +102,7 @@ export default function SupplierSettings() {
           <div className="space-y-0 divide-y divide-gray-50">
             {[
               { icon: FiPhone, label: 'Telephone', value: profile?.phone_number },
-              { icon: FiTruck, label: 'Type de compte', value: <span className="px-2.5 py-0.5 bg-violet-100 text-violet-700 rounded-full text-xs font-semibold">Fournisseur</span> },
+              { icon: FiTruck, label: 'Type de compte', value: <span className="px-2.5 py-0.5 bg-brand-100 text-brand-700 rounded-full text-xs font-semibold">Fournisseur</span> },
               { icon: FiCalendar, label: 'Membre depuis', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('fr-FR') : '-' },
               { icon: FiCheckCircle, label: 'Statut', value: <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Actif</span> },
             ].map(({ icon: Icon, label, value }) => (
@@ -122,7 +122,7 @@ export default function SupplierSettings() {
           <h2 className="text-sm font-bold text-red-700 uppercase tracking-wide mb-1 flex items-center gap-2">
             <FiAlertTriangle className="h-4 w-4" /> Zone dangereuse
           </h2>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-gray-500 mb-4">
             Suppression permanente de toutes vos donnees.
           </p>
           <button

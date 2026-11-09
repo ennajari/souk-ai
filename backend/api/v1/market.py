@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from core.deps import get_current_merchant
+from core.deps import get_current_merchant, require_admin
 from models.merchant import Merchant
 from services.market_intelligence import (
     get_market_overview,
@@ -13,7 +13,10 @@ from services.market_intelligence import (
     get_market_trends,
 )
 
-router = APIRouter(prefix="/market", tags=["market-intelligence"])
+# Admin only: these endpoints expose platform-wide totals and per-product price benchmarks that can
+# reveal a competitor's prices in a city with few merchants. Re-open per merchant once every
+# aggregate enforces a minimum of 5 contributing merchants (DECISIONS D14).
+router = APIRouter(prefix="/market", tags=["market-intelligence"], dependencies=[Depends(require_admin)])
 
 
 @router.get("/overview")

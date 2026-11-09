@@ -56,7 +56,7 @@ export default function SupplierDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -69,7 +69,7 @@ export default function SupplierDashboard() {
   ]
 
   const colorMap = {
-    violet: { bg: 'bg-violet-50', icon: 'text-violet-600', border: 'border-violet-100' },
+    violet: { bg: 'bg-brand-50', icon: 'text-brand-600', border: 'border-brand-100' },
     yellow: { bg: 'bg-yellow-50', icon: 'text-yellow-600', border: 'border-yellow-100' },
     orange: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-100' },
     green: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-100' },
@@ -99,7 +99,7 @@ export default function SupplierDashboard() {
       </div>
 
       {/* Revenue card */}
-      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <FiDollarSign className="h-6 w-6" />
           <p className="text-sm font-medium opacity-80">Total paiements recus</p>
@@ -112,19 +112,19 @@ export default function SupplierDashboard() {
         <div className="bg-white border border-gray-100 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900">Commandes recentes</h2>
-            <button onClick={() => navigate('/supplier-orders')} className="text-violet-600 text-xs font-semibold flex items-center gap-1 hover:underline">
+            <button onClick={() => navigate('/supplier-orders')} className="text-brand-600 text-xs font-semibold flex items-center gap-1 hover:underline">
               Voir tout <FiArrowRight className="h-3 w-3" />
             </button>
           </div>
           {orders.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">Aucune commande</p>
+            <p className="text-gray-500 text-sm text-center py-8">Aucune commande</p>
           ) : (
             <div className="space-y-3">
               {orders.map((o) => (
                 <div key={o.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{o.merchant_name || 'Marchand'}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {o.items?.length > 0
                         ? o.items.map(it => `${it.product_name} x${it.quantity}`).join(', ')
                         : '—'
@@ -147,19 +147,19 @@ export default function SupplierDashboard() {
         <div className="bg-white border border-gray-100 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900">Paiements recents</h2>
-            <button onClick={() => navigate('/supplier-payments')} className="text-violet-600 text-xs font-semibold flex items-center gap-1 hover:underline">
+            <button onClick={() => navigate('/supplier-payments')} className="text-brand-600 text-xs font-semibold flex items-center gap-1 hover:underline">
               Voir tout <FiArrowRight className="h-3 w-3" />
             </button>
           </div>
           {payments.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">Aucun paiement</p>
+            <p className="text-gray-500 text-sm text-center py-8">Aucun paiement</p>
           ) : (
             <div className="space-y-3">
               {payments.map((p) => (
                 <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{p.merchant_name || 'Marchand'}</p>
-                    <p className="text-xs text-gray-400">{p.method === 'CASH' ? 'Especes' : p.method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : p.method}</p>
+                    <p className="text-xs text-gray-500">{p.method === 'CASH' ? 'Especes' : p.method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : p.method}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-green-600">+{Number(p.amount || 0).toFixed(2)} MAD</p>

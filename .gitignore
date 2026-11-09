@@ -49,3 +49,6 @@ celerybeat-schedule*
 .env.*
 !.env.example
 .venv/
+
+# Vite dependency cache
+.vite/

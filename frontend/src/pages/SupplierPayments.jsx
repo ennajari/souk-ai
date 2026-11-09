@@ -51,12 +51,12 @@ export default function SupplierPayments() {
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : payments.length === 0 ? (
         <div className="text-center py-16">
           <FiCreditCard className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-400 font-medium">Aucun paiement recu</p>
+          <p className="text-gray-500 font-medium">Aucun paiement recu</p>
         </div>
       ) : (
         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
@@ -98,7 +98,7 @@ export default function SupplierPayments() {
               <div key={p.id} className="px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{p.merchant_name || 'Marchand'}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {METHOD_LABELS[p.method] || p.method} · {p.created_at ? new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}
                   </p>
                 </div>

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom"
+import BrandMark from './BrandMark'
 import { useState, useEffect } from "react"
 import {
   FiHome, FiUsers, FiTruck, FiCreditCard, FiDollarSign,
@@ -36,20 +37,18 @@ export default function AdminSidebar({ onClose }) {
   ]
 
   return (
-    <aside className="w-64 h-full flex flex-col bg-gray-950">
+    <aside className="w-64 h-full flex flex-col bg-ink-950">
       {/* Logo */}
       <div className="flex items-center justify-between px-5 pt-6 pb-5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-black text-sm">S</span>
-          </div>
+          <BrandMark className="h-8 w-8" />
           <div>
             <h1 className="text-white text-lg font-black tracking-tight leading-none">Souk.AI</h1>
             <p className="text-red-400 text-[10px] font-bold mt-0.5">ADMINISTRATION</p>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 md:hidden transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-500 md:hidden transition-colors">
             <FiX className="h-4 w-4" />
           </button>
         )}
@@ -73,7 +72,7 @@ export default function AdminSidebar({ onClose }) {
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? "bg-red-600 text-white shadow-lg"
-                        : "text-gray-400 hover:bg-white/5 hover:text-white"
+                        : "text-gray-500 hover:bg-white/5 hover:text-white"
                     }`
                   }
                 >
@@ -98,7 +97,7 @@ export default function AdminSidebar({ onClose }) {
           onClick={onClose}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-              isActive ? "bg-red-600 text-white shadow-lg" : "text-gray-400 hover:bg-white/5 hover:text-white"
+              isActive ? "bg-red-600 text-white shadow-lg" : "text-gray-500 hover:bg-white/5 hover:text-white"
             }`
           }
         >
@@ -108,7 +107,7 @@ export default function AdminSidebar({ onClose }) {
 
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
         >
           <FiLogOut className="h-4 w-4 flex-shrink-0" />
           Deconnexion

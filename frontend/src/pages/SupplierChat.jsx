@@ -67,7 +67,7 @@ export default function SupplierChat() {
     <div className="flex flex-col h-[calc(100vh-6rem)] max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
           <FiMessageSquare className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -86,7 +86,7 @@ export default function SupplierChat() {
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
               msg.role === 'user'
-                ? 'bg-violet-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-gray-100 text-gray-800'
             }`}>
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -128,9 +128,9 @@ export default function SupplierChat() {
               key={i}
               onClick={() => sendMessage(s.text)}
               disabled={loading}
-              className="flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 hover:border-violet-300 hover:bg-violet-50 transition text-left disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 hover:border-brand-300 hover:bg-brand-50 transition text-left disabled:opacity-50"
             >
-              <s.icon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <s.icon className="h-4 w-4 text-gray-500 flex-shrink-0" />
               <span className="line-clamp-1">{s.text}</span>
             </button>
           ))}
@@ -147,18 +147,18 @@ export default function SupplierChat() {
             onKeyDown={handleKeyDown}
             placeholder="Ecrivez votre message..."
             rows={1}
-            className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-gray-50 max-h-32"
+            className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-gray-50 max-h-32"
             style={{ minHeight: '44px' }}
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || loading}
-            className="p-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 disabled:opacity-40 disabled:hover:bg-violet-600 transition flex-shrink-0"
+            className="p-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-40 disabled:hover:bg-brand-600 transition flex-shrink-0"
           >
             <FiSend className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-[10px] text-gray-400 text-center mt-2">
+        <p className="text-[10px] text-gray-500 text-center mt-2">
           Assistant IA — Les reponses peuvent contenir des erreurs
         </p>
       </div>

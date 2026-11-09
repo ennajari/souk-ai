@@ -7,7 +7,7 @@ const CATEGORIES = ['GROCERY', 'BAKERY', 'BUTCHER', 'PHARMACY', 'RESTAURANT', 'M
 const ORDER_STATUSES = { PENDING: 'En attente', ACCEPTED: 'Acceptee', SHIPPED: 'Expediee', DELIVERED: 'Livree', CANCELLED: 'Annulee', DISPUTED: 'Litige' }
 const statusColor = {
   PENDING: 'bg-yellow-100 text-yellow-700', ACCEPTED: 'bg-blue-100 text-blue-700',
-  SHIPPED: 'bg-indigo-100 text-indigo-700', DELIVERED: 'bg-green-100 text-green-700',
+  SHIPPED: 'bg-brand-200 text-brand-800', DELIVERED: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-700', DISPUTED: 'bg-orange-100 text-orange-700',
 }
 
@@ -108,7 +108,7 @@ export default function Marketplace() {
           <h1 className="text-2xl font-bold text-gray-900">Marketplace B2B</h1>
           <p className="text-gray-500 text-sm">Achetez et vendez entre commercants</p>
         </div>
-        <button onClick={() => { setShowModal(true); setEditingId(null); setForm(emptyListing) }} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+        <button onClick={() => { setShowModal(true); setEditingId(null); setForm(emptyListing) }} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700">
           <FiPlus /> Publier une annonce
         </button>
       </div>
@@ -116,7 +116,7 @@ export default function Marketplace() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
         {[['browse', 'Explorer', FiSearch], ['my-listings', 'Mes annonces', FiPackage], ['orders', 'Commandes', FiTruck]].map(([key, label, Icon]) => (
-          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === key ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === key ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <Icon size={16} /> {label}
           </button>
         ))}
@@ -127,8 +127,8 @@ export default function Marketplace() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
             </div>
             <select value={category} onChange={e => setCategory(e.target.value)} className="px-4 py-2 border rounded-lg">
               <option value="">Toutes categories</option>
@@ -136,8 +136,8 @@ export default function Marketplace() {
             </select>
           </div>
 
-          {loading ? <div className="text-center py-12 text-gray-400">Chargement...</div> : listings.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+          {loading ? <div className="text-center py-12 text-gray-500">Chargement...</div> : listings.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
               <FiShoppingBag size={48} className="mx-auto mb-3 opacity-30" />
               <p>Aucune annonce disponible</p>
             </div>
@@ -146,19 +146,19 @@ export default function Marketplace() {
               {listings.map(l => (
                 <div key={l.id} className="bg-white rounded-xl border p-5 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-3">
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">{l.category}</span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1"><FiEye size={12} /> {l.views_count}</span>
+                    <span className="px-2 py-1 bg-brand-100 text-brand-700 text-xs rounded-full font-medium">{l.category}</span>
+                    <span className="text-xs text-gray-500 flex items-center gap-1"><FiEye size={12} /> {l.views_count}</span>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-1">{l.title}</h3>
                   {l.description && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{l.description}</p>}
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xl font-bold text-purple-600">{l.unit_price} MAD<span className="text-sm font-normal text-gray-400">/{l.unit}</span></span>
+                    <span className="text-xl font-bold text-brand-600">{l.unit_price} MAD<span className="text-sm font-normal text-gray-500">/{l.unit}</span></span>
                     <span className="text-sm text-gray-500">{l.available_quantity} dispo</span>
                   </div>
-                  {l.city && <p className="text-sm text-gray-400 flex items-center gap-1 mb-3"><FiMapPin size={12} /> {l.city}</p>}
+                  {l.city && <p className="text-sm text-gray-500 flex items-center gap-1 mb-3"><FiMapPin size={12} /> {l.city}</p>}
                   <div className="flex justify-between items-center pt-3 border-t">
                     <span className="text-sm text-gray-500">{l.seller_name}</span>
-                    <button onClick={() => openBuy(l)} className="px-4 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700">Commander</button>
+                    <button onClick={() => openBuy(l)} className="px-4 py-1.5 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700">Commander</button>
                   </div>
                 </div>
               ))}
@@ -171,7 +171,7 @@ export default function Marketplace() {
       {tab === 'my-listings' && (
         <div className="space-y-4">
           {myListings.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <FiPackage size={48} className="mx-auto mb-3 opacity-30" />
               <p>Vous n'avez aucune annonce</p>
             </div>
@@ -212,7 +212,7 @@ export default function Marketplace() {
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold mb-3">Mes achats</h2>
-            {buyingOrders.length === 0 ? <p className="text-gray-400">Aucun achat</p> : (
+            {buyingOrders.length === 0 ? <p className="text-gray-500">Aucun achat</p> : (
               <div className="space-y-3">
                 {buyingOrders.map(o => (
                   <div key={o.id} className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row justify-between gap-3">
@@ -232,7 +232,7 @@ export default function Marketplace() {
           </div>
           <div>
             <h2 className="text-lg font-semibold mb-3">Mes ventes</h2>
-            {sellingOrders.length === 0 ? <p className="text-gray-400">Aucune vente</p> : (
+            {sellingOrders.length === 0 ? <p className="text-gray-500">Aucune vente</p> : (
               <div className="space-y-3">
                 {sellingOrders.map(o => (
                   <div key={o.id} className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row justify-between gap-3">
@@ -243,7 +243,7 @@ export default function Marketplace() {
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>{ORDER_STATUSES[o.status]}</span>
                       {o.status === 'PENDING' && <button onClick={() => updateOrderStatus(o.id, 'ACCEPTED')} className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg">Accepter</button>}
-                      {o.status === 'ACCEPTED' && <button onClick={() => updateOrderStatus(o.id, 'SHIPPED')} className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg">Marquer expediee</button>}
+                      {o.status === 'ACCEPTED' && <button onClick={() => updateOrderStatus(o.id, 'SHIPPED')} className="px-3 py-1 bg-brand-700 text-white text-xs rounded-lg">Marquer expediee</button>}
                       {['PENDING', 'ACCEPTED'].includes(o.status) && <button onClick={() => updateOrderStatus(o.id, 'CANCELLED')} className="px-3 py-1 bg-red-100 text-red-600 text-xs rounded-lg">Annuler</button>}
                     </div>
                   </div>
@@ -303,7 +303,7 @@ export default function Marketplace() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
                 <input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="Casablanca, Rabat..." />
               </div>
-              <button type="submit" disabled={saving} className="w-full py-2.5 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50">
+              <button type="submit" disabled={saving} className="w-full py-2.5 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50">
                 {saving ? 'En cours...' : editingId ? 'Mettre a jour' : 'Publier'}
               </button>
             </form>
@@ -336,11 +336,11 @@ export default function Marketplace() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                 <textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border rounded-lg" />
               </div>
-              <div className="bg-purple-50 rounded-lg p-3 text-center">
+              <div className="bg-brand-50 rounded-lg p-3 text-center">
                 <p className="text-sm text-gray-500">Total</p>
-                <p className="text-2xl font-bold text-purple-600">{((orderForm.quantity || 0) * selectedListing.unit_price).toFixed(2)} MAD</p>
+                <p className="text-2xl font-bold text-brand-600">{((orderForm.quantity || 0) * selectedListing.unit_price).toFixed(2)} MAD</p>
               </div>
-              <button type="submit" disabled={saving} className="w-full py-2.5 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50">
+              <button type="submit" disabled={saving} className="w-full py-2.5 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50">
                 {saving ? 'En cours...' : 'Confirmer la commande'}
               </button>
             </form>

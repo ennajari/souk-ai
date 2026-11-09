@@ -131,7 +131,7 @@ export default function BarcodeScanner({ onScan, onClose, continuous = false }) 
           <div className="p-4 flex items-center justify-between bg-gray-50">
             <p className="text-xs text-gray-500">Scannez autant de produits que vous voulez</p>
             <button onClick={handleClose}
-              className="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700">
+              className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">
               Terminer
             </button>
           </div>
@@ -140,7 +140,7 @@ export default function BarcodeScanner({ onScan, onClose, continuous = false }) 
             <label className="block text-xs font-medium text-gray-500 mb-1">Ou entrez le code manuellement :</label>
             <div className="flex gap-2">
               <input type="text" placeholder="Ex: 6111245001234"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.target.value.trim()) {
                     handleClose(); onScan(e.target.value.trim())
@@ -150,7 +150,7 @@ export default function BarcodeScanner({ onScan, onClose, continuous = false }) 
               <button onClick={(e) => {
                 const input = e.target.closest('.flex').querySelector('input')
                 if (input?.value.trim()) { handleClose(); onScan(input.value.trim()) }
-              }} className="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700">
+              }} className="px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700">
                 OK
               </button>
             </div>

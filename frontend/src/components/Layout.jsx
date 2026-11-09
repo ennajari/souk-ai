@@ -16,7 +16,7 @@ export default function Layout() {
   }, [isRtl, i18n.language])
 
   return (
-    <div className={`flex h-screen bg-gray-50 overflow-hidden ${isRtl ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex h-screen bg-sand-100 overflow-hidden ${isRtl ? 'flex-row-reverse' : ''}`}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

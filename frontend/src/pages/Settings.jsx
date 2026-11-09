@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiTrash2, FiAlertTriangle, FiDatabase, FiArrowRight,
-  FiStar, FiCreditCard, FiShoppingCart, FiMonitor, FiPhone,
+  FiCreditCard, FiShoppingCart, FiMonitor, FiPhone,
   FiCalendar, FiCheckCircle
 } from 'react-icons/fi'
 import { merchantsAPI, authAPI } from '../api/client'
@@ -12,11 +12,11 @@ import toast from 'react-hot-toast'
 
 function ToolCard({ to, icon: Icon, title, desc, color = 'violet' }) {
   const colors = {
-    violet:  { border: 'border-violet-100',  bg: 'bg-violet-50',  icon: 'text-violet-600' },
+    violet:  { border: 'border-brand-100',  bg: 'bg-brand-50',  icon: 'text-brand-600' },
     cyan:    { border: 'border-cyan-100',    bg: 'bg-cyan-50',    icon: 'text-cyan-600' },
     emerald: { border: 'border-emerald-100', bg: 'bg-emerald-50', icon: 'text-emerald-600' },
     orange:  { border: 'border-orange-100',  bg: 'bg-orange-50',  icon: 'text-orange-600' },
-    indigo:  { border: 'border-indigo-100',  bg: 'bg-indigo-50',  icon: 'text-indigo-600' },
+    indigo:  { border: 'border-brand-200',  bg: 'bg-brand-100',  icon: 'text-brand-700' },
     pink:    { border: 'border-pink-100',    bg: 'bg-pink-50',    icon: 'text-pink-600' },
     gray:    { border: 'border-gray-100',    bg: 'bg-gray-50',    icon: 'text-gray-500' },
   }
@@ -31,15 +31,15 @@ function ToolCard({ to, icon: Icon, title, desc, color = 'violet' }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-800 leading-none">{title}</p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">{desc}</p>
+        <p className="text-xs text-gray-500 mt-0.5 truncate">{desc}</p>
       </div>
-      <FiArrowRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+      <FiArrowRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
     </Link>
   )
 }
 
 export default function Settings() {
-  const { logout } = useAuth()
+  const { logout, merchant } = useAuth()
   const { i18n } = useTranslation()
   const [profile, setProfile]               = useState(null)
   const [loading, setLoading]               = useState(true)
@@ -87,7 +87,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     )
   }
@@ -96,7 +96,7 @@ export default function Settings() {
     <div className="space-y-2">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Paramètres</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Profil, outils avancés et configuration</p>
+        <p className="text-sm text-gray-500 mt-0.5">Profil, outils avancés et configuration</p>
       </div>
 
       {/* ── 2-column grid ── */}
@@ -112,18 +112,18 @@ export default function Settings() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nom du commerce</label>
                 <input name="business_name" value={form.business_name} onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm" />
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Email</label>
                 <input name="email" type="email" value={form.email} onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm" />
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Catégorie</label>
                   <select name="business_category" value={form.business_category} onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm">
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm">
                     <option value="GROCERY">Épicerie</option>
                     <option value="BAKERY">Boulangerie</option>
                     <option value="BUTCHER">Boucherie</option>
@@ -136,14 +136,14 @@ export default function Settings() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Langue du bot</label>
                   <select name="preferred_language" value={form.preferred_language} onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm">
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm">
                     <option value="AR">Arabe / Darija</option>
                     <option value="FR">Français</option>
                   </select>
                 </div>
               </div>
               <button type="submit" disabled={saving}
-                className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 text-sm font-semibold disabled:opacity-50 shadow-sm transition-all">
+                className="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 text-sm font-semibold disabled:opacity-50 shadow-sm transition-all">
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>
             </form>
@@ -174,7 +174,7 @@ export default function Settings() {
             <h2 className="text-sm font-bold text-red-700 uppercase tracking-wide mb-1 flex items-center gap-2">
               <FiAlertTriangle className="h-4 w-4" /> Zone dangereuse
             </h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-gray-500 mb-4">
               Suppression permanente de toutes vos données. Téléchargez-les d'abord si besoin.
             </p>
             <button
@@ -206,13 +206,12 @@ export default function Settings() {
           {/* Outils mensuels */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-1">Outils & Modules avancés</h2>
-            <p className="text-xs text-gray-400 mb-4">Utilisés occasionnellement — configuration initiale ou mensuelle.</p>
+            <p className="text-xs text-gray-500 mb-4">Utilisés occasionnellement — configuration initiale ou mensuelle.</p>
             <div className="grid grid-cols-1 gap-2">
-              <ToolCard to="/credit"             icon={FiStar}         title="Score de crédit"      desc="Score de crédit bancable basé sur vos ventes"  color="violet" />
               <ToolCard to="/my-catalogue"        icon={FiShoppingCart} title="Catalogue en ligne"  desc="Partagez votre catalogue produits public"      color="emerald" />
               <ToolCard to="/payments"            icon={FiCreditCard}   title="Paiements"           desc="Modes de règlement et suivi des paiements"     color="orange" />
               <ToolCard to="/sage-import"         icon={FiDatabase}     title="Import Sage 100"     desc="Import depuis votre logiciel comptable"         color="gray" />
-              <ToolCard to="/admin"               icon={FiMonitor}      title="Administration"      desc="Monitoring système et gestion des comptes"      color="gray" />
+              {merchant?.is_admin && <ToolCard to="/admin" icon={FiMonitor} title="Administration" desc="Monitoring système et gestion des comptes" color="gray" />}
             </div>
           </div>
         </div>

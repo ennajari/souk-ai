@@ -55,8 +55,8 @@ export default function AdminSettings() {
 
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <FiGlobe className="h-5 w-5 text-purple-600" />
+            <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+              <FiGlobe className="h-5 w-5 text-brand-600" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Services externes</h3>
