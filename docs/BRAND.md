@@ -2,6 +2,8 @@
 
 > **Promesse** : « La caisse qui vous dit où est votre argent. »
 > **Personnalité** : chaleureuse, directe, digne de confiance — le bon voisin commerçant qui sait compter.
+> **Portée** : universelle. Aucune référence culturelle ou régionale dans l'identité ; les langues et les
+> marchés (darija, arabe, français, anglais…) relèvent du produit, pas du logo.
 
 ## Le logo
 
@@ -13,16 +15,17 @@
 | `logo-icon-192/512.png`, `logo-icon-maskable-512.png`, `apple-touch-icon.png` | Icônes d'application installée (Android, iOS) |
 | `frontend/src/components/BrandMark.jsx` | Le logo dans l'interface (SVG inline, net à toutes les tailles) |
 
-**Ce qu'il raconte.** Une **arche en fer à cheval** — la porte (*bab*) des souks et des médinas : l'entrée de
-la boutique. Au centre, une **étoile à huit branches** (*khatam*), motif fondateur du zellige. Ensemble : votre
-commerce, ouvert, avec une intelligence au cœur. Le dessin est géométrique et sans texte pour rester
-reconnaissable de 16 px (onglet du navigateur) à une enseigne.
+**Ce qu'il raconte.** Un **auvent de boutique** — le store rayé à festons qu'on reconnaît au-dessus d'une
+épicerie à Casablanca, d'un corner store à Houston ou d'une supérette à Lyon — et, dessous, une **courbe qui
+monte** : l'argent du commerce, qui va dans le bon sens. Le symbole ne dépend d'aucune culture ni d'aucun pays,
+pour que la marque voyage avec le produit. Le dessin est géométrique et sans texte pour rester reconnaissable
+de 16 px (onglet du navigateur) à une enseigne, et il fonctionne en une seule couleur.
 
 **Règles d'usage**
 - Taille minimale : 16 px pour l'icône, 96 px de large pour le logo horizontal.
 - Zone de protection : un espace vide d'au moins ¼ de la largeur de l'icône tout autour.
 - Fond : sable, blanc ou encre. Sur une photo, utiliser l'icône seule (carré terracotta) ou la version mono.
-- Interdits : déformer, faire pivoter, changer les couleurs de l'arche ou de l'étoile, ajouter une ombre,
+- Interdits : déformer, faire pivoter, changer les couleurs de l'auvent ou de la courbe, ajouter une ombre,
   remettre l'ancienne lettre « S » ou l'ancien réseau neuronal vert.
 
 ## Couleurs (tokens Tailwind : `frontend/tailwind.config.js`)
@@ -31,7 +34,7 @@ reconnaissable de 16 px (onglet du navigateur) à une enseigne.
 |---|---|---|---|
 | `brand-600` Terracotta | `#C2410C` | Actions principales, marque, liens | blanc dessus 5,2:1 · sur blanc 5,2:1 (AA) |
 | `brand-700` | `#9A3412` | Survol, dégradés | |
-| `mint-300` | `#5EEAD4` | Étoile du logo, accents décoratifs sur fond sombre | décoratif uniquement |
+| `mint-300` | `#5EEAD4` | Courbe du logo, accents décoratifs sur fond sombre | décoratif uniquement |
 | `mint-700` Menthe | `#0F766E` | Accent secondaire, argent positif | sur blanc 5,5:1 (AA) |
 | `sand-100` Sable | `#FAF7F2` | Fond des pages | |
 | `ink-900` Encre | `#1C1917` | Texte | sur sable 16,4:1 |
@@ -47,7 +50,7 @@ graphiques, une teinte différente par catégorie, jamais deux nuances de la mê
 
 ## Ton
 - Parler d'argent concret : « 119 MAD à récupérer », pas « optimisez votre trésorerie ».
-- Tutoiement en darija, vouvoiement en français, phrases courtes, un verbe d'action par bouton.
+- Registre adapté à chaque langue (vouvoiement en français), phrases courtes, un verbe d'action par bouton.
 - Ne jamais afficher un chiffre de traction, un avis ou un témoignage qui n'est pas réel et vérifiable.
 
 ## Sources consultées

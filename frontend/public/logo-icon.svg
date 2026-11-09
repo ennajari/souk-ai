@@ -1,10 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Souk.AI">
   <rect width="64" height="64" rx="15" fill="#C2410C"/>
-  <!-- Moroccan horseshoe arch: the arc goes past a half circle and narrows at its base -->
-  <path d="M21.5 53V41.5A14 14 0 1 1 42.5 41.5V53" fill="none" stroke="#FAF7F2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Eight-pointed zellige star (khatam) -->
-  <g transform="translate(32 31.5)" fill="#5EEAD4">
-    <rect x="-5.6" y="-5.6" width="11.2" height="11.2"/>
-    <rect x="-5.6" y="-5.6" width="11.2" height="11.2" transform="rotate(45)"/>
-  </g>
+  <!-- Shop awning: any small store, anywhere -->
+  <path d="M12 11h40v13.5a5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0Z" fill="#FAF7F2"/>
+  <path d="M22 19.5v5M32 19.5v5M42 19.5v5" stroke="#C2410C" stroke-width="2"/>
+  <!-- Rising line: the shop's money, going the right way -->
+  <path d="M15 52l10-8 7 4 15-12M39 36h8v8" fill="none" stroke="#5EEAD4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
