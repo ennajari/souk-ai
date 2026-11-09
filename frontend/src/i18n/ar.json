@@ -19,7 +19,12 @@
     "coach": "المدرب الذكي",
     "employees": "الموظفين",
     "catalogue": "الكتالوج",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "productsStock": "السلع والمخزون",
+    "reports": "التقارير",
+    "more": "المزيد",
+    "payments": "الأداء والبطاقات",
+    "marketplace": "سوق الجملة"
   },
   "common": {
     "save": "حفظ",
@@ -246,5 +251,20 @@
     "customers_two": "{{count}} ديال الكليان عليهم الكريدي",
     "customers_few": "{{count}} ديال الكليان عليهم الكريدي",
     "customers_many": "{{count}} ديال الكليان عليهم الكريدي"
+  },
+  "reports": {
+    "sales": "المبيعات",
+    "margins": "الهوامش",
+    "restock": "إعادة التموين"
+  },
+  "sales": {
+    "title": "المبيعات",
+    "subtitle": "سجل المبيعات والمرتجعات. باش تبيع، استعمل الصندوق.",
+    "newSale": "بيع جديد",
+    "empty": "ما كاين حتى بيع دابا.",
+    "return": "مرتجع",
+    "doReturn": "رجوع",
+    "confirmReturn": "أكد الرجوع",
+    "returned": "تسجل الرجوع والمخزون تحدث"
   }
 }

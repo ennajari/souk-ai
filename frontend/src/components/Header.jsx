@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiLogOut, FiBell, FiMenu, FiAlertTriangle, FiCpu, FiActivity, FiUserCheck } from 'react-icons/fi'
+import { FiLogOut, FiBell, FiMenu, FiAlertTriangle, FiCpu, FiShoppingCart, FiBarChart2 } from 'react-icons/fi'
 import { RiGlobalLine } from 'react-icons/ri'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -8,14 +8,15 @@ import { useTranslation } from 'react-i18next'
 
 const PAGE_TITLE_KEYS = {
   '/dashboard':        'nav.dashboard',
-  '/products':         'nav.products',
+  '/products':         'nav.productsStock',
   '/inventory':        'nav.inventory',
   '/sales':            'nav.sales',
   '/pos':              'nav.pos',
   '/analytics':        'nav.analytics',
   '/profit':           'nav.profit',
   '/forecasts':        'nav.forecasts',
-  '/credit':           'nav.credit',
+  '/reports':          'nav.reports',
+  '/payments':         'nav.payments',
   '/customers':        'nav.customers',
   '/suppliers':        'nav.suppliers',
   '/sage-import':      'nav.sageImport',
@@ -92,14 +93,15 @@ export default function Header({ onMenuClick }) {
         {/* Quick modules — hidden on mobile */}
         <div className="hidden md:flex items-center gap-0.5">
           {[
-            { to: '/coach',               icon: FiCpu,       label: 'Coach IA' },
-            { to: '/market-intelligence', icon: FiActivity,  label: 'Intelligence Marché' },
-            { to: '/employees',           icon: FiUserCheck, label: 'Employés' },
+            { to: '/pos',     icon: FiShoppingCart, label: t('nav.pos') },
+            { to: '/reports', icon: FiBarChart2,    label: t('nav.reports') },
+            { to: '/coach',   icon: FiCpu,          label: t('nav.coach') },
           ].map(({ to, icon: Icon, label }) => (
             <button
               key={to}
               onClick={() => navigate(to)}
               title={label}
+              aria-label={label}
               className={`p-2 rounded-xl transition-colors ${
                 location.pathname === to
                   ? 'bg-brand-100 text-brand-600'
@@ -159,7 +161,7 @@ export default function Header({ onMenuClick }) {
                 {alerts.length > 0 && (
                   <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
                     <button
-                      onClick={() => { navigate('/inventory'); setShowAlerts(false) }}
+                      onClick={() => { navigate('/products'); setShowAlerts(false) }}
                       className="w-full text-center text-xs text-brand-600 hover:text-brand-700 font-semibold"
                     >
                       {t("header.manageInventory")}

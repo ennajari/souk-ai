@@ -19,7 +19,12 @@
     "coach": "AI coach",
     "employees": "Staff",
     "catalogue": "Catalog",
-    "settings": "Settings"
+    "settings": "Settings",
+    "productsStock": "Products & stock",
+    "reports": "Reports",
+    "more": "MORE",
+    "payments": "Payments & cards",
+    "marketplace": "B2B marketplace"
   },
   "common": {
     "save": "Save",
@@ -242,5 +247,20 @@
     "atRiskHint": "{{soon}} expiring within 7 days · {{dead}} not sold in 30 days",
     "missedSales": "Missed profit / week",
     "missedHint": "{{count}} best-seller(s) out of stock"
+  },
+  "reports": {
+    "sales": "Sales",
+    "margins": "Margins",
+    "restock": "Restock"
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Sales and returns history. To sell, use the checkout.",
+    "newSale": "New sale",
+    "empty": "No sales yet.",
+    "return": "Return",
+    "doReturn": "Return",
+    "confirmReturn": "Confirm return",
+    "returned": "Return recorded, stock updated"
   }
 }

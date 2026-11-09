@@ -2,10 +2,9 @@ import { NavLink } from "react-router-dom"
 import BrandMark from './BrandMark'
 import { useState, useEffect } from "react"
 import {
-  FiHome, FiPackage, FiBox, FiDollarSign, FiShoppingCart,
-  FiBarChart2, FiTrendingUp, FiPercent,
+  FiHome, FiPackage, FiDollarSign, FiShoppingCart, FiBarChart2,
   FiUsers, FiSettings, FiMessageSquare, FiX, FiTruck, FiShoppingBag,
-  FiBell, FiCreditCard, FiList
+  FiBell, FiCreditCard, FiList, FiUserCheck, FiCpu, FiUpload,
 } from "react-icons/fi"
 import { useAuth } from "../context/AuthContext"
 import { useTranslation } from "react-i18next"
@@ -27,32 +26,35 @@ export default function Sidebar({ onClose }) {
 
   const isSupplier = merchant?.account_type === 'SUPPLIER'
 
+  // Organised around the shopkeeper's jobs: sell, manage, understand. Rarely used tools live in "More".
   const merchantSections = [
     {
       label: t("nav.principal"),
       links: [
-        { to: "/dashboard",  icon: FiHome,        label: t("nav.dashboard") },
-        { to: "/products",   icon: FiPackage,     label: t("nav.products") },
-        { to: "/inventory",  icon: FiBox,         label: t("nav.inventory") },
-        { to: "/sales",      icon: FiDollarSign,  label: t("nav.sales") },
-        { to: "/pos",        icon: FiShoppingCart,label: t("nav.pos") },
-      ],
-    },
-    {
-      label: t("nav.intelligence"),
-      desktopOnly: true,
-      links: [
-        { to: "/analytics", icon: FiBarChart2,  label: t("nav.analytics") },
-        { to: "/profit",    icon: FiPercent,    label: t("nav.profit") },
-        { to: "/forecasts", icon: FiTrendingUp, label: t("nav.forecasts") },
+        { to: "/dashboard", icon: FiHome,         label: t("nav.dashboard") },
+        { to: "/pos",       icon: FiShoppingCart, label: t("nav.pos") },
+        { to: "/products",  icon: FiPackage,      label: t("nav.productsStock") },
+        { to: "/sales",     icon: FiDollarSign,   label: t("nav.sales") },
       ],
     },
     {
       label: t("nav.commerce"),
       links: [
-        { to: "/customers",   icon: FiUsers,       label: t("nav.customers") },
-        { to: "/suppliers",   icon: FiTruck,       label: t("nav.suppliers") },
-        { to: "/marketplace", icon: FiShoppingBag, label: 'Marketplace B2B', badge: marketplaceBadge },
+        { to: "/customers", icon: FiUsers,      label: t("nav.customers") },
+        { to: "/suppliers", icon: FiTruck,      label: t("nav.suppliers") },
+        { to: "/reports",   icon: FiBarChart2,  label: t("nav.reports") },
+      ],
+    },
+    {
+      label: t("nav.more"),
+      desktopOnly: false,
+      links: [
+        { to: "/payments",     icon: FiCreditCard,  label: t("nav.payments") },
+        { to: "/marketplace",  icon: FiShoppingBag, label: t("nav.marketplace"), badge: marketplaceBadge },
+        { to: "/my-catalogue", icon: FiList,        label: t("nav.catalogue") },
+        { to: "/employees",    icon: FiUserCheck,   label: t("nav.employees") },
+        { to: "/coach",        icon: FiCpu,         label: t("nav.coach") },
+        { to: "/sage-import",  icon: FiUpload,      label: t("nav.sageImport") },
       ],
     },
   ]

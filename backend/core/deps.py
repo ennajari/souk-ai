@@ -52,3 +52,9 @@ async def get_current_supplier(
     if merchant.account_type != AccountType.SUPPLIER:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acces reserve aux fournisseurs")
     return merchant
+
+
+async def require_admin(merchant: Merchant = Depends(get_current_merchant)) -> Merchant:
+    if not check_is_admin(merchant):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acces reserve a l'administration")
+    return merchant

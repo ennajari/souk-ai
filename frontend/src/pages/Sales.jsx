@@ -1,202 +1,107 @@
-import { useState, useEffect, useRef } from 'react'
-import { FiDollarSign, FiPrinter } from 'react-icons/fi'
-import { productsAPI, transactionsAPI } from '../api/client'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { FiCornerUpLeft, FiShoppingCart } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { transactionsAPI } from '../api/client'
+import { useMoney } from '../utils/money'
 
+/** Sales history. Selling happens at the till (/pos); this page is for checking and returning sales. */
 export default function Sales() {
-  const [products, setProducts] = useState([])
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ product_id: '', quantity: 1, unit_price: 0, type: 'SALE', source: 'WEB' })
-  const printRef = useRef()
+  const { t, i18n } = useTranslation()
+  const money = useMoney()
+  const [rows, setRows] = useState(null)
+  const [busy, setBusy] = useState(null)
+  const [confirmId, setConfirmId] = useState(null) // two-step: a stray tap must not return a sale
 
-  useEffect(() => {
-    Promise.all([
-      productsAPI.list().catch(() => ({ data: [] })),
-      transactionsAPI.list('SALE', 20).catch(() => ({ data: [] })),
-    ]).then(([prodRes, txnRes]) => {
-      setProducts(prodRes.data)
-      setTransactions(txnRes.data)
-    }).finally(() => setLoading(false))
-  }, [])
+  const load = () => transactionsAPI.list(null, 100)
+    .then((r) => setRows(r.data.filter((x) => x.type === 'SALE' || x.type === 'RETURN')))
+    .catch(() => setRows([]))
+  useEffect(() => { load() }, [])
 
-  const handleProductChange = (e) => {
-    const pid = e.target.value
-    const product = products.find((p) => p.id === pid)
-    setForm({ ...form, product_id: pid, unit_price: product?.unit_price || 0 })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!form.product_id) return toast.error('Selectionnez un produit')
+  const doReturn = async (sale) => {
+    setBusy(sale.id)
     try {
-      await transactionsAPI.create(form)
-      toast.success('Vente enregistree!')
-      setForm({ ...form, product_id: '', quantity: 1, unit_price: 0 })
-      const res = await transactionsAPI.list('SALE', 20)
-      setTransactions(res.data)
+      await transactionsAPI.returnSale(sale.id)
+      toast.success(t('sales.returned'))
+      await load()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur')
+      toast.error(err.response?.data?.detail || t('common.error'))
+    } finally {
+      setBusy(null)
+      setConfirmId(null)
     }
   }
 
-  const handlePrint = () => {
-    const content = printRef.current
-    if (!content) return
-    const win = window.open('', '_blank', 'width=400,height=600')
-    win.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Recu de vente - Souk.AI</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; padding: 12px; font-size: 12px; max-width: 300px; margin: auto; }
-        .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 8px; margin-bottom: 8px; }
-        .header h1 { font-size: 18px; font-weight: bold; }
-        .header p { font-size: 10px; color: #666; }
-        .date { text-align: center; font-size: 10px; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; border-bottom: 1px solid #333; padding: 4px 0; font-size: 11px; }
-        td { padding: 3px 0; font-size: 11px; }
-        .right { text-align: right; }
-        .total-row { border-top: 2px dashed #333; margin-top: 8px; padding-top: 8px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; }
-        .footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px dashed #999; font-size: 9px; color: #999; }
-        @media print { body { padding: 0; } }
-      </style></head><body>
-      <div class="header">
-        <h1>SOUK.AI</h1>
-        <p>Recu de vente</p>
-      </div>
-      <div class="date">${new Date().toLocaleString('fr-FR')}</div>
-      <table>
-        <thead><tr><th>Produit</th><th class="right">Qte</th><th class="right">Prix</th><th class="right">Total</th></tr></thead>
-        <tbody>
-          ${transactions.map(t => `
-            <tr>
-              <td>${t.product_name_fr || t.product_name_ar || '-'}</td>
-              <td class="right">${t.quantity}</td>
-              <td class="right">${Number(t.unit_price || 0).toFixed(2)}</td>
-              <td class="right">${Number(t.total_amount || 0).toFixed(2)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <div class="total-row">
-        <span>TOTAL</span>
-        <span>${transactions.reduce((s, t) => s + Number(t.total_amount || 0), 0).toFixed(2)} MAD</span>
-      </div>
-      <div class="footer">
-        Merci pour votre achat!<br/>
-        Souk.AI - Gestion Intelligente
-      </div>
-      </body></html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
-  }
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div></div>
-  }
+  const dateFmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'short' })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Ventes</h1>
-        {transactions.length > 0 && (
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 text-sm font-medium transition-colors"
-          >
-            <FiPrinter className="h-4 w-4" /> Imprimer recu
-          </button>
-        )}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <FiDollarSign className="text-green-600" /> Nouvelle vente
-        </h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Produit</label>
-            <select
-              value={form.product_id}
-              onChange={handleProductChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-            >
-              <option value="">-- Choisir --</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name_fr} ({p.name_ar})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Quantite</label>
-            <input
-              type="number"
-              min="1"
-              value={form.quantity}
-              onChange={(e) => setForm({ ...form, quantity: e.target.value === '' ? '' : (parseInt(e.target.value) || '') })}
-              onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setForm(f => ({ ...f, quantity: 1 })) }}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Prix unitaire</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.unit_price}
-              onChange={(e) => setForm({ ...form, unit_price: e.target.value === '' ? '' : (parseFloat(e.target.value) || '') })}
-              onBlur={(e) => { if (!e.target.value) setForm(f => ({ ...f, unit_price: 0 })) }}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-            />
-          </div>
-          <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            Enregistrer
-          </button>
-        </form>
-        {form.product_id && (
-          <p className="mt-3 text-sm text-gray-500">
-            Total: <span className="font-bold text-gray-900">{(form.quantity * form.unit_price).toFixed(2)} MAD</span>
-          </p>
-        )}
-      </div>
-
-      <div ref={printRef} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold">Dernieres ventes</h2>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t('sales.title')}</h1>
+          <p className="text-sm text-gray-500">{t('sales.subtitle')}</p>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantite</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prix unitaire</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {transactions.map((t) => (
-              <tr key={t.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm">
-                  <span className="font-medium text-gray-900">{t.product_name_fr || t.product_name_ar}</span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">{t.quantity}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{Number(t.unit_price || 0).toFixed(2)} MAD</td>
-                <td className="px-6 py-4 text-sm font-bold text-green-600">{Number(t.total_amount || 0).toFixed(2)} MAD</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{new Date(t.created_at).toLocaleString('fr-FR')}</td>
+        <Link to="/pos" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">
+          <FiShoppingCart className="h-4 w-4" aria-hidden="true" /> {t('sales.newSale')}
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+        {rows === null ? (
+          <div className="h-48 animate-pulse" aria-busy="true" />
+        ) : rows.length === 0 ? (
+          <div className="p-10 text-center">
+            <p className="text-gray-600 font-medium">{t('sales.empty')}</p>
+            <Link to="/pos" className="mt-3 inline-block text-brand-700 font-semibold">{t('sales.newSale')} →</Link>
+          </div>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="bg-sand-100 text-left text-xs uppercase text-gray-500">
+              <tr>
+                <th className="px-4 py-3">{t('customers.product')}</th>
+                <th className="px-4 py-3 text-right">{t('common.quantity')}</th>
+                <th className="px-4 py-3 text-right">{t('common.total')}</th>
+                <th className="px-4 py-3">{t('common.date')}</th>
+                <th className="px-4 py-3"><span className="sr-only">{t('common.actions')}</span></th>
               </tr>
-            ))}
-            {transactions.length === 0 && (
-              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">Aucune vente enregistree.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((r) => {
+                const isReturn = r.type === 'RETURN'
+                return (
+                  <tr key={r.id} className={isReturn ? 'bg-red-50/40' : ''}>
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-gray-900">{r.product_name_fr || r.product_name_ar}</span>
+                      {isReturn && <span className="ms-2 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{t('sales.return')}</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">{r.quantity}</td>
+                    <td className={`px-4 py-3 text-right font-semibold tabular-nums ${isReturn ? 'text-red-700' : 'text-gray-900'}`}>
+                      {isReturn ? '−' : ''}{money(r.total_amount)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{dateFmt.format(new Date(r.created_at))}</td>
+                    <td className="px-4 py-3 text-right">
+                      {!isReturn && (confirmId === r.id ? (
+                        <span className="inline-flex gap-2">
+                          <button onClick={() => doReturn(r)} disabled={busy === r.id}
+                            className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded-lg disabled:opacity-50">
+                            {t('sales.confirmReturn')}
+                          </button>
+                          <button onClick={() => setConfirmId(null)} className="text-xs text-gray-500">{t('common.cancel')}</button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setConfirmId(r.id)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-red-700">
+                          <FiCornerUpLeft className="h-3.5 w-3.5" aria-hidden="true" /> {t('sales.doReturn')}
+                        </button>
+                      ))}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

@@ -248,3 +248,12 @@ async def test_other_market_signup_and_login(client, monkeypatch):
     h = {"Authorization": f"Bearer {me.json()['access_token']}"}
     prof = (await client.get("/api/v1/auth/me", headers=h)).json()
     assert prof["phone_number"] == "33612345678" and prof["currency"] == "EUR"
+
+
+async def test_no_mock_loan_offers_and_market_data_is_admin_only(client):
+    """D13/D14: no fabricated loan offers; platform-wide market aggregates are not public to merchants."""
+    h = await register(client, phone="0688000001")
+    offers = (await client.get("/api/v1/credit/offers", headers=h)).json()
+    assert offers["offers"] == [] and offers["eligibility"] is False
+    assert (await client.post("/api/v1/credit/request", json={}, headers=h)).status_code == 410
+    assert (await client.get("/api/v1/market/overview", headers=h)).status_code == 403

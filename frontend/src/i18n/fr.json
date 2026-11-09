@@ -19,7 +19,12 @@
     "coach": "Coach IA",
     "employees": "Employés",
     "catalogue": "Catalogue",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "productsStock": "Produits & stock",
+    "reports": "Rapports",
+    "more": "PLUS",
+    "payments": "Paiements & cartes",
+    "marketplace": "Marketplace B2B"
   },
   "common": {
     "save": "Sauvegarder",
@@ -242,5 +247,20 @@
     "atRiskHint": "{{soon}} expirent sous 7 j · {{dead}} invendus depuis 30 j",
     "missedSales": "Marge manquée / semaine",
     "missedHint": "{{count}} produit(s) demandé(s) en rupture"
+  },
+  "reports": {
+    "sales": "Ventes",
+    "margins": "Marges",
+    "restock": "Réassort"
+  },
+  "sales": {
+    "title": "Ventes",
+    "subtitle": "Historique des ventes et des retours. Pour vendre, utilisez la caisse.",
+    "newSale": "Nouvelle vente",
+    "empty": "Aucune vente pour l'instant.",
+    "return": "Retour",
+    "doReturn": "Retour",
+    "confirmReturn": "Confirmer le retour",
+    "returned": "Retour enregistré, stock remis à jour"
   }
 }
