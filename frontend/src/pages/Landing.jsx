@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import BrandMark from '../components/BrandMark'
 import {
   RiRobot2Line,
   RiBarChart2Line,
@@ -24,22 +25,22 @@ const features = [
     icon: RiRobot2Line,
     title: "Assistant IA WhatsApp",
     desc: "Gérez ventes, stocks et commandes par message vocal en Darija, Français ou Tamazight. Zero formation requise.",
-    color: "from-fuchsia-500 to-violet-600",
-    glow: "shadow-fuchsia-500/20",
+    color: "from-brand-600 to-brand-700",
+    glow: "shadow-brand-500/20",
   },
   {
     icon: RiStore2Line,
     title: "Inventaire en temps réel",
     desc: "Alertes automatiques de rupture de stock. Suivi instantané de chaque produit, à tout moment.",
-    color: "from-violet-500 to-indigo-600",
-    glow: "shadow-violet-500/20",
+    color: "from-brand-500 to-brand-700",
+    glow: "shadow-brand-500/20",
   },
   {
     icon: RiLineChartLine,
     title: "Prévisions de demande",
     desc: "Anticipez vos besoins de réapprovisionnement grâce à l'analyse statistique avancée sur 7 jours.",
-    color: "from-cyan-500 to-blue-600",
-    glow: "shadow-cyan-500/20",
+    color: "from-mint-500 to-blue-600",
+    glow: "shadow-mint-500/20",
   },
   {
     icon: RiShieldCheckLine,
@@ -166,7 +167,7 @@ export default function Landing() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#050508] text-white font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#0F0D0C] text-white font-sans overflow-x-hidden">
 
       {/* ── NOISE TEXTURE overlay ── */}
       <div
@@ -182,23 +183,21 @@ export default function Landing() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-[#050508]/90 backdrop-blur-xl border-b border-white/[0.06]"
+            ? "bg-[#0F0D0C]/90 backdrop-blur-xl border-b border-white/[0.06]"
             : "bg-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
-              <RiStore2Line className="text-white text-sm" />
-            </div>
-            <span className="text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-300 to-cyan-400 bg-clip-text text-transparent">
+            <BrandMark className="h-8 w-8" />
+            <span className="text-xl font-black bg-gradient-to-r from-brand-400 via-brand-300 to-mint-400 bg-clip-text text-transparent">
               Souk.AI
             </span>
           </div>
 
           {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-8 text-sm text-gray-400">
+          <div className="hidden md:flex items-center gap-8 text-sm text-gray-500">
             {["Fonctionnalités", "Comment ça marche", "Témoignages", "Contact"].map((l, i) => (
               <a
                 key={l}
@@ -206,7 +205,7 @@ export default function Landing() {
                 className="hover:text-white transition-colors duration-200 relative group"
               >
                 {l}
-                <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-gradient-to-r from-fuchsia-400 to-cyan-400 group-hover:w-full transition-all duration-300" />
+                <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-gradient-to-r from-brand-400 to-mint-400 group-hover:w-full transition-all duration-300" />
               </a>
             ))}
           </div>
@@ -221,7 +220,7 @@ export default function Landing() {
             </Link>
             <Link
               to="/register"
-              className="text-sm bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40 flex items-center gap-2"
+              className="text-sm bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-400 hover:to-brand-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 flex items-center gap-2"
             >
               Essai gratuit
               <RiArrowRightLine className="text-base" />
@@ -239,7 +238,7 @@ export default function Landing() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden bg-[#0a0a12]/95 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex flex-col gap-4">
+          <div className="md:hidden bg-[#1C1917]/95 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex flex-col gap-4">
             {["Fonctionnalités", "Comment ça marche", "Contact"].map((l, i) => (
               <a
                 key={l}
@@ -254,7 +253,7 @@ export default function Landing() {
               <Link to="/login" className="flex-1 text-center text-sm border border-white/10 rounded-xl py-2.5 text-gray-300 hover:text-white hover:border-white/30 transition-all">
                 Connexion
               </Link>
-              <Link to="/register" className="flex-1 text-center text-sm bg-gradient-to-r from-fuchsia-500 to-violet-600 rounded-xl py-2.5 text-white font-semibold">
+              <Link to="/register" className="flex-1 text-center text-sm bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl py-2.5 text-white font-semibold">
                 Essai gratuit
               </Link>
             </div>
@@ -267,9 +266,9 @@ export default function Landing() {
       ══════════════════════════════════════ */}
       <section className="relative pt-36 pb-28 px-6 overflow-hidden">
         {/* Orbs */}
-        <GradientOrb className="w-[700px] h-[700px] bg-fuchsia-600 -top-40 -left-40" />
-        <GradientOrb className="w-[500px] h-[500px] bg-violet-700 top-20 right-0" />
-        <GradientOrb className="w-[400px] h-[400px] bg-cyan-600 bottom-0 left-1/3" />
+        <GradientOrb className="w-[700px] h-[700px] bg-brand-600 -top-40 -left-40" />
+        <GradientOrb className="w-[500px] h-[500px] bg-brand-700 top-20 right-0" />
+        <GradientOrb className="w-[400px] h-[400px] bg-mint-600 bottom-0 left-1/3" />
 
         {/* Grid lines */}
         <div
@@ -283,8 +282,8 @@ export default function Landing() {
 
         <div className="relative max-w-5xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.1] rounded-full px-5 py-2 mb-8 text-xs font-semibold text-fuchsia-300 uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.1] rounded-full px-5 py-2 mb-8 text-xs font-semibold text-brand-300 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
             L'IA pour le commerce marocain · 2026
           </div>
 
@@ -293,7 +292,7 @@ export default function Landing() {
             <span className="text-white">Gérez votre commerce</span>
             <br />
             <span
-              className="bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent"
+              className="bg-gradient-to-r from-brand-400 via-brand-400 to-mint-400 bg-clip-text text-transparent"
               style={{ WebkitTextStroke: "0px" }}
             >
               par WhatsApp
@@ -303,7 +302,7 @@ export default function Landing() {
           </h1>
 
           {/* Sub */}
-          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
             Souk.AI est l'assistant intelligent qui permet aux commerçants marocains
             de gérer inventaire, ventes et factures par message vocal —
             <span className="text-gray-200"> sans formation, sans ordinateur.</span>
@@ -313,7 +312,7 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               to="/register"
-              className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-2xl shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 hover:scale-[1.02]"
+              className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-2xl shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-[1.02]"
             >
               <span>Commencer gratuitement</span>
               <RiArrowRightLine className="text-xl group-hover:translate-x-1 transition-transform" />
@@ -333,8 +332,8 @@ export default function Landing() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {["bg-fuchsia-500", "bg-violet-500", "bg-cyan-500", "bg-emerald-500"].map((c) => (
-                  <div key={c} className={`w-7 h-7 rounded-full ${c} border-2 border-[#050508]`} />
+                {["bg-brand-500", "bg-brand-500", "bg-mint-500", "bg-emerald-500"].map((c) => (
+                  <div key={c} className={`w-7 h-7 rounded-full ${c} border-2 border-[#0F0D0C]`} />
                 ))}
               </div>
               <span>500+ commerçants actifs</span>
@@ -360,16 +359,16 @@ export default function Landing() {
         <div
           className="absolute inset-0 opacity-[0.015]"
           style={{
-            backgroundImage: "linear-gradient(to right, #a855f7, #22d3ee)",
+            backgroundImage: "linear-gradient(to right, #DF7853, #22d3ee)",
           }}
         />
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map(({ value, label, icon: Icon }) => (
             <div key={label} className="text-center group">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] mb-4 mx-auto group-hover:border-fuchsia-500/40 transition-colors">
-                <Icon className="text-fuchsia-400 text-xl" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] mb-4 mx-auto group-hover:border-brand-500/40 transition-colors">
+                <Icon className="text-brand-400 text-xl" />
               </div>
-              <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent tabular-nums">
+              <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent tabular-nums">
                 {value === "24/7" || value === "3" ? value : (
                   <AnimatedCounter
                     target={value}
@@ -387,17 +386,17 @@ export default function Landing() {
           FEATURES
       ══════════════════════════════════════ */}
       <section id="features" className="py-28 px-6 relative">
-        <GradientOrb className="w-[600px] h-[600px] bg-violet-700 top-0 right-0 opacity-20" />
+        <GradientOrb className="w-[600px] h-[600px] bg-brand-700 top-0 right-0 opacity-20" />
 
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <span className="inline-block text-xs font-bold text-violet-400 uppercase tracking-widest mb-4 bg-violet-500/10 border border-violet-500/20 rounded-full px-4 py-1.5">
+            <span className="inline-block text-xs font-bold text-brand-400 uppercase tracking-widest mb-4 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5">
               Fonctionnalités
             </span>
             <h2 className="text-4xl md:text-5xl font-black mb-5">
               Tout ce dont vous avez besoin,
               <br />
-              <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent">
                 en un seul outil
               </span>
             </h2>
@@ -446,16 +445,16 @@ export default function Landing() {
           HOW IT WORKS
       ══════════════════════════════════════ */}
       <section id="how" className="py-28 px-6 relative">
-        <GradientOrb className="w-[500px] h-[500px] bg-cyan-700 bottom-0 left-0 opacity-15" />
+        <GradientOrb className="w-[500px] h-[500px] bg-mint-700 bottom-0 left-0 opacity-15" />
 
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20">
-            <span className="inline-block text-xs font-bold text-cyan-400 uppercase tracking-widest mb-4 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-1.5">
+            <span className="inline-block text-xs font-bold text-mint-400 uppercase tracking-widest mb-4 bg-mint-500/10 border border-mint-500/20 rounded-full px-4 py-1.5">
               Comment ça marche
             </span>
             <h2 className="text-4xl md:text-5xl font-black mb-5">
               Opérationnel en{" "}
-              <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-mint-400 to-emerald-400 bg-clip-text text-transparent">
                 5 minutes
               </span>
             </h2>
@@ -464,7 +463,7 @@ export default function Landing() {
 
           <div className="relative">
             {/* Connector line */}
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[2px] h-[calc(100%-5rem)] bg-gradient-to-b from-fuchsia-500/30 via-violet-500/30 to-cyan-500/30 hidden md:block" />
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[2px] h-[calc(100%-5rem)] bg-gradient-to-b from-brand-500/30 via-brand-500/30 to-mint-500/30 hidden md:block" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
               {steps.map((s, i) => {
@@ -473,10 +472,10 @@ export default function Landing() {
                   <div key={s.num} className="flex flex-col items-center text-center group">
                     {/* Step number ring */}
                     <div className="relative mb-6">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500/20 to-violet-600/20 border border-fuchsia-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-fuchsia-500/10">
-                        <Icon className="text-fuchsia-400 text-2xl" />
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500/20 to-brand-600/20 border border-brand-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-brand-500/10">
+                        <Icon className="text-brand-400 text-2xl" />
                       </div>
-                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-xs font-black text-white">
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-xs font-black text-white">
                         {i + 1}
                       </div>
                     </div>
@@ -504,7 +503,7 @@ export default function Landing() {
             </span>
             <h2 className="text-4xl md:text-5xl font-black mb-5">
               Ils font confiance à{" "}
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-400 to-mint-400 bg-clip-text text-transparent">
                 Souk.AI
               </span>
             </h2>
@@ -530,7 +529,7 @@ export default function Landing() {
                   "{t.text}"
                 </p>
                 <div className="flex items-center gap-3 pt-4 border-t border-white/[0.06]">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-xs font-black text-white">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-xs font-black text-white">
                     {t.name[0]}
                   </div>
                   <div>
@@ -548,27 +547,27 @@ export default function Landing() {
           CTA FINAL
       ══════════════════════════════════════ */}
       <section className="py-28 px-6 relative">
-        <GradientOrb className="w-[800px] h-[800px] bg-fuchsia-700 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15" />
+        <GradientOrb className="w-[800px] h-[800px] bg-brand-700 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15" />
 
         <div className="relative max-w-3xl mx-auto text-center">
           <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] rounded-[2rem] p-12 md:p-16 backdrop-blur-sm">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-600 mb-6 shadow-2xl shadow-fuchsia-500/30">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 mb-6 shadow-2xl shadow-brand-500/30">
               <RiFlashlightLine className="text-white text-2xl" />
             </div>
             <h2 className="text-3xl md:text-5xl font-black mb-5 leading-tight">
               Prêt à digitaliser
               <br />
-              <span className="bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent">
                 votre commerce ?
               </span>
             </h2>
-            <p className="text-gray-400 mb-8 text-lg">
+            <p className="text-gray-500 mb-8 text-lg">
               Rejoignez 500+ commerçants marocains qui font confiance à Souk.AI chaque jour.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/register"
-                className="group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-2xl shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 hover:scale-[1.02]"
+                className="group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-400 hover:to-brand-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-2xl shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-[1.02]"
               >
                 Créer mon compte — Gratuit
                 <RiArrowRightLine className="text-xl group-hover:translate-x-1 transition-transform" />
@@ -591,10 +590,8 @@ export default function Landing() {
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center">
-                  <RiStore2Line className="text-white text-sm" />
-                </div>
-                <span className="text-xl font-black bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
+                <BrandMark className="h-8 w-8" />
+                <span className="text-xl font-black bg-gradient-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent">
                   Souk.AI
                 </span>
               </div>

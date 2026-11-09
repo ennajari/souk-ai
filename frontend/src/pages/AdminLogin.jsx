@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BrandMark from '../components/BrandMark'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../api/client'
@@ -41,19 +42,17 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-950">
+    <div className="min-h-screen flex bg-ink-950">
       {/* ── Left panel ── */}
       <div className="hidden lg:flex lg:w-[50%] flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-gray-950 to-orange-950/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-ink-950 to-orange-950/20" />
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-red-600/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-600/5 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl" />
 
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-red-900/50">
-              <span className="text-white font-black text-lg">S</span>
-            </div>
+            <BrandMark className="h-10 w-10" />
             <div>
               <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
               <span className="text-red-400 text-sm font-bold ml-2">Admin</span>
@@ -88,9 +87,7 @@ export default function AdminLogin() {
       <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-14 bg-gray-900">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-black text-sm">S</span>
-          </div>
+          <BrandMark className="h-8 w-8" />
           <span className="text-white text-xl font-black">Souk.AI</span>
           <span className="text-red-400 text-sm font-bold ml-1">Admin</span>
         </div>
@@ -98,7 +95,7 @@ export default function AdminLogin() {
         <div className="max-w-sm w-full mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-black text-white">Administration</h1>
-            <p className="text-gray-400 text-sm mt-1.5">Connectez-vous pour acceder au panneau de controle</p>
+            <p className="text-gray-500 text-sm mt-1.5">Connectez-vous pour acceder au panneau de controle</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

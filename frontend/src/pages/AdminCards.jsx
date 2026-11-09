@@ -42,7 +42,7 @@ export default function AdminCards() {
           <p className="text-sm text-gray-500 mt-1">{cards.length} cartes emises</p>
         </div>
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -59,7 +59,7 @@ export default function AdminCards() {
           <p className="text-xs text-gray-500">Total cartes</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-2xl font-black text-purple-600">{clientCards.length}</p>
+          <p className="text-2xl font-black text-brand-600">{clientCards.length}</p>
           <p className="text-xs text-gray-500">Cartes Client</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4">
@@ -98,11 +98,11 @@ export default function AdminCards() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{c.holder_name}</p>
-                      <p className="text-xs text-gray-400">{c.holder_phone}</p>
+                      <p className="text-xs text-gray-500">{c.holder_phone}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        c.card_type === 'SUPPLIER' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                        c.card_type === 'SUPPLIER' ? 'bg-blue-100 text-blue-700' : 'bg-brand-100 text-brand-700'
                       }`}>
                         {c.card_type === 'SUPPLIER' ? 'Fournisseur' : 'Client'}
                       </span>
@@ -126,7 +126,7 @@ export default function AdminCards() {
             </table>
           </div>
           {filtered.length === 0 && (
-            <div className="text-center py-8 text-gray-400">Aucune carte trouvee</div>
+            <div className="text-center py-8 text-gray-500">Aucune carte trouvee</div>
           )}
         </div>
 
@@ -142,7 +142,7 @@ export default function AdminCards() {
                 cardType={selected.card_type || 'CLIENT'}
               />
             ) : (
-              <div className="text-center py-8 text-gray-400 text-sm">
+              <div className="text-center py-8 text-gray-500 text-sm">
                 <FiCreditCard className="h-8 w-8 mx-auto mb-2 opacity-30" />
                 Selectionnez une carte
               </div>

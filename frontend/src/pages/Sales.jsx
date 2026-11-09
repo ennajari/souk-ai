@@ -96,7 +96,7 @@ export default function Sales() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div></div>
   }
 
   return (
@@ -123,7 +123,7 @@ export default function Sales() {
             <select
               value={form.product_id}
               onChange={handleProductChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
             >
               <option value="">-- Choisir --</option>
               {products.map((p) => (
@@ -140,7 +140,7 @@ export default function Sales() {
               onChange={(e) => setForm({ ...form, quantity: e.target.value === '' ? '' : (parseInt(e.target.value) || '') })}
               onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) < 1) setForm(f => ({ ...f, quantity: 1 })) }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
           <div>
@@ -152,7 +152,7 @@ export default function Sales() {
               onChange={(e) => setForm({ ...form, unit_price: e.target.value === '' ? '' : (parseFloat(e.target.value) || '') })}
               onBlur={(e) => { if (!e.target.value) setForm(f => ({ ...f, unit_price: 0 })) }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
           <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
@@ -193,7 +193,7 @@ export default function Sales() {
               </tr>
             ))}
             {transactions.length === 0 && (
-              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-400">Aucune vente enregistree.</td></tr>
+              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">Aucune vente enregistree.</td></tr>
             )}
           </tbody>
         </table>

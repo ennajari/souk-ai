@@ -143,25 +143,25 @@ export default function Customers() {
             <h1 className="text-2xl font-bold text-gray-900">{t('customers.title')}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{t('customers.totalOwed')}: <span className="font-bold text-red-600">{totalOwed.toFixed(2)} MAD</span></p>
           </div>
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700">
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700">
             <FiPlus className="h-4 w-4" /> {t('customers.newClient')}
           </button>
         </div>
 
         <div className="relative mb-3">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t('customers.searchClient')}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none"
           />
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1">
           {loading ? (
-            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600" /></div>
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <p className="text-sm">{search ? t('common.noResults') : t('customers.noClient')}</p>
             </div>
           ) : filtered.map(c => (
@@ -169,15 +169,15 @@ export default function Customers() {
               key={c.id}
               onClick={() => fetchDetail(c.id)}
               className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
-                selected === c.id ? 'bg-violet-50 border border-violet-200' : 'bg-white border border-gray-100 hover:border-gray-200'
+                selected === c.id ? 'bg-brand-50 border border-brand-200' : 'bg-white border border-gray-100 hover:border-gray-200'
               }`}
             >
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-sm text-gray-900 truncate">{c.name}</p>
-                {c.phone && <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><FiPhone className="h-3 w-3" />{c.phone}</p>}
+                {c.phone && <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><FiPhone className="h-3 w-3" />{c.phone}</p>}
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-bold ${c.balance > 0 ? 'text-red-600' : c.balance < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`text-sm font-bold ${c.balance > 0 ? 'text-red-600' : c.balance < 0 ? 'text-green-600' : 'text-gray-500'}`}>
                   {c.balance > 0 ? `${c.balance.toFixed(2)}` : c.balance < 0 ? `+${Math.abs(c.balance).toFixed(2)}` : '0'} MAD
                 </span>
                 <FiChevronRight className="h-4 w-4 text-gray-300" />
@@ -190,7 +190,7 @@ export default function Customers() {
       {/* Right: Customer detail */}
       <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">
         {!detail ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
+          <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <FiSearch className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm">{t('customers.selectClient')}</p>
@@ -202,7 +202,7 @@ export default function Customers() {
               <div>
                 <h2 className="font-bold text-gray-900 text-lg">{detail.name}</h2>
                 {detail.phone && <p className="text-sm text-gray-500">{detail.phone}</p>}
-                {detail.notes && <p className="text-xs text-gray-400 mt-0.5">{detail.notes}</p>}
+                {detail.notes && <p className="text-xs text-gray-500 mt-0.5">{detail.notes}</p>}
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
@@ -212,8 +212,8 @@ export default function Customers() {
                       <FiMessageCircle className="h-4 w-4 text-green-600" />
                     </button>
                   )}
-                  <button onClick={openEdit} className="p-2 hover:bg-violet-100 rounded-xl transition-colors" title="Modifier">
-                    <FiEdit2 className="h-4 w-4 text-violet-600" />
+                  <button onClick={openEdit} className="p-2 hover:bg-brand-100 rounded-xl transition-colors" title="Modifier">
+                    <FiEdit2 className="h-4 w-4 text-brand-600" />
                   </button>
                   <button onClick={() => setConfirmDelete(selected)} className="p-2 hover:bg-red-100 rounded-xl transition-colors" title="Supprimer">
                     <FiTrash2 className="h-4 w-4 text-red-500" />
@@ -221,7 +221,7 @@ export default function Customers() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">{t('customers.balance')}</p>
-                  <p className={`text-xl font-black ${detail.balance > 0 ? 'text-red-600' : detail.balance < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  <p className={`text-xl font-black ${detail.balance > 0 ? 'text-red-600' : detail.balance < 0 ? 'text-green-600' : 'text-gray-500'}`}>
                     {detail.balance.toFixed(2)} MAD
                   </p>
                 </div>
@@ -231,11 +231,11 @@ export default function Customers() {
             {/* Tabs */}
             <div className="flex border-b">
               <button onClick={() => setActiveTab('entries')}
-                className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${activeTab === 'entries' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${activeTab === 'entries' ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}>
                 {t('customers.creditPayments')}
               </button>
               <button onClick={() => setActiveTab('purchases')}
-                className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${activeTab === 'purchases' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${activeTab === 'purchases' ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}>
                 <FiShoppingBag className={`h-3.5 w-3.5 inline ${isRtl ? 'ml-1' : 'mr-1'}`} />{t('customers.purchases')} ({purchases.length})
               </button>
             </div>
@@ -243,7 +243,7 @@ export default function Customers() {
             {activeTab === 'entries' && (
               <>
                 {/* Add entry form */}
-                <form onSubmit={handleAddEntry} className="px-6 py-4 border-b bg-violet-50/50">
+                <form onSubmit={handleAddEntry} className="px-6 py-4 border-b bg-brand-50/50">
                   <div className="flex gap-2 items-end flex-wrap">
                     <div className="flex bg-gray-100 rounded-xl p-0.5">
                       <button type="button"
@@ -262,16 +262,16 @@ export default function Customers() {
                     <input
                       type="number" step="0.01" min="0.01" placeholder={t('customers.amountPlaceholder')}
                       value={entryForm.amount} onChange={e => setEntryForm(f => ({ ...f, amount: e.target.value }))}
-                      className="w-28 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+                      className="w-28 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                       required
                     />
                     <input
                       placeholder={t('customers.descriptionOptional')}
                       value={entryForm.description} onChange={e => setEntryForm(f => ({ ...f, description: e.target.value }))}
-                      className="flex-1 min-w-[120px] border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+                      className="flex-1 min-w-[120px] border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                     />
                     <button type="submit" disabled={addingEntry}
-                      className="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-50">
+                      className="px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                       {addingEntry ? '...' : t('customers.addEntry')}
                     </button>
                   </div>
@@ -280,7 +280,7 @@ export default function Customers() {
                 {/* Entries list */}
                 <div className="flex-1 overflow-y-auto divide-y">
                   {(detail.entries || []).length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 text-sm">{t('customers.noEntries')}</div>
+                    <div className="text-center py-12 text-gray-500 text-sm">{t('customers.noEntries')}</div>
                   ) : detail.entries.map(entry => (
                     <div key={entry.id} className="px-6 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -296,7 +296,7 @@ export default function Customers() {
                             {entry.type === 'CREDIT' ? t('customers.credit') : t('customers.payment')}
                           </p>
                           {entry.description && <p className="text-xs text-gray-500">{entry.description}</p>}
-                          <p className="text-xs text-gray-400">{new Date(entry.created_at).toLocaleString(isRtl ? 'ar-MA' : 'fr-FR')}</p>
+                          <p className="text-xs text-gray-500">{new Date(entry.created_at).toLocaleString(isRtl ? 'ar-MA' : 'fr-FR')}</p>
                         </div>
                       </div>
                       <span className={`text-sm font-bold ${entry.type === 'CREDIT' ? 'text-red-600' : 'text-green-600'}`}>
@@ -311,7 +311,7 @@ export default function Customers() {
             {activeTab === 'purchases' && (
               <div className="flex-1 overflow-y-auto">
                 {purchases.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
+                  <div className="text-center py-12 text-gray-500">
                     <FiShoppingBag className="h-10 w-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">{t('customers.noPurchases')}</p>
                     <p className="text-xs mt-1">{t('customers.purchasesHint')}</p>
@@ -334,14 +334,14 @@ export default function Customers() {
                           <td className="text-center px-3 py-3 text-gray-600">{p.quantity}</td>
                           <td className="text-right px-3 py-3 text-gray-600">{p.unit_price.toFixed(2)}</td>
                           <td className="text-right px-3 py-3 font-bold text-gray-900">{p.total.toFixed(2)} MAD</td>
-                          <td className={`${isRtl ? 'text-left' : 'text-right'} px-6 py-3 text-gray-400 text-xs`}>{new Date(p.date).toLocaleDateString(isRtl ? 'ar-MA' : 'fr-FR')}</td>
+                          <td className={`${isRtl ? 'text-left' : 'text-right'} px-6 py-3 text-gray-500 text-xs`}>{new Date(p.date).toLocaleDateString(isRtl ? 'ar-MA' : 'fr-FR')}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot className="bg-gray-50 border-t-2">
                       <tr>
                         <td colSpan="3" className="px-6 py-3 font-bold text-gray-700">{t('customers.totalPurchases')}</td>
-                        <td className="text-right px-3 py-3 font-black text-violet-600">{purchases.reduce((s, p) => s + p.total, 0).toFixed(2)} MAD</td>
+                        <td className="text-right px-3 py-3 font-black text-brand-600">{purchases.reduce((s, p) => s + p.total, 0).toFixed(2)} MAD</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -366,25 +366,25 @@ export default function Customers() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
                 <input required value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.phone')}</label>
                 <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
                 <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500" rows={2} />
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500" rows={2} />
               </div>
               <label className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet-600" checked={!!editForm.whatsapp_opt_in}
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={!!editForm.whatsapp_opt_in}
                   onChange={e => setEditForm(f => ({ ...f, whatsapp_opt_in: e.target.checked }))} />
                 <span>{t('customers.optIn')}</span>
               </label>
               <button type="submit" disabled={editSaving}
-                className="w-full py-2.5 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-700 disabled:opacity-50">
+                className="w-full py-2.5 bg-brand-600 text-white rounded-xl font-semibold text-sm hover:bg-brand-700 disabled:opacity-50">
                 {editSaving ? t('common.saving') : t('common.save')}
               </button>
             </form>
@@ -429,28 +429,28 @@ export default function Customers() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
                 <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={isRtl ? 'مثال: أحمد بنعلي' : 'Ex: Ahmed Benali'} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.phone')}</label>
                 <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder="+212 6XX XXX XXX" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder={isRtl ? 'ملاحظات اختيارية...' : 'Notes optionnelles...'} rows={2} />
               </div>
               <label className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet-600" checked={!!form.whatsapp_opt_in}
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={!!form.whatsapp_opt_in}
                   onChange={e => setForm(f => ({ ...f, whatsapp_opt_in: e.target.checked }))} />
                 <span>{t('customers.optIn')}</span>
               </label>
               <button type="submit" disabled={saving}
-                className="w-full py-2.5 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-700 disabled:opacity-50">
+                className="w-full py-2.5 bg-brand-600 text-white rounded-xl font-semibold text-sm hover:bg-brand-700 disabled:opacity-50">
                 {saving ? t('common.saving') : t('common.add')}
               </button>
             </form>

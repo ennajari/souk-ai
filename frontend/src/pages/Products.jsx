@@ -423,7 +423,7 @@ export default function Products() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div>
   }
 
   return (
@@ -448,7 +448,7 @@ export default function Products() {
 
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm"
           >
             <FiPlus className="h-4 w-4" /> Ajouter
           </button>
@@ -470,12 +470,12 @@ export default function Products() {
 
       {/* ── Duplicate warning ── */}
       {duplicates.length > 0 && (
-        <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 space-y-3">
+        <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <FiCopy className="h-5 w-5 text-violet-500 flex-shrink-0" />
+            <FiCopy className="h-5 w-5 text-brand-500 flex-shrink-0" />
             <div>
-              <p className="text-sm font-bold text-violet-800">{duplicates.length} doublon(s) detecte(s)</p>
-              <p className="text-xs text-violet-600">Des produits semblent etre en double (arabe / francais). Fusionnez-les pour eviter la confusion.</p>
+              <p className="text-sm font-bold text-brand-800">{duplicates.length} doublon(s) detecte(s)</p>
+              <p className="text-xs text-brand-600">Des produits semblent etre en double (arabe / francais). Fusionnez-les pour eviter la confusion.</p>
             </div>
           </div>
           {duplicates.map(([a, b]) => {
@@ -483,14 +483,14 @@ export default function Products() {
             const keep = keepA ? a : b
             const remove = keepA ? b : a
             return (
-              <div key={a.id + b.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-violet-100">
+              <div key={a.id + b.id} className="flex items-center gap-3 bg-white rounded-lg p-3 border border-brand-100">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-gray-800">{a.name_ar || a.name_fr}</span>
-                    <span className="text-xs text-gray-400">=</span>
+                    <span className="text-xs text-gray-500">=</span>
                     <span className="text-sm font-semibold text-gray-800">{b.name_fr || b.name_ar}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Prix: {a.unit_price > 0 ? `${Number(a.unit_price).toFixed(2)} MAD` : 'manquant'}
                     {' / '}
                     {b.unit_price > 0 ? `${Number(b.unit_price).toFixed(2)} MAD` : 'manquant'}
@@ -501,13 +501,13 @@ export default function Products() {
                   <button
                     onClick={() => handleMerge(keep, remove)}
                     disabled={merging === keep.id + remove.id}
-                    className="px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition disabled:opacity-50"
+                    className="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700 transition disabled:opacity-50"
                   >
                     {merging === keep.id + remove.id ? '...' : 'Fusionner'}
                   </button>
                   <button
                     onClick={() => dismissDup(a, b)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                    className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
                     title="Pas un doublon — ignorer"
                   >
                     <FiX className="h-4 w-4" />
@@ -543,22 +543,22 @@ export default function Products() {
       {/* ── Search + Filters ── */}
       <div className="space-y-3">
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={`Rechercher parmi ${products.length} produits...`}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
         {/* Smart group filters */}
         {productGroups.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <FiFilter className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <FiFilter className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
             <button
               onClick={() => setFilterGroup('')}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                !filterGroup ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                !filterGroup ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               Tous ({products.length})
@@ -568,7 +568,7 @@ export default function Products() {
                 key={g.name}
                 onClick={() => setFilterGroup(filterGroup === g.name ? '' : g.name)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition capitalize ${
-                  filterGroup === g.name ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  filterGroup === g.name ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {g.name} ({g.count})
@@ -600,12 +600,12 @@ export default function Products() {
                   <tr key={p.id} className={`hover:bg-gray-50 transition-colors ${hasNoPrice ? 'bg-amber-50/30' : ''}`}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-600 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-600 flex-shrink-0">
                           {(p.name_ar || p.name_fr || '?')[0]}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{p.name_ar}</p>
-                          {p.name_fr !== p.name_ar && <p className="text-xs text-gray-400">{p.name_fr}</p>}
+                          {p.name_fr !== p.name_ar && <p className="text-xs text-gray-500">{p.name_fr}</p>}
                         </div>
                       </div>
                     </td>
@@ -640,7 +640,7 @@ export default function Products() {
                               if (e.key === 'Enter') handleExpiryInline(p.id, e.target.value)
                               if (e.key === 'Escape') setEditingExpiry(null)
                             }}
-                            className="w-32 px-2 py-1 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 outline-none"
+                            className="w-32 px-2 py-1 border border-brand-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 outline-none"
                           />
                         </div>
                       ) : (
@@ -648,7 +648,7 @@ export default function Products() {
                           onClick={() => setEditingExpiry(p.id)}
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
                             !p.expiry_date
-                              ? 'text-gray-400 hover:bg-gray-100'
+                              ? 'text-gray-500 hover:bg-gray-100'
                               : (() => {
                                   const today = new Date()
                                   today.setHours(0,0,0,0)
@@ -694,7 +694,7 @@ export default function Products() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                     {search ? `Aucun résultat pour "${search}"` : 'Aucun produit. Ajoutez votre premier produit!'}
                   </td>
                 </tr>
@@ -714,19 +714,19 @@ export default function Products() {
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Nom arabe *</label>
                   <input name="name_ar" value={form.name_ar} onChange={handleChange} placeholder="طماطم" required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Nom français *</label>
                   <input name="name_fr" value={form.name_fr} onChange={handleChange} placeholder="Tomates" required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Unité</label>
                   <select name="unit" value={form.unit} onChange={handleChange}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm">
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm">
                     <option value="piece">Pièce</option>
                     <option value="kg">Kilogramme</option>
                     <option value="litre">Litre</option>
@@ -737,7 +737,7 @@ export default function Products() {
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Code-barres</label>
                   <div className="flex gap-1.5">
                     <input name="barcode" value={form.barcode} onChange={handleChange} placeholder="Optionnel"
-                      className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                      className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                     <button type="button" onClick={openBarcodeScanner} title="Scanner avec la caméra"
                       className="flex-shrink-0 px-2.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors">
                       <RiBarcodeLine className="h-4 w-4 text-emerald-600" />
@@ -749,12 +749,12 @@ export default function Products() {
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Prix vente (MAD)</label>
                   <input name="unit_price" type="text" inputMode="decimal" placeholder="0.00" value={form.unit_price} onChange={handleChange}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat (MAD)</label>
                   <input name="cost_price" type="text" inputMode="decimal" placeholder="0.00" value={form.cost_price} onChange={handleChange}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -764,7 +764,7 @@ export default function Products() {
                   </label>
                   <input name="stock_quantity" type="text" inputMode="numeric" placeholder="0"
                     value={form.stock_quantity} onChange={handleChange}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                   {editId && (() => {
                     const orig = products.find(p => p.id === editId)?.stock_quantity ?? 0
                     const delta = Math.round(parseFloat(form.stock_quantity) || 0) - Math.round(orig)
@@ -781,12 +781,12 @@ export default function Products() {
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Date fabrication</label>
                   <input name="manufacture_date" type="date" value={form.manufacture_date} onChange={handleChange}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">Date expiration</label>
                   <input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange}
-                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm ${
+                    className={`w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm ${
                       form.expiry_date && new Date(form.expiry_date) <= new Date() ? 'border-red-300 bg-red-50' : 'border-gray-200'
                     }`} />
                   {form.expiry_date && (() => {
@@ -805,7 +805,7 @@ export default function Products() {
                   Annuler
                 </button>
                 <button type="submit"
-                  className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-sm font-medium">
+                  className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-medium">
                   {editId ? 'Enregistrer' : 'Ajouter'}
                 </button>
               </div>
@@ -834,7 +834,7 @@ export default function Products() {
                   <FiAlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
                   <p className="text-sm text-red-600 font-medium mb-1">Scanner non disponible</p>
                   <p className="text-xs text-gray-500 mb-4">{scannerError}</p>
-                  <p className="text-xs text-gray-400">Entrez le code manuellement ci-dessus</p>
+                  <p className="text-xs text-gray-500">Entrez le code manuellement ci-dessus</p>
                 </div>
               ) : (
                 <>
@@ -881,7 +881,7 @@ export default function Products() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900">Scan Facture Fournisseur</h2>
-                  <p className="text-xs text-gray-400">Import automatique via IA (GPT-4o Vision)</p>
+                  <p className="text-xs text-gray-500">Import automatique via IA (GPT-4o Vision)</p>
                 </div>
               </div>
               <button onClick={() => setShowScanModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -900,11 +900,11 @@ export default function Products() {
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-gray-800">Analyse en cours...</p>
-                    <p className="text-sm text-gray-400 mt-1">GPT-4o Vision extrait les produits de votre facture</p>
+                    <p className="text-sm text-gray-500 mt-1">GPT-4o Vision extrait les produits de votre facture</p>
                   </div>
                 </div>
               ) : scanItems.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-gray-500">
                   <p className="text-sm">Aucun produit extrait. Réessayez avec une image plus nette.</p>
                 </div>
               ) : (
@@ -915,9 +915,9 @@ export default function Products() {
                       {Object.values(scanSelected).filter(Boolean).length} / {scanItems.length} produits sélectionnés
                     </p>
                     <div className="flex gap-2">
-                      <button onClick={() => toggleAll(true)} className="text-xs text-violet-600 hover:underline font-semibold">Tout sélectionner</button>
+                      <button onClick={() => toggleAll(true)} className="text-xs text-brand-600 hover:underline font-semibold">Tout sélectionner</button>
                       <span className="text-gray-300">·</span>
-                      <button onClick={() => toggleAll(false)} className="text-xs text-gray-400 hover:underline">Désélectionner</button>
+                      <button onClick={() => toggleAll(false)} className="text-xs text-gray-500 hover:underline">Désélectionner</button>
                     </div>
                   </div>
 
@@ -952,7 +952,7 @@ export default function Products() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-gray-500 mt-0.5">
                               {packSize > 1
                                 ? `${it.quantity} carton(s) × ${packSize} = `
                                 : 'Qté: '}

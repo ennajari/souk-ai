@@ -36,7 +36,7 @@ export default function Inventory() {
   const outOfStock = items.filter((i) => i.quantity <= 0).length
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div></div>
   }
 
   return (
@@ -86,7 +86,7 @@ export default function Inventory() {
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => { setAdjustModal(item); setAdjustQty(0) }}
-                      className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+                      className="text-sm text-brand-600 hover:text-brand-800 font-medium"
                     >
                       Ajuster
                     </button>
@@ -95,7 +95,7 @@ export default function Inventory() {
               )
             })}
             {items.length === 0 && (
-              <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-400">Aucun inventaire. Ajoutez des produits d'abord.</td></tr>
+              <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">Aucun inventaire. Ajoutez des produits d'abord.</td></tr>
             )}
           </tbody>
         </table>
@@ -111,11 +111,11 @@ export default function Inventory() {
               value={adjustQty}
               onChange={(e) => setAdjustQty(parseFloat(e.target.value) || 0)}
               placeholder="Ex: +10 ou -5"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none mb-4"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none mb-4"
             />
             <div className="flex gap-3">
               <button onClick={() => setAdjustModal(null)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
-              <button onClick={handleAdjust} className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Ajuster</button>
+              <button onClick={handleAdjust} className="flex-1 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700">Ajuster</button>
             </div>
           </div>
         </div>

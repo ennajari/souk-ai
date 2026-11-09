@@ -23,7 +23,7 @@ function ChartTooltip({ active, payload, label }) {
   return (
     <div className="bg-gray-900 text-white rounded-xl px-3 py-2 shadow-xl text-xs">
       <p className="font-semibold text-gray-300 mb-1">{label}</p>
-      <p className="font-bold text-violet-300 text-sm">{money(Number(payload[0]?.value || 0))}</p>
+      <p className="font-bold text-brand-300 text-sm">{money(Number(payload[0]?.value || 0))}</p>
     </div>
   )
 }
@@ -140,8 +140,8 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 animate-pulse" />
-          <p className="text-sm text-gray-400 font-medium">Chargement...</p>
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 animate-pulse" />
+          <p className="text-sm text-gray-500 font-medium">Chargement...</p>
         </div>
       </div>
     )
@@ -165,7 +165,7 @@ export default function Dashboard() {
         </div>
         <button
           onClick={openSaleModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all text-sm font-semibold shadow-lg shadow-violet-200 flex-shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 transition-all text-sm font-semibold shadow-lg shadow-brand-200 flex-shrink-0"
         >
           <FiPlus className="h-4 w-4" />
           <span>Vente rapide</span>
@@ -175,7 +175,7 @@ export default function Dashboard() {
       {/* ── Hero revenue card + stats grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Hero: Monthly revenue */}
-        <div className="sm:col-span-2 lg:col-span-2 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden">
+        <div className="sm:col-span-2 lg:col-span-2 bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-8 w-20 h-20 bg-white/5 rounded-full translate-y-1/2" />
           <div className="relative z-10">
@@ -183,12 +183,12 @@ export default function Dashboard() {
               <div className="p-1.5 bg-white/20 rounded-lg">
                 <FiDollarSign className="h-4 w-4" />
               </div>
-              <p className="text-sm font-medium text-violet-200">Revenu du mois</p>
+              <p className="text-sm font-medium text-brand-200">Revenu du mois</p>
             </div>
             <p className="text-4xl font-black tabular-nums">{(stats?.total_revenue_month || 0).toFixed(0)}</p>
-            <p className="text-violet-300 font-semibold text-lg">{currency}</p>
+            <p className="text-brand-300 font-semibold text-lg">{currency}</p>
             <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-violet-300">{stats?.total_sales_month || 0} ventes ce mois</p>
+              <p className="text-xs text-brand-300">{stats?.total_sales_month || 0} ventes ce mois</p>
               <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-lg">
                 <FiTrendingUp className="h-3 w-3 text-emerald-300" />
                 <span className="text-xs font-semibold text-emerald-300">Actif</span>
@@ -225,14 +225,14 @@ export default function Dashboard() {
             <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${monthlyRevenue.net_revenue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {monthlyRevenue.net_revenue.toFixed(0)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">{currency} · apres charges</p>
+            <p className="text-xs text-gray-500 mt-1">{currency} · apres charges</p>
           </div>
         )}
         {expiringCount > 0 && (
           <div className="bg-white rounded-2xl border border-red-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/products')}>
             <p className="text-xs font-medium text-red-500 uppercase tracking-wide">Expiration</p>
             <p className="text-2xl sm:text-3xl font-black mt-1.5 text-red-600">{expiringCount}</p>
-            <p className="text-xs text-gray-400 mt-1">produit(s) dans 3 jours</p>
+            <p className="text-xs text-gray-500 mt-1">produit(s) dans 3 jours</p>
           </div>
         )}
         {creditScore ? (
@@ -243,7 +243,7 @@ export default function Dashboard() {
             <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${
               scoreColor === 'green' ? 'text-emerald-600' : scoreColor === 'yellow' ? 'text-yellow-600' : 'text-red-600'
             }`}>{creditScore.score}</p>
-            <p className="text-xs text-gray-400 mt-1">{scoreLabel} · /1000</p>
+            <p className="text-xs text-gray-500 mt-1">{scoreLabel} · /1000</p>
           </div>
         ) : (
           <StatsCard title="Crédit Score" value="—" icon={FiStar} color="indigo" subtitle="Non calculé" />
@@ -272,7 +272,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900">Évolution des ventes</h3>
-              <p className="text-xs text-gray-400 mt-0.5">{chartDays} derniers jours</p>
+              <p className="text-xs text-gray-500 mt-0.5">{chartDays} derniers jours</p>
             </div>
             <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
               {[7, 30, 90].map(d => (
@@ -281,8 +281,8 @@ export default function Dashboard() {
                   onClick={() => setChartDays(d)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                     chartDays === d
-                      ? 'bg-white text-violet-600 shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'
+                      ? 'bg-white text-brand-600 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-600'
                   }`}
                 >
                   {d}j
@@ -294,8 +294,8 @@ export default function Dashboard() {
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
               <defs>
                 <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#C2410C" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#C2410C" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
@@ -310,15 +310,15 @@ export default function Dashboard() {
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#7c3aed', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#C2410C', strokeWidth: 1, strokeDasharray: '4 4' }} />
               <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="#7c3aed"
+                stroke="#C2410C"
                 fill="url(#revenueGrad)"
                 strokeWidth={2.5}
                 dot={false}
-                activeDot={{ r: 5, fill: '#7c3aed', strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: '#C2410C', strokeWidth: 0 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -350,7 +350,7 @@ export default function Dashboard() {
                     scoreColor === 'green' ? 'text-emerald-600' :
                     scoreColor === 'yellow' ? 'text-yellow-600' : 'text-red-600'
                   }`}>{creditScore.score}</span>
-                  <span className="text-xs text-gray-400 hidden sm:inline">({scoreLabel})</span>
+                  <span className="text-xs text-gray-500 hidden sm:inline">({scoreLabel})</span>
                 </div>
               </div>
             )}
@@ -367,7 +367,7 @@ export default function Dashboard() {
             <h3 className="text-sm font-bold text-gray-900">Dernières transactions</h3>
             <button
               onClick={() => navigate('/sales')}
-              className="text-xs text-violet-600 hover:text-violet-700 font-semibold flex items-center gap-1 transition-colors"
+              className="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition-colors"
             >
               Tout voir <FiArrowRight className="h-3 w-3" />
             </button>
@@ -376,13 +376,13 @@ export default function Dashboard() {
           {recentTx.length === 0 ? (
             <div className="text-center py-10">
               <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <FiShoppingCart className="h-6 w-6 text-gray-400" />
+                <FiShoppingCart className="h-6 w-6 text-gray-500" />
               </div>
               <p className="text-sm font-medium text-gray-600">Aucune transaction encore</p>
-              <p className="text-xs text-gray-400 mt-1">Enregistrez votre première vente</p>
+              <p className="text-xs text-gray-500 mt-1">Enregistrez votre première vente</p>
               <button
                 onClick={openSaleModal}
-                className="mt-3 text-xs text-violet-600 hover:underline font-semibold"
+                className="mt-3 text-xs text-brand-600 hover:underline font-semibold"
               >
                 Vente rapide →
               </button>
@@ -404,7 +404,7 @@ export default function Dashboard() {
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {tx.product_name_fr || tx.product_name_ar || 'Produit'}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         {tx.quantity} unité(s) · {new Date(tx.created_at).toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -423,16 +423,16 @@ export default function Dashboard() {
 
           {/* Onboarding checklist */}
           {!allDone && (
-            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-2xl border border-violet-100 p-4">
+            <div className="bg-gradient-to-br from-brand-50 to-brand-100 rounded-2xl border border-brand-100 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-gray-900">Démarrage rapide</h3>
-                <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">
+                <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
                   {checklistDone}/{checklist.length}
                 </span>
               </div>
-              <div className="w-full bg-violet-100 rounded-full h-1.5 mb-3">
+              <div className="w-full bg-brand-100 rounded-full h-1.5 mb-3">
                 <div
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 h-1.5 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-brand-600 to-brand-700 h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${(checklistDone / checklist.length) * 100}%` }}
                 />
               </div>
@@ -441,13 +441,13 @@ export default function Dashboard() {
                   <li key={i} className="flex items-center gap-2 text-xs">
                     {item.done
                       ? <FiCheckCircle className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                      : <FiCircle className="h-3.5 w-3.5 text-violet-300 flex-shrink-0" />
+                      : <FiCircle className="h-3.5 w-3.5 text-brand-300 flex-shrink-0" />
                     }
                     {item.link && !item.done ? (
                       <a href={item.link} target="_blank" rel="noreferrer"
-                        className="text-violet-700 hover:underline truncate font-medium">{item.label} →</a>
+                        className="text-brand-700 hover:underline truncate font-medium">{item.label} →</a>
                     ) : (
-                      <span className={`truncate ${item.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
+                      <span className={`truncate ${item.done ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
                     )}
                   </li>
                 ))}
@@ -460,11 +460,11 @@ export default function Dashboard() {
             <h3 className="text-sm font-bold text-gray-900 mb-3">Actions rapides</h3>
             <div className="grid grid-cols-2 gap-2 lg:hidden">
               {[
-                { label: 'Vente', icon: FiShoppingCart, from: 'from-violet-500', to: 'to-purple-600', action: openSaleModal },
+                { label: 'Vente', icon: FiShoppingCart, from: 'from-brand-500', to: 'to-brand-600', action: openSaleModal },
                 { label: 'Produits', icon: FiPackage, from: 'from-blue-500', to: 'to-cyan-600', action: () => navigate('/products') },
                 { label: 'Stock', icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/inventory') },
                 { label: 'WhatsApp', icon: FiMessageSquare, from: 'from-emerald-500', to: 'to-green-600', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Prévisions', icon: FiTrendingUp, from: 'from-indigo-500', to: 'to-blue-600', action: () => navigate('/forecasts') },
+                { label: 'Prévisions', icon: FiTrendingUp, from: 'from-brand-600', to: 'to-blue-600', action: () => navigate('/forecasts') },
               ].map(({ label, icon: Icon, from, to, action, href }) => {
                 const cls = `flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors`
                 return href ? (
@@ -487,11 +487,11 @@ export default function Dashboard() {
 
             <div className="hidden lg:flex flex-col gap-1">
               {[
-                { label: 'Enregistrer une vente', icon: FiShoppingCart, color: 'text-violet-600', bg: 'bg-violet-50', action: openSaleModal },
+                { label: 'Enregistrer une vente', icon: FiShoppingCart, color: 'text-brand-600', bg: 'bg-brand-50', action: openSaleModal },
                 { label: 'Gérer les produits', icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', action: () => navigate('/products') },
                 { label: 'Vérifier le stock', icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/inventory') },
                 { label: 'Bot WhatsApp', icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', action: () => navigate('/forecasts') },
+                { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-brand-700', bg: 'bg-brand-100', action: () => navigate('/forecasts') },
               ].map(({ label, icon: Icon, color, bg, action, href }) => {
                 const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-gray-50 group text-left`
                 return href ? (
@@ -522,11 +522,11 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Vente rapide</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Enregistrer une vente</p>
+                <p className="text-xs text-gray-500 mt-0.5">Enregistrer une vente</p>
               </div>
               <button
                 onClick={() => setShowSaleModal(false)}
-                className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"
+                className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
               >
                 ×
               </button>
@@ -537,21 +537,21 @@ export default function Dashboard() {
 
                 {/* Selected product pill */}
                 {selectedProduct ? (
-                  <div className="flex items-center gap-2 px-3 py-2.5 border-2 border-violet-400 rounded-xl bg-violet-50">
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-2 border-brand-400 rounded-xl bg-brand-50">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-violet-800 truncate">
+                      <p className="text-sm font-semibold text-brand-800 truncate">
                         {selectedProduct.name_fr || selectedProduct.name_ar}
                       </p>
-                      <p className="text-xs text-violet-500">{money(Number(selectedProduct.unit_price))} · stock: {selectedProduct.stock_quantity ?? '?'}</p>
+                      <p className="text-xs text-brand-500">{money(Number(selectedProduct.unit_price))} · stock: {selectedProduct.stock_quantity ?? '?'}</p>
                     </div>
                     <button type="button" onClick={() => { setSaleForm({ ...saleForm, product_id: '' }); setProductSearch(''); setTimeout(() => searchRef.current?.focus(), 50) }}
-                      className="p-1 rounded-lg hover:bg-violet-200 text-violet-500 transition-colors flex-shrink-0">
+                      className="p-1 rounded-lg hover:bg-brand-200 text-brand-500 transition-colors flex-shrink-0">
                       <FiX className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ) : (
                   <div className="relative">
-                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                     <input
                       ref={searchRef}
                       type="text"
@@ -559,7 +559,7 @@ export default function Dashboard() {
                       value={productSearch}
                       onChange={e => { setProductSearch(e.target.value); setShowDropdown(true) }}
                       onFocus={() => setShowDropdown(true)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
+                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
                       autoComplete="off"
                     />
                   </div>
@@ -577,25 +577,25 @@ export default function Dashboard() {
                           setProductSearch('')
                           setShowDropdown(false)
                         }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-violet-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-brand-50 transition-colors text-left border-b border-gray-50 last:border-0"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-gray-800 truncate">{p.name_fr || p.name_ar}</p>
-                          {p.name_ar && p.name_fr && <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>}
+                          {p.name_ar && p.name_fr && <p className="text-xs text-gray-500 truncate">{p.name_ar}</p>}
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">
-                          <p className="text-sm font-bold text-violet-600">{money(Number(p.unit_price))}</p>
-                          <p className="text-xs text-gray-400">stock: {p.stock_quantity ?? '?'}</p>
+                          <p className="text-sm font-bold text-brand-600">{money(Number(p.unit_price))}</p>
+                          <p className="text-xs text-gray-500">stock: {p.stock_quantity ?? '?'}</p>
                         </div>
                       </button>
                     ))}
                     {products.length > 8 && !productSearch && (
-                      <p className="text-center text-xs text-gray-400 py-2">Tapez pour filtrer parmi {products.length} produits</p>
+                      <p className="text-center text-xs text-gray-500 py-2">Tapez pour filtrer parmi {products.length} produits</p>
                     )}
                   </div>
                 )}
                 {!selectedProduct && showDropdown && productSearch && filteredProducts.length === 0 && (
-                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 text-center">
+                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-500 text-center">
                     Aucun produit trouvé pour "{productSearch}"
                   </div>
                 )}
@@ -606,14 +606,14 @@ export default function Dashboard() {
                   type="number" min="1" step="1"
                   value={saleForm.quantity}
                   onChange={e => setSaleForm({ ...saleForm, quantity: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
                   required
                 />
               </div>
               {saleForm.product_id && (
-                <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl px-4 py-3 flex justify-between items-center border border-violet-100">
-                  <span className="text-xs font-medium text-violet-700">Total estimé</span>
-                  <span className="text-base font-black text-violet-800">{money(saleTotal)}</span>
+                <div className="bg-gradient-to-r from-brand-50 to-brand-100 rounded-xl px-4 py-3 flex justify-between items-center border border-brand-100">
+                  <span className="text-xs font-medium text-brand-700">Total estimé</span>
+                  <span className="text-base font-black text-brand-800">{money(saleTotal)}</span>
                 </div>
               )}
               <div className="flex gap-3 pt-1">
@@ -627,7 +627,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={savingSale || products.length === 0}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 text-sm font-semibold disabled:opacity-50 transition-all shadow-lg shadow-violet-200"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 text-sm font-semibold disabled:opacity-50 transition-all shadow-lg shadow-brand-200"
                 >
                   {savingSale ? 'En cours...' : 'Confirmer'}
                 </button>

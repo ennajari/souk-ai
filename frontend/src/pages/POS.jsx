@@ -381,7 +381,7 @@ ${receipt.items.map(c => `
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div>
   }
 
   const CartContent = ({ isMobile }) => (
@@ -389,7 +389,7 @@ ${receipt.items.map(c => `
       <div className={`px-5 py-4 border-b bg-gray-50 flex items-center justify-between ${isMobile ? 'rounded-t-2xl' : ''}`}>
         <h2 className="font-bold text-gray-900 flex items-center gap-2">
           <FiShoppingCart className="h-4 w-4" /> {t('pos.cart')}
-          {cartCount > 0 && <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{cartCount}</span>}
+          {cartCount > 0 && <span className="text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full">{cartCount}</span>}
         </h2>
         <div className="flex items-center gap-2">
           {cart.length > 0 && (
@@ -407,7 +407,7 @@ ${receipt.items.map(c => `
 
       <div className="flex-1 overflow-y-auto divide-y">
         {cart.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
             <FiShoppingCart className="h-10 w-10 mb-3 opacity-30" />
             <p className="text-sm">{t('pos.emptyCart')}</p>
             <p className="text-xs mt-1">{t('pos.clickProduct')}</p>
@@ -430,18 +430,18 @@ ${receipt.items.map(c => `
                   <FiMinus className="h-4 w-4" />
                 </button>
                 <input type="number" min="1" value={item.qty} onChange={e => setQtyDirect(item.product.id, e.target.value)} onFocus={e => e.target.select()}
-                  className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-violet-400 bg-white py-1" />
+                  className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
                 <button onClick={() => updateQty(item.product.id, 1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">
                   <FiPlus className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex items-center gap-1">
                 <input type="number" value={item.price} onChange={e => updatePrice(item.product.id, e.target.value)}
-                  className="w-20 text-right text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-500" step="0.01" min="0" />
-                <span className="text-xs text-gray-400">{currency}</span>
+                  className="w-20 text-right text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-brand-500" step="0.01" min="0" />
+                <span className="text-xs text-gray-500">{currency}</span>
               </div>
             </div>
-            <p className={`text-sm font-bold text-violet-600 mt-1 ${isRtl ? 'text-left' : 'text-right'}`}>
+            <p className={`text-sm font-bold text-brand-600 mt-1 ${isRtl ? 'text-left' : 'text-right'}`}>
               {money((item.qty * item.price))}
             </p>
           </div>
@@ -451,9 +451,9 @@ ${receipt.items.map(c => `
       {/* Cart footer */}
       <div className="border-t p-4 space-y-3 bg-gray-50">
         <div className="flex items-center gap-2">
-          <FiUser className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <FiUser className="h-4 w-4 text-gray-500 flex-shrink-0" />
           <select value={selectedCustomer} onChange={e => setSelectedCustomer(e.target.value)}
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white">
             <option value="">{t('pos.noClient')}</option>
             {customers.map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` (${c.phone})` : ''}</option>)}
           </select>
@@ -473,7 +473,7 @@ ${receipt.items.map(c => `
             <FiBookOpen className="h-4 w-4" /> Credit
           </button>
           <button onClick={openPayment} disabled={cart.length === 0}
-            className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2">
+            className="flex-1 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold rounded-xl hover:from-brand-700 hover:to-brand-800 disabled:opacity-50 transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2">
             <FiCreditCard className="h-4 w-4" /> NFC
           </button>
         </div>
@@ -487,12 +487,12 @@ ${receipt.items.map(c => `
       <div className="flex-1 flex flex-col min-h-0">
         <div className="mb-3 flex gap-2">
           <div className="relative flex-1">
-            <FiSearch className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 ${isRtl ? 'right-3.5' : 'left-3.5'}`} />
+            <FiSearch className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 ${isRtl ? 'right-3.5' : 'left-3.5'}`} />
             <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('pos.searchProduct')}
-              className={`w-full py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'}`} />
+              className={`w-full py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'}`} />
           </div>
           <button onClick={() => setShowScanner(true)}
-            className="px-4 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors flex items-center gap-2 active:scale-95" title={t('pos.scanner')}>
+            className="px-4 py-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors flex items-center gap-2 active:scale-95" title={t('pos.scanner')}>
             <FiCamera className="h-5 w-5" />
             <span className="hidden sm:inline text-sm font-medium">{t('pos.scanner')}</span>
           </button>
@@ -506,23 +506,23 @@ ${receipt.items.map(c => `
               return (
                 <button key={p.id} onClick={() => addToCart(p)}
                   className={`relative p-3 sm:p-4 rounded-xl border-2 text-left transition-all hover:shadow-md active:scale-[0.97] ${
-                    inCart ? 'border-violet-500 bg-violet-50' : 'border-gray-100 bg-white hover:border-gray-200'
+                    inCart ? 'border-brand-500 bg-brand-50' : 'border-gray-100 bg-white hover:border-gray-200'
                   } ${isRtl ? 'text-right' : ''}`}>
-                  {p.barcode && <p className="text-[10px] text-gray-400 font-mono mb-1 truncate">{p.barcode}</p>}
+                  {p.barcode && <p className="text-[10px] text-gray-500 font-mono mb-1 truncate">{p.barcode}</p>}
                   <p className="font-semibold text-sm text-gray-900 truncate">{isRtl ? (p.name_ar || p.name_fr) : (p.name_fr || p.name_ar)}</p>
-                  {p.name_ar && p.name_fr && <p className="text-xs text-gray-400 truncate mt-0.5">{isRtl ? p.name_fr : p.name_ar}</p>}
-                  <p className="text-lg font-black text-violet-600 mt-2">{(p.unit_price || 0).toFixed(2)}</p>
-                  <p className="text-xs text-gray-400">{currency} / {p.unit || 'piece'}</p>
+                  {p.name_ar && p.name_fr && <p className="text-xs text-gray-500 truncate mt-0.5">{isRtl ? p.name_fr : p.name_ar}</p>}
+                  <p className="text-lg font-black text-brand-600 mt-2">{(p.unit_price || 0).toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">{currency} / {p.unit || 'piece'}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`text-xs font-medium ${stock > 0 ? 'text-green-600' : 'text-red-500'}`}>{t('pos.stock')}: {stock}</span>
                     {p.expiry_date && p.expiry_date < today && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{t('pos.expired')}</span>}
-                    {inCart && <span className="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">x{inCart.qty}</span>}
+                    {inCart && <span className="text-xs font-bold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">x{inCart.qty}</span>}
                   </div>
                 </button>
               )
             })}
             {filtered.length === 0 && (
-              <div className="col-span-full text-center py-12 text-gray-400">
+              <div className="col-span-full text-center py-12 text-gray-500">
                 <FiSearch className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">{t('pos.noProduct')}</p>
               </div>
@@ -539,11 +539,11 @@ ${receipt.items.map(c => `
       {/* Mobile: Floating cart button */}
       {!mobileCartOpen && (
         <button onClick={() => setMobileCartOpen(true)}
-          className="lg:hidden fixed bottom-4 right-4 left-4 z-30 flex items-center justify-between bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl px-5 py-4 shadow-2xl active:scale-[0.98] transition-transform">
+          className="lg:hidden fixed bottom-4 right-4 left-4 z-30 flex items-center justify-between bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-2xl px-5 py-4 shadow-2xl active:scale-[0.98] transition-transform">
           <div className="flex items-center gap-3">
             <div className="relative">
               <FiShoppingCart className="h-6 w-6" />
-              {cartCount > 0 && <span className="absolute -top-2 -right-2 min-w-[20px] h-5 bg-white text-violet-600 text-xs rounded-full flex items-center justify-center font-bold px-1">{cartCount}</span>}
+              {cartCount > 0 && <span className="absolute -top-2 -right-2 min-w-[20px] h-5 bg-white text-brand-600 text-xs rounded-full flex items-center justify-center font-bold px-1">{cartCount}</span>}
             </div>
             <span className="font-bold text-sm">{t('pos.cart')}</span>
           </div>
@@ -572,7 +572,7 @@ ${receipt.items.map(c => `
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
             {/* Terminal Header */}
-            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-4 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FiShield className="h-5 w-5" />
@@ -583,7 +583,7 @@ ${receipt.items.map(c => `
                 )}
               </div>
               <p className="text-white text-2xl font-black mt-1">{money(cartTotal)}</p>
-              <p className="text-violet-200 text-xs">{cartCount} article(s)</p>
+              <p className="text-brand-200 text-xs">{cartCount} article(s)</p>
             </div>
 
             {/* ── Step: Select method ── */}
@@ -591,17 +591,17 @@ ${receipt.items.map(c => `
               <div className="p-5 space-y-3">
                 {PAYMENT_METHODS.map(m => {
                   const isActive = payMethod === m.id
-                  const colors = { green: ['border-green-500','bg-green-50','bg-green-100','text-green-600'], purple: ['border-purple-500','bg-purple-50','bg-purple-100','text-purple-600'], blue: ['border-blue-500','bg-blue-50','bg-blue-100','text-blue-600'] }
+                  const colors = { green: ['border-green-500','bg-green-50','bg-green-100','text-green-600'], purple: ['border-brand-500','bg-brand-50','bg-brand-100','text-brand-600'], blue: ['border-blue-500','bg-blue-50','bg-blue-100','text-blue-600'] }
                   const c = colors[m.color]
                   return (
                     <button key={m.id} onClick={() => { setPayMethod(m.id); setPayError('') }}
                       className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${isActive ? `${c[0]} ${c[1]}` : 'border-gray-200 hover:border-gray-300'}`}>
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? c[2] : 'bg-gray-100'}`}>
-                        <m.icon className={`h-6 w-6 ${isActive ? c[3] : 'text-gray-400'}`} />
+                        <m.icon className={`h-6 w-6 ${isActive ? c[3] : 'text-gray-500'}`} />
                       </div>
                       <div className="text-left flex-1">
                         <p className={`font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{m.label}</p>
-                        <p className="text-xs text-gray-400">{m.labelAr}</p>
+                        <p className="text-xs text-gray-500">{m.labelAr}</p>
                       </div>
                       {isActive && <FiCheckCircle className={`h-5 w-5 ${c[3]}`} />}
                     </button>
@@ -614,7 +614,7 @@ ${receipt.items.map(c => `
                   if (payMethod === 'CASH') handleCashCheckout()
                   else startNfcScan()
                 }}
-                  className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all text-base active:scale-[0.98] flex items-center justify-center gap-3">
+                  className="w-full py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all text-base active:scale-[0.98] flex items-center justify-center gap-3">
                   {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> Confirmer {money(cartTotal)}</>}
                   {payMethod === 'NFC_SOUKCARD' && <><FiSmartphone className="h-5 w-5" /> Scanner la carte Souk.AI</>}
                   {payMethod === 'NFC_BANK' && <><FiCreditCard className="h-5 w-5" /> Scanner la carte bancaire</>}
@@ -626,12 +626,12 @@ ${receipt.items.map(c => `
             {payStep === 'nfc_waiting' && (
               <div className="p-8 text-center space-y-5">
                 <div className="relative w-36 h-36 mx-auto">
-                  <div className="absolute inset-0 rounded-full border-4 border-purple-200 animate-ping opacity-30" />
-                  <div className="absolute inset-3 rounded-full border-4 border-purple-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
-                  <div className="absolute inset-6 rounded-full border-4 border-purple-400 animate-ping opacity-10" style={{ animationDelay: '1s' }} />
-                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-purple-100 to-violet-100 flex items-center justify-center shadow-inner">
+                  <div className="absolute inset-0 rounded-full border-4 border-brand-200 animate-ping opacity-30" />
+                  <div className="absolute inset-3 rounded-full border-4 border-brand-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
+                  <div className="absolute inset-6 rounded-full border-4 border-brand-400 animate-ping opacity-10" style={{ animationDelay: '1s' }} />
+                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-100 flex items-center justify-center shadow-inner">
                     {payMethod === 'NFC_SOUKCARD'
-                      ? <FiSmartphone className="h-12 w-12 text-purple-600" />
+                      ? <FiSmartphone className="h-12 w-12 text-brand-600" />
                       : <FiCreditCard className="h-12 w-12 text-blue-600" />
                     }
                   </div>
@@ -641,7 +641,7 @@ ${receipt.items.map(c => `
                     {payMethod === 'NFC_SOUKCARD' ? 'Approchez la carte Souk.AI' : 'Approchez la carte bancaire'}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Placez la carte sur le dos du telephone</p>
-                  <p className="text-xs text-gray-400 mt-3">{money(cartTotal)}</p>
+                  <p className="text-xs text-gray-500 mt-3">{money(cartTotal)}</p>
                 </div>
                 <button onClick={() => { stopNfcScan(); setPayStep('select') }}
                   className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Annuler</button>
@@ -676,7 +676,7 @@ ${receipt.items.map(c => `
                       <div className="flex gap-1 justify-center">
                         {[0,1,2,3,4,5].map(i => (
                           <div key={i} className={`w-11 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-black ${
-                            i < cardPin.length ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-300'
+                            i < cardPin.length ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 bg-gray-50 text-gray-300'
                           }`}>
                             {i < cardPin.length ? '•' : ''}
                           </div>
@@ -686,7 +686,7 @@ ${receipt.items.map(c => `
                         onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCardPin(v); setPayError('') }}
                         className="opacity-0 absolute -z-10 w-0 h-0"
                         onKeyDown={e => e.key === 'Enter' && cardPin.length >= 4 && confirmPinAndPay()} />
-                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-purple-600 mt-2 py-1">
+                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-brand-600 mt-2 py-1">
                         Appuyez pour saisir le PIN
                       </button>
                     </div>
@@ -709,7 +709,7 @@ ${receipt.items.map(c => `
             {/* ── Step: Processing ── */}
             {payStep === 'processing' && (
               <div className="p-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-4 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                <div className="w-20 h-20 mx-auto mb-4 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
                 <p className="text-lg font-bold text-gray-900">Traitement en cours...</p>
                 <p className="text-sm text-gray-500 mt-1">Ne fermez pas cette fenetre</p>
               </div>
@@ -755,36 +755,36 @@ ${receipt.items.map(c => `
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <button onClick={() => setLinkModal(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl"><FiX className="h-5 w-5 text-gray-500" /></button>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0"><FiLink className="h-5 w-5 text-violet-600" /></div>
+              <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center flex-shrink-0"><FiLink className="h-5 w-5 text-brand-600" /></div>
               <div>
                 <h3 className="text-base font-bold text-gray-900">Code-barres non reconnu</h3>
-                <p className="text-xs text-gray-400 font-mono mt-0.5">{linkModal.barcode}</p>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">{linkModal.barcode}</p>
               </div>
             </div>
             <p className="text-sm text-gray-500 mb-3">Associez ce code-barres à un produit existant :</p>
             <div className="relative mb-3">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <input ref={linkSearchRef} value={linkSearch} onChange={e => setLinkSearch(e.target.value)} placeholder="Rechercher produit par nom..."
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-500" />
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 rounded-xl border border-gray-100">
               {linkSuggestions.length === 0 ? (
-                <p className="text-center text-sm text-gray-400 py-6">Aucun produit trouvé</p>
+                <p className="text-center text-sm text-gray-500 py-6">Aucun produit trouvé</p>
               ) : linkSuggestions.map(p => (
                 <button key={p.id} onClick={() => handleLinkBarcode(p)} disabled={linking}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-violet-50 transition-colors text-left disabled:opacity-50">
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-brand-50 transition-colors text-left disabled:opacity-50">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-800 truncate">{p.name_fr || p.name_ar}</p>
-                    {p.name_ar && p.name_fr && p.name_ar !== p.name_fr && <p className="text-xs text-gray-400 truncate">{p.name_ar}</p>}
+                    {p.name_ar && p.name_fr && p.name_ar !== p.name_fr && <p className="text-xs text-gray-500 truncate">{p.name_ar}</p>}
                   </div>
                   <div className="text-right ml-3 flex-shrink-0">
-                    <p className="text-sm font-bold text-violet-600">{money((p.unit_price || 0))}</p>
-                    {p.barcode && <p className="text-[10px] text-gray-400 font-mono">{p.barcode}</p>}
+                    <p className="text-sm font-bold text-brand-600">{money((p.unit_price || 0))}</p>
+                    {p.barcode && <p className="text-[10px] text-gray-500 font-mono">{p.barcode}</p>}
                   </div>
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-3 text-center">Le code-barres sera enregistré définitivement sur ce produit</p>
+            <p className="text-xs text-gray-500 mt-3 text-center">Le code-barres sera enregistré définitivement sur ce produit</p>
           </div>
         </div>
       )}
@@ -794,13 +794,13 @@ ${receipt.items.map(c => `
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setQtyPopup(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-gray-900 truncate mb-1">{qtyPopup.name}</p>
-            <p className="text-xs text-gray-400 mb-4">Combien d'unités ?</p>
+            <p className="text-xs text-gray-500 mb-4">Combien d'unités ?</p>
             <input type="number" min="1" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
-              className="w-full text-center text-3xl font-black border-2 border-violet-300 rounded-xl py-3 outline-none focus:border-violet-500" />
+              className="w-full text-center text-3xl font-black border-2 border-brand-300 rounded-xl py-3 outline-none focus:border-brand-500" />
             <div className="flex gap-2 mt-4">
               <button onClick={() => setQtyPopup(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">Annuler</button>
               <button onClick={() => { setQtyDirect(qtyPopup.productId, qtyPopup.qty); setQtyPopup(null) }}
-                className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold">OK</button>
+                className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold">OK</button>
             </div>
           </div>
         </div>
@@ -819,7 +819,7 @@ ${receipt.items.map(c => `
               <h3 className="text-lg font-bold text-gray-900">{t('pos.saleRegistered')}</h3>
               <p className="text-sm text-gray-500 mt-1">{lastReceipt.date.toLocaleString(isRtl ? 'ar-MA' : 'fr-FR')}</p>
               {lastReceipt.paymentMethod && (
-                <span className="inline-block mt-2 text-xs font-medium bg-violet-100 text-violet-700 px-3 py-1 rounded-full">
+                <span className="inline-block mt-2 text-xs font-medium bg-brand-100 text-brand-700 px-3 py-1 rounded-full">
                   {lastReceipt.paymentMethod}
                 </span>
               )}
@@ -833,14 +833,14 @@ ${receipt.items.map(c => `
               ))}
               <div className="border-t pt-2 flex justify-between font-bold">
                 <span>{t('common.total')}</span>
-                <span className="text-violet-600">{money(lastReceipt.total)}</span>
+                <span className="text-brand-600">{money(lastReceipt.total)}</span>
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowReceipt(false)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors">{t('common.close')}</button>
               <button onClick={directPrint}
-                className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                 <FiPrinter className="h-4 w-4" /> {t('pos.directPrint')}
               </button>
               <button onClick={printReceipt}

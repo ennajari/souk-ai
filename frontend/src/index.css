@@ -7,25 +7,27 @@
 * { box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  background-color: #FAF7F2; /* sand-100 */
+  color: #1C1917; /* ink-900 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #E7DDCD; border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
 .gradient-text {
-  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 /* RTL support */
-[dir="rtl"] body { font-family: 'Tajawal', 'Inter', system-ui, sans-serif; }
+[dir="rtl"] body { font-family: 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif; }
 [dir="rtl"] .text-left { text-align: right; }
 [dir="rtl"] .text-right { text-align: left; }
 

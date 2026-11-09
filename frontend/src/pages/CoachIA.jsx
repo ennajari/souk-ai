@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 const CATEGORY_STYLE = {
   stock: { icon: FiPackage, bg: 'bg-orange-100', text: 'text-orange-600' },
   sales: { icon: FiDollarSign, bg: 'bg-green-100', text: 'text-green-600' },
-  profit: { icon: FiTrendingUp, bg: 'bg-violet-100', text: 'text-violet-600' },
+  profit: { icon: FiTrendingUp, bg: 'bg-brand-100', text: 'text-brand-600' },
   seasonal: { icon: FiCalendar, bg: 'bg-blue-100', text: 'text-blue-600' },
 }
 
@@ -58,7 +58,7 @@ export default function CoachIA() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
             <FiZap className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -114,7 +114,7 @@ export default function CoachIA() {
             />
           </>
         ) : (
-          <div className="col-span-full text-center py-8 text-gray-400 text-sm">
+          <div className="col-span-full text-center py-8 text-gray-500 text-sm">
             {isRtl ? 'لا توجد بيانات كافية' : 'Pas assez de données'}
           </div>
         )}
@@ -122,9 +122,9 @@ export default function CoachIA() {
 
       {/* AI Tips */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-50 to-indigo-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-brand-50 to-brand-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FiZap className="h-4 w-4 text-violet-600" />
+            <FiZap className="h-4 w-4 text-brand-600" />
             <h2 className="font-bold text-gray-900 text-sm">
               {isRtl ? 'نصائح ذكية' : 'Conseils IA personnalisés'}
             </h2>
@@ -132,7 +132,7 @@ export default function CoachIA() {
           <button
             onClick={fetchTips}
             disabled={loadingTips}
-            className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             <FiRefreshCw className={`h-4 w-4 ${loadingTips ? 'animate-spin' : ''}`} />
             {loadingTips
@@ -148,7 +148,7 @@ export default function CoachIA() {
               <p className="text-gray-500 font-medium">
                 {isRtl ? 'اضغط على "تحليل بياناتي" للحصول على نصائح' : 'Cliquez sur "Analyser mes données" pour obtenir des conseils'}
               </p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 {isRtl ? 'النصائح بالدارجة والفرنسية' : 'Conseils en darija et français'}
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function CoachIA() {
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${PRIORITY_BADGE[tip.priority] || PRIORITY_BADGE.medium}`}>
                       {tip.priority === 'high' ? (isRtl ? 'مهم' : 'Important') : tip.priority === 'medium' ? (isRtl ? 'متوسط' : 'Moyen') : (isRtl ? 'عادي' : 'Normal')}
                     </span>
-                    <span className="text-xs text-gray-400 capitalize">{tip.category}</span>
+                    <span className="text-xs text-gray-500 capitalize">{tip.category}</span>
                   </div>
                   <p className="text-sm text-gray-800 leading-relaxed">{tip.tip}</p>
                 </div>
@@ -183,7 +183,7 @@ function InsightCard({ icon: Icon, color, label, value, sub }) {
     green: 'bg-green-100 text-green-600',
     red: 'bg-red-100 text-red-600',
     blue: 'bg-blue-100 text-blue-600',
-    violet: 'bg-violet-100 text-violet-600',
+    violet: 'bg-brand-100 text-brand-600',
     amber: 'bg-amber-100 text-amber-600',
   }
   const c = colors[color] || colors.violet
@@ -194,7 +194,7 @@ function InsightCard({ icon: Icon, color, label, value, sub }) {
       </div>
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">{value}</p>
-      {sub && <p className="text-xs text-gray-400">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500">{sub}</p>}
     </div>
   )
 }

@@ -356,7 +356,7 @@ export default function Suppliers() {
         {tab === 'suppliers' && (
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-sm font-semibold shadow-lg shadow-purple-200 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200 transition-all"
           >
             <FiPlus className="h-4 w-4" /> Ajouter
           </button>
@@ -397,7 +397,7 @@ export default function Suppliers() {
       {tab === 'orders' && (
         ordersLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
@@ -425,14 +425,14 @@ export default function Suppliers() {
                         : `${o.product_name || '—'} x${o.quantity || 0}`
                       }
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       {o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-lg font-black text-gray-900">{Number(o.total_amount || o.total_cost || 0).toFixed(2)}</p>
-                      <p className="text-[10px] text-gray-400">MAD</p>
+                      <p className="text-[10px] text-gray-500">MAD</p>
                     </div>
                     {o.status === 'DELIVERED' && !o.payment_id && (
                       <button
@@ -475,7 +475,7 @@ export default function Suppliers() {
                   <button
                     key={s.id}
                     onClick={() => openCatalog(s)}
-                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-purple-300 transition-all text-left"
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-brand-300 transition-all text-left"
                   >
                     <p className="font-semibold text-gray-900">{s.name}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${categoryColor[s.category] || 'bg-gray-100 text-gray-600'}`}>
@@ -501,9 +501,9 @@ export default function Suppliers() {
 
               {/* Catalog items list — READ ONLY for merchants */}
               {catalogLoading ? (
-                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /></div>
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div>
               ) : catalogItems.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-gray-500">
                   <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                   <p className="text-sm">Aucun article dans le catalogue</p>
                   <p className="text-xs mt-1">Le fournisseur n'a pas encore ajoute de produits a son catalogue.</p>
@@ -545,12 +545,12 @@ export default function Suppliers() {
       {/* Search */}
       {suppliers.length > 0 && (
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher un fournisseur..."
-            className="w-full sm:w-80 pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            className="w-full sm:w-80 pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
       )}
@@ -558,12 +558,12 @@ export default function Suppliers() {
       {/* Suppliers list */}
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
         </div>
       ) : suppliers.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
-            <FiPlus className="h-7 w-7 text-gray-400" />
+            <FiPlus className="h-7 w-7 text-gray-500" />
           </div>
           <p className="text-lg font-medium">Aucun fournisseur</p>
           <p className="text-sm mt-1">Ajoutez votre premier fournisseur pour commencer.</p>
@@ -580,10 +580,10 @@ export default function Suppliers() {
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => openEdit(s)}
-                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-2 hover:bg-brand-50 rounded-lg transition-colors"
                     title="Modifier"
                   >
-                    <FiEdit2 className="h-3.5 w-3.5 text-purple-600" />
+                    <FiEdit2 className="h-3.5 w-3.5 text-brand-600" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(s)}
@@ -602,12 +602,12 @@ export default function Suppliers() {
               <div className="space-y-1.5 text-sm mt-3">
                 {s.phone_number && (
                   <p className="text-gray-600 flex items-center gap-2">
-                    <FiPhone className="h-3.5 w-3.5 text-gray-400" /> {s.phone_number}
+                    <FiPhone className="h-3.5 w-3.5 text-gray-500" /> {s.phone_number}
                   </p>
                 )}
                 {s.email && (
                   <p className="text-gray-600 flex items-center gap-2">
-                    <FiMail className="h-3.5 w-3.5 text-gray-400" /> {s.email}
+                    <FiMail className="h-3.5 w-3.5 text-gray-500" /> {s.email}
                   </p>
                 )}
                 <p className="text-gray-600 font-medium">Min: {s.minimum_order_value} MAD</p>
@@ -619,7 +619,7 @@ export default function Suppliers() {
             </div>
           ))}
           {filtered.length === 0 && search && (
-            <div className="col-span-full text-center py-8 text-gray-400 text-sm">
+            <div className="col-span-full text-center py-8 text-gray-500 text-sm">
               Aucun resultat pour "{search}"
             </div>
           )}
@@ -646,7 +646,7 @@ export default function Suppliers() {
                   required
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                   placeholder="Ex: Marjane Grossiste"
                 />
               </div>
@@ -655,7 +655,7 @@ export default function Suppliers() {
                 <select
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
                 >
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -666,7 +666,7 @@ export default function Suppliers() {
                   <input
                     value={form.contact_name}
                     onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="Ahmed Benali"
                   />
                 </div>
@@ -675,7 +675,7 @@ export default function Suppliers() {
                   <input
                     value={form.phone_number}
                     onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="+212..."
                   />
                 </div>
@@ -686,7 +686,7 @@ export default function Suppliers() {
                   type="email"
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
@@ -695,7 +695,7 @@ export default function Suppliers() {
                   type="number"
                   value={form.minimum_order_value}
                   onChange={e => setForm(f => ({ ...f, minimum_order_value: Math.max(0, parseFloat(e.target.value) || 0) }))}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                   min="0"
                 />
               </div>
@@ -703,7 +703,7 @@ export default function Suppliers() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-sm font-semibold disabled:opacity-50 transition-colors"
+                  className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Enregistrement...' : editingId ? 'Mettre a jour' : 'Enregistrer'}
                 </button>
@@ -778,7 +778,7 @@ export default function Suppliers() {
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <m.icon className={`h-5 w-5 ${payMethod === m.value ? 'text-green-600' : 'text-gray-400'}`} />
+                      <m.icon className={`h-5 w-5 ${payMethod === m.value ? 'text-green-600' : 'text-gray-500'}`} />
                       <div>
                         <p className={`text-sm font-bold ${payMethod === m.value ? 'text-green-700' : 'text-gray-700'}`}>{m.label}</p>
                         <p className="text-xs text-gray-500">{m.desc}</p>
@@ -812,17 +812,17 @@ export default function Suppliers() {
             {payStep === 'nfc_waiting' && (
               <div className="p-8 text-center space-y-5">
                 <div className="relative w-36 h-36 mx-auto">
-                  <div className="absolute inset-0 rounded-full border-4 border-purple-200 animate-ping opacity-30" />
-                  <div className="absolute inset-3 rounded-full border-4 border-purple-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
-                  <div className="absolute inset-6 rounded-full border-4 border-purple-400 animate-ping opacity-10" style={{ animationDelay: '1s' }} />
-                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-purple-100 to-violet-100 flex items-center justify-center shadow-inner">
-                    <FiSmartphone className="h-12 w-12 text-purple-600" />
+                  <div className="absolute inset-0 rounded-full border-4 border-brand-200 animate-ping opacity-30" />
+                  <div className="absolute inset-3 rounded-full border-4 border-brand-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
+                  <div className="absolute inset-6 rounded-full border-4 border-brand-400 animate-ping opacity-10" style={{ animationDelay: '1s' }} />
+                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-100 flex items-center justify-center shadow-inner">
+                    <FiSmartphone className="h-12 w-12 text-brand-600" />
                   </div>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-gray-900">Approchez la carte Souk.AI</p>
                   <p className="text-sm text-gray-500 mt-1">Placez la carte sur le dos du telephone</p>
-                  <p className="text-xs text-gray-400 mt-3">{Number(payModal.total_amount || 0).toFixed(2)} MAD</p>
+                  <p className="text-xs text-gray-500 mt-3">{Number(payModal.total_amount || 0).toFixed(2)} MAD</p>
                 </div>
                 <button onClick={() => { stopNfcScan(); setPayStep('select') }}
                   className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Annuler</button>
@@ -857,7 +857,7 @@ export default function Suppliers() {
                       <div className="flex gap-1 justify-center">
                         {[0,1,2,3,4,5].map(i => (
                           <div key={i} className={`w-11 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-black ${
-                            i < cardPin.length ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-300'
+                            i < cardPin.length ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 bg-gray-50 text-gray-300'
                           }`}>
                             {i < cardPin.length ? '•' : ''}
                           </div>
@@ -867,7 +867,7 @@ export default function Suppliers() {
                         onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCardPin(v); setPayError('') }}
                         className="opacity-0 absolute -z-10 w-0 h-0"
                         onKeyDown={e => e.key === 'Enter' && cardPin.length >= 4 && confirmPinAndPay()} />
-                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-purple-600 mt-2 py-1">
+                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-brand-600 mt-2 py-1">
                         Appuyez pour saisir le PIN
                       </button>
                     </div>
@@ -890,7 +890,7 @@ export default function Suppliers() {
             {/* ── Step: Processing ── */}
             {payStep === 'processing' && (
               <div className="p-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-4 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                <div className="w-20 h-20 mx-auto mb-4 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
                 <p className="text-lg font-bold text-gray-900">Traitement en cours...</p>
                 <p className="text-sm text-gray-500 mt-1">Ne fermez pas cette fenetre</p>
               </div>
@@ -958,7 +958,7 @@ export default function Suppliers() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Ajouter des produits</label>
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                   <input
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
@@ -1081,7 +1081,7 @@ export default function Suppliers() {
 
               {/* Empty state */}
               {orderItems.length === 0 && (
-                <div className="text-center py-6 text-gray-400">
+                <div className="text-center py-6 text-gray-500">
                   <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                   <p className="text-sm">Cherchez et ajoutez des produits</p>
                 </div>

@@ -88,7 +88,7 @@ export default function AdminCreditRequests() {
           <p className="text-xs text-gray-500">Approuvees</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-2xl font-black text-purple-600">{totalRequested.toFixed(0)}</p>
+          <p className="text-2xl font-black text-brand-600">{totalRequested.toFixed(0)}</p>
           <p className="text-xs text-gray-500">Total demande (MAD)</p>
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function AdminCreditRequests() {
                           Traiter
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('fr-FR') : '—'}
                         </span>
                       )}
@@ -146,7 +146,7 @@ export default function AdminCreditRequests() {
           </table>
         </div>
         {requests.length === 0 && (
-          <div className="text-center py-8 text-gray-400">Aucune demande trouvee</div>
+          <div className="text-center py-8 text-gray-500">Aucune demande trouvee</div>
         )}
       </div>
 

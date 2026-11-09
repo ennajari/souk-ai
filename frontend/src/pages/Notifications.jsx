@@ -9,7 +9,7 @@ const ICON_MAP = {
   low_stock: { icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-100' },
   sale: { icon: FiDollarSign, color: 'text-green-500', bg: 'bg-green-100' },
   system: { icon: FiInfo, color: 'text-blue-500', bg: 'bg-blue-100' },
-  product: { icon: FiPackage, color: 'text-violet-500', bg: 'bg-violet-100' },
+  product: { icon: FiPackage, color: 'text-brand-500', bg: 'bg-brand-100' },
   ramadan: { icon: FiInfo, color: 'text-amber-500', bg: 'bg-amber-100' },
 }
 
@@ -148,7 +148,7 @@ export default function Notifications() {
             <FiRefreshCw className="h-4 w-4" />
           </button>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} className="text-sm text-violet-600 hover:text-violet-700 font-semibold flex items-center gap-1.5">
+            <button onClick={markAllRead} className="text-sm text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1.5">
               <FiCheck className="h-4 w-4" /> {t('notifications.markAllRead')}
             </button>
           )}
@@ -160,7 +160,7 @@ export default function Notifications() {
         {filterButtons.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={`px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
-              filter === f.key ? 'bg-violet-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              filter === f.key ? 'bg-brand-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}>
             {f.label}
           </button>
@@ -171,13 +171,13 @@ export default function Notifications() {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <FiBell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 font-medium">{t('notifications.empty')}</p>
-            <p className="text-sm text-gray-400 mt-1">{t('notifications.emptyHint')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('notifications.emptyHint')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -188,7 +188,7 @@ export default function Notifications() {
                 <div
                   key={notif.id}
                   onClick={() => !notif.read && markOneRead(notif.id)}
-                  className={`flex items-start gap-4 px-5 py-4 transition-colors cursor-pointer ${!notif.read ? 'bg-violet-50/50 hover:bg-violet-50' : 'hover:bg-gray-50'}`}
+                  className={`flex items-start gap-4 px-5 py-4 transition-colors cursor-pointer ${!notif.read ? 'bg-brand-50/50 hover:bg-brand-50' : 'hover:bg-gray-50'}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
                     <Icon className={`h-5 w-5 ${style.color}`} />
@@ -196,14 +196,14 @@ export default function Notifications() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className={`text-sm font-semibold ${!notif.read ? 'text-gray-900' : 'text-gray-700'}`}>{notif.title}</p>
-                      {!notif.read && <span className="w-2 h-2 bg-violet-600 rounded-full flex-shrink-0" />}
+                      {!notif.read && <span className="w-2 h-2 bg-brand-600 rounded-full flex-shrink-0" />}
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5 truncate">{notif.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">{getTimeLabel(notif.time)}</p>
+                    <p className="text-xs text-gray-500 mt-1">{getTimeLabel(notif.time)}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeNotif(notif.id) }}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors flex-shrink-0"
                   >
                     <FiTrash2 className="h-3.5 w-3.5" />
                   </button>

@@ -83,7 +83,7 @@ export default function SupplierCatalog() {
         </div>
         <button
           onClick={() => { closeForm(); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-semibold shadow-lg shadow-violet-200 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200 transition-all"
         >
           <FiPlus className="h-4 w-4" /> Ajouter
         </button>
@@ -91,11 +91,11 @@ export default function SupplierCatalog() {
 
       {/* Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-violet-50 border border-violet-200 rounded-2xl p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-brand-50 border border-brand-200 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-violet-800">{editId ? 'Modifier l\'article' : 'Nouvel article'}</h3>
-            <button type="button" onClick={closeForm} className="p-1.5 hover:bg-violet-100 rounded-lg">
-              <FiX className="h-4 w-4 text-violet-600" />
+            <h3 className="font-bold text-brand-800">{editId ? 'Modifier l\'article' : 'Nouvel article'}</h3>
+            <button type="button" onClick={closeForm} className="p-1.5 hover:bg-brand-100 rounded-lg">
+              <FiX className="h-4 w-4 text-brand-600" />
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -104,7 +104,7 @@ export default function SupplierCatalog() {
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Nom du produit *"
-              className="sm:col-span-2 border border-violet-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+              className="sm:col-span-2 border border-brand-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400 bg-white"
             />
             <input
               type="number"
@@ -112,18 +112,18 @@ export default function SupplierCatalog() {
               value={form.unit_price}
               onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))}
               placeholder="Prix unitaire (MAD)"
-              className="border border-violet-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+              className="border border-brand-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400 bg-white"
             />
             <input
               value={form.barcode}
               onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
               placeholder="Code-barres (optionnel)"
-              className="border border-violet-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+              className="border border-brand-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400 bg-white"
             />
             <select
               value={form.unit}
               onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-              className="border border-violet-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+              className="border border-brand-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400 bg-white"
             >
               {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
@@ -131,7 +131,7 @@ export default function SupplierCatalog() {
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
               placeholder="Categorie (optionnel)"
-              className="border border-violet-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+              className="border border-brand-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-400 bg-white"
             />
           </div>
           <div className="flex gap-3">
@@ -140,7 +140,7 @@ export default function SupplierCatalog() {
               Annuler
             </button>
             <button type="submit" disabled={saving}
-              className="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-50">
+              className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
               {saving ? 'Enregistrement...' : editId ? 'Modifier' : 'Ajouter'}
             </button>
           </div>
@@ -150,13 +150,13 @@ export default function SupplierCatalog() {
       {/* Items */}
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
           <FiPackage className="h-12 w-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Aucun article dans votre catalogue</p>
-          <p className="text-sm text-gray-400 mt-1">Ajoutez des produits pour que les marchands puissent les voir</p>
+          <p className="text-sm text-gray-500 mt-1">Ajoutez des produits pour que les marchands puissent les voir</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -182,8 +182,8 @@ export default function SupplierCatalog() {
                     <td className="px-5 py-3.5 text-sm text-gray-500 hidden sm:table-cell">{item.category || '—'}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => openEdit(item)} className="p-2 hover:bg-violet-50 rounded-lg transition-colors">
-                          <FiEdit2 className="h-3.5 w-3.5 text-violet-600" />
+                        <button onClick={() => openEdit(item)} className="p-2 hover:bg-brand-50 rounded-lg transition-colors">
+                          <FiEdit2 className="h-3.5 w-3.5 text-brand-600" />
                         </button>
                         <button onClick={() => handleDelete(item.id)} className="p-2 hover:bg-red-50 rounded-lg transition-colors">
                           <FiTrash2 className="h-3.5 w-3.5 text-red-500" />

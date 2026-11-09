@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 
 const METHOD_LABELS = {
   CASH: { label: 'Especes', color: 'bg-green-100 text-green-700' },
-  NFC_SOUKCARD: { label: 'Carte Souk.AI', color: 'bg-purple-100 text-purple-700' },
+  NFC_SOUKCARD: { label: 'Carte Souk.AI', color: 'bg-brand-100 text-brand-700' },
   NFC_BANK: { label: 'Carte bancaire', color: 'bg-blue-100 text-blue-700' },
 }
 
@@ -50,7 +50,7 @@ export default function AdminPayments() {
           <p className="text-sm text-gray-500 mt-1">{payments.length} paiements enregistres</p>
         </div>
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -71,7 +71,7 @@ export default function AdminPayments() {
           <p className="text-xs text-gray-500">Completes</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-2xl font-black text-purple-600">{totalAmount.toFixed(0)}</p>
+          <p className="text-2xl font-black text-brand-600">{totalAmount.toFixed(0)}</p>
           <p className="text-xs text-gray-500">Volume total (MAD)</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4">
@@ -123,7 +123,7 @@ export default function AdminPayments() {
           </table>
         </div>
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-gray-400">Aucun paiement trouve</div>
+          <div className="text-center py-8 text-gray-500">Aucun paiement trouve</div>
         )}
       </div>
     </div>

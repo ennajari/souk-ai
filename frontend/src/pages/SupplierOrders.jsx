@@ -71,14 +71,14 @@ export default function SupplierOrders() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <FiFilter className="h-4 w-4 text-gray-400" />
+        <FiFilter className="h-4 w-4 text-gray-500" />
         {FILTERS.map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
               filter === f.value
-                ? 'bg-violet-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -89,12 +89,12 @@ export default function SupplierOrders() {
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : orders.length === 0 ? (
         <div className="text-center py-16">
           <FiPackage className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-400 font-medium">Aucune commande{filter ? ` avec le statut "${STATUS_LABELS[filter]}"` : ''}</p>
+          <p className="text-gray-500 font-medium">Aucune commande{filter ? ` avec le statut "${STATUS_LABELS[filter]}"` : ''}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -116,7 +116,7 @@ export default function SupplierOrders() {
                       : o.product_name ? `${o.product_name} x${o.quantity || 0}` : 'Aucun article'
                     }
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                   </p>
                 </div>
@@ -124,7 +124,7 @@ export default function SupplierOrders() {
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-lg font-black text-gray-900">{Number(o.total_amount || o.total_cost || 0).toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-400">MAD</p>
+                    <p className="text-[10px] text-gray-500">MAD</p>
                   </div>
 
                   {/* Action buttons — PENDING→SUBMITTED→IN_DELIVERY→DELIVERED */}
@@ -172,7 +172,7 @@ export default function SupplierOrders() {
                     {o.payment.status === 'COMPLETED' || o.payment.status === 'PAID' ? 'Paye' : 'Paiement en attente'}
                   </span>
                   {o.payment.method && (
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       {o.payment.method === 'CASH' ? 'Especes' : o.payment.method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : o.payment.method}
                     </span>
                   )}

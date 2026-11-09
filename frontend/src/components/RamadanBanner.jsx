@@ -160,7 +160,7 @@ export default function RamadanBanner() {
 
         {/* Suhoor time */}
         <div className="bg-white/60 rounded-xl p-3 text-center">
-          <FiMoon className="h-4 w-4 text-indigo-500 mx-auto mb-1" />
+          <FiMoon className="h-4 w-4 text-brand-600 mx-auto mb-1" />
           <p className="text-xs text-gray-500">{t('ramadan.suhoorTime')}</p>
           <p className="text-lg font-bold text-gray-900">{prayerTimes.suhoor}</p>
         </div>

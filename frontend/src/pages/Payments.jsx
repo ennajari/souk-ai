@@ -289,7 +289,7 @@ export default function Payments() {
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-sm text-gray-500">Factures</p>
-          <p className="text-2xl font-black text-purple-600">{invoices.length}</p>
+          <p className="text-2xl font-black text-brand-600">{invoices.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-sm text-gray-500">Transactions</p>
@@ -300,7 +300,7 @@ export default function Payments() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
         {tabs.map(([key, label, Icon]) => (
-          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-violet-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button key={key} onClick={() => setTab(key)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             <Icon size={16} /> {label}
           </button>
         ))}
@@ -309,14 +309,14 @@ export default function Payments() {
       {/* ─── Encaissement Tab ─── */}
       {tab === 'encaissement' && (
         <div className="space-y-4">
-          <button onClick={openEncaissement} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:from-violet-700 hover:to-indigo-700 font-semibold shadow-lg shadow-violet-200 transition-all">
+          <button onClick={openEncaissement} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 font-semibold shadow-lg shadow-brand-200 transition-all">
             <FiPlusCircle className="h-5 w-5" /> Nouvel encaissement
           </button>
 
           {/* Recent invoices */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-            {loading ? <div className="p-8 text-center text-gray-400">Chargement...</div> : invoices.length === 0 ? (
-              <div className="p-12 text-center text-gray-400">
+            {loading ? <div className="p-8 text-center text-gray-500">Chargement...</div> : invoices.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
                 <FiDollarSign size={48} className="mx-auto mb-3 opacity-30" />
                 <p className="font-medium">Aucun encaissement</p>
                 <p className="text-sm mt-1">Commencez par creer un encaissement</p>
@@ -354,8 +354,8 @@ export default function Payments() {
       {/* ─── History Tab ─── */}
       {tab === 'history' && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-          {loading ? <div className="p-8 text-center text-gray-400">Chargement...</div> : payments.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
+          {loading ? <div className="p-8 text-center text-gray-500">Chargement...</div> : payments.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
               <FiCreditCard size={48} className="mx-auto mb-3 opacity-30" />
               <p>Aucun paiement</p>
             </div>
@@ -392,14 +392,14 @@ export default function Payments() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Activate / Register card */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2"><FiSmartphone className="text-violet-500" /> Activer une carte</h3>
+              <h3 className="font-bold text-gray-900 flex items-center gap-2"><FiSmartphone className="text-brand-500" /> Activer une carte</h3>
 
               {/* Card type selector */}
               <div className="flex gap-2">
                 {[{ id: 'CLIENT', label: 'Client', color: 'violet' }, { id: 'SUPPLIER', label: 'Fournisseur', color: 'blue' }].map(t => (
                   <button key={t.id} onClick={() => setCardForm(f => ({ ...f, card_type: t.id }))}
                     className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${cardForm.card_type === t.id
-                      ? t.color === 'violet' ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? t.color === 'violet' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                     }`}>
                     {t.label}
@@ -421,11 +421,11 @@ export default function Payments() {
                 <p className="text-xs font-semibold text-gray-500 mb-2">Methode d'activation</p>
                 <div className="flex gap-2">
                   <button onClick={() => setCardActivateMethod('manual')}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${cardActivateMethod === 'manual' ? 'border-violet-400 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-500'}`}>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${cardActivateMethod === 'manual' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500'}`}>
                     Numero de carte
                   </button>
                   <button onClick={() => { setCardActivateMethod('nfc'); if (!activatingNfc) startNfcActivation() }}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-1 ${cardActivateMethod === 'nfc' ? 'border-violet-400 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-500'}`}>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-1 ${cardActivateMethod === 'nfc' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500'}`}>
                     <FiWifi className="h-3 w-3 rotate-90" /> Scanner NFC
                   </button>
                 </div>
@@ -438,7 +438,7 @@ export default function Payments() {
                 <div className="text-center py-3">
                   {activatingNfc ? (
                     <div className="space-y-2">
-                      <div className="w-12 h-12 mx-auto border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                      <div className="w-12 h-12 mx-auto border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
                       <p className="text-sm text-gray-600">Approchez la carte...</p>
                       <button onClick={stopNfcActivation} className="text-xs text-gray-500 hover:text-gray-700">Annuler</button>
                     </div>
@@ -448,7 +448,7 @@ export default function Payments() {
                       <span className="text-sm font-medium">NFC detecte: {cardForm.nfc_uid.slice(0, 12)}...</span>
                     </div>
                   ) : (
-                    <button onClick={startNfcActivation} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
+                    <button onClick={startNfcActivation} className="text-sm text-brand-600 hover:text-brand-700 font-medium">
                       Appuyez pour scanner
                     </button>
                   )}
@@ -462,14 +462,14 @@ export default function Payments() {
               <input type="password" value={cardForm.pin} onChange={e => setCardForm({ ...cardForm, pin: e.target.value })}
                 placeholder="Code PIN (4-6 chiffres)" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm" maxLength={6} />
               <button onClick={registerCard}
-                className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all">
+                className="w-full py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-semibold hover:from-brand-700 hover:to-brand-800 transition-all">
                 Activer la carte
               </button>
             </div>
 
             {/* Lookup / Topup */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2"><FiCreditCard className="text-violet-500" /> Consulter / Recharger</h3>
+              <h3 className="font-bold text-gray-900 flex items-center gap-2"><FiCreditCard className="text-brand-500" /> Consulter / Recharger</h3>
               <div className="flex gap-2">
                 <input value={cardLookup} onChange={e => setCardLookup(e.target.value)}
                   placeholder="Numero de carte (9212... ou 9213...)" className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
@@ -488,7 +488,7 @@ export default function Payments() {
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${cardInfo.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {cardInfo.status === 'ACTIVE' ? 'Active' : 'Suspendue'}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${(cardInfo.card_type || 'CLIENT') === 'SUPPLIER' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${(cardInfo.card_type || 'CLIENT') === 'SUPPLIER' ? 'bg-blue-100 text-blue-700' : 'bg-brand-100 text-brand-700'}`}>
                       {(cardInfo.card_type || 'CLIENT') === 'SUPPLIER' ? 'Fournisseur' : 'Client'}
                     </span>
                   </div>
@@ -503,8 +503,8 @@ export default function Payments() {
           </div>
 
           {/* How it works */}
-          <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-2xl border border-violet-100 p-6">
-            <h3 className="font-bold text-violet-800 mb-3">Comment ca marche ?</h3>
+          <div className="bg-gradient-to-r from-brand-50 to-brand-100 rounded-2xl border border-brand-100 p-6">
+            <h3 className="font-bold text-brand-800 mb-3">Comment ca marche ?</h3>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
               {[
                 { step: '1', title: 'Recevoir', desc: 'Souk.AI vous fournit des cartes vides' },
@@ -513,8 +513,8 @@ export default function Payments() {
                 { step: '4', title: 'Payer', desc: 'Paiement par NFC ou numero de carte' },
               ].map(s => (
                 <div key={s.step} className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="w-7 h-7 rounded-lg bg-violet-600 text-white flex items-center justify-center text-xs font-bold mb-2">{s.step}</div>
-                  <p className="font-bold text-violet-700 text-sm">{s.title}</p>
+                  <div className="w-7 h-7 rounded-lg bg-brand-600 text-white flex items-center justify-center text-xs font-bold mb-2">{s.step}</div>
+                  <p className="font-bold text-brand-700 text-sm">{s.title}</p>
                   <p className="text-gray-600 text-xs mt-1">{s.desc}</p>
                 </div>
               ))}
@@ -534,7 +534,7 @@ export default function Payments() {
           </div>
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <FiCreditCard className="text-violet-500" /> CMI (Carte bancaire)
+              <FiCreditCard className="text-brand-500" /> CMI (Carte bancaire)
               {config?.has_cmi && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Configure</span>}
             </h3>
             <div className="space-y-3">
@@ -544,7 +544,7 @@ export default function Payments() {
           </div>
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <FiDollarSign className="text-violet-500" /> CashPlus
+              <FiDollarSign className="text-brand-500" /> CashPlus
               {config?.has_cashplus && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Configure</span>}
             </h3>
             <div className="space-y-3">
@@ -552,7 +552,7 @@ export default function Payments() {
               <input type="password" value={configForm.cashplus_api_key} onChange={e => setConfigForm({ ...configForm, cashplus_api_key: e.target.value })} placeholder="CashPlus API Key" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
             </div>
           </div>
-          <button onClick={saveConfig} className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all">
+          <button onClick={saveConfig} className="w-full py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-semibold hover:from-brand-700 hover:to-brand-800 transition-all">
             Sauvegarder
           </button>
         </div>
@@ -565,7 +565,7 @@ export default function Payments() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 text-white sticky top-0 z-10">
+            <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-4 text-white sticky top-0 z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FiShield className="h-5 w-5" />
@@ -601,13 +601,13 @@ export default function Payments() {
                       {encForm.items.length > 1 && <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600"><FiX size={16} /></button>}
                     </div>
                   ))}
-                  <button onClick={addItem} className="text-sm text-violet-600 hover:text-violet-800 font-medium">+ Article</button>
+                  <button onClick={addItem} className="text-sm text-brand-600 hover:text-brand-800 font-medium">+ Article</button>
                 </div>
 
                 {encTotal > 0 && (
-                  <div className="bg-violet-50 rounded-xl px-4 py-3 flex justify-between items-center border border-violet-100">
-                    <span className="text-sm font-medium text-violet-700">Total</span>
-                    <span className="text-xl font-black text-violet-800">{encTotal.toFixed(2)} MAD</span>
+                  <div className="bg-brand-50 rounded-xl px-4 py-3 flex justify-between items-center border border-brand-100">
+                    <span className="text-sm font-medium text-brand-700">Total</span>
+                    <span className="text-xl font-black text-brand-800">{encTotal.toFixed(2)} MAD</span>
                   </div>
                 )}
 
@@ -616,17 +616,17 @@ export default function Payments() {
                   <p className="text-xs font-semibold text-gray-500">Mode de paiement</p>
                   {PAYMENT_METHODS.map(m => {
                     const isActive = payMethod === m.id
-                    const colors = { green: ['border-green-500', 'bg-green-50', 'bg-green-100', 'text-green-600'], purple: ['border-purple-500', 'bg-purple-50', 'bg-purple-100', 'text-purple-600'], blue: ['border-blue-500', 'bg-blue-50', 'bg-blue-100', 'text-blue-600'] }
+                    const colors = { green: ['border-green-500', 'bg-green-50', 'bg-green-100', 'text-green-600'], purple: ['border-brand-500', 'bg-brand-50', 'bg-brand-100', 'text-brand-600'], blue: ['border-blue-500', 'bg-blue-50', 'bg-blue-100', 'text-blue-600'] }
                     const c = colors[m.color]
                     return (
                       <button key={m.id} onClick={() => { setPayMethod(m.id); setPayError('') }}
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${isActive ? `${c[0]} ${c[1]}` : 'border-gray-200 hover:border-gray-300'}`}>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? c[2] : 'bg-gray-100'}`}>
-                          <m.icon className={`h-5 w-5 ${isActive ? c[3] : 'text-gray-400'}`} />
+                          <m.icon className={`h-5 w-5 ${isActive ? c[3] : 'text-gray-500'}`} />
                         </div>
                         <div className="text-left flex-1">
                           <p className={`font-semibold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{m.label}</p>
-                          <p className="text-xs text-gray-400">{m.labelAr}</p>
+                          <p className="text-xs text-gray-500">{m.labelAr}</p>
                         </div>
                         {isActive && <FiCheckCircle className={`h-5 w-5 ${c[3]}`} />}
                       </button>
@@ -637,7 +637,7 @@ export default function Payments() {
                 {payError && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{payError}</div>}
 
                 <button onClick={handleEncaisser} disabled={encTotal <= 0}
-                  className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:from-violet-700 hover:to-indigo-700 disabled:opacity-40 transition-all text-base flex items-center justify-center gap-2">
+                  className="w-full py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold rounded-xl hover:from-brand-700 hover:to-brand-800 disabled:opacity-40 transition-all text-base flex items-center justify-center gap-2">
                   {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> Encaisser {encTotal.toFixed(2)} MAD</>}
                   {payMethod === 'NFC_SOUKCARD' && <><FiSmartphone className="h-5 w-5" /> Scanner Carte Souk.AI</>}
                   {payMethod === 'NFC_BANK' && <><FiCreditCard className="h-5 w-5" /> Scanner Carte bancaire</>}
@@ -649,10 +649,10 @@ export default function Payments() {
             {payStep === 'nfc_waiting' && (
               <div className="p-8 text-center space-y-5">
                 <div className="relative w-32 h-32 mx-auto">
-                  <div className="absolute inset-0 rounded-full border-4 border-purple-200 animate-ping opacity-30" />
-                  <div className="absolute inset-3 rounded-full border-4 border-purple-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
-                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-purple-100 to-violet-100 flex items-center justify-center shadow-inner">
-                    {payMethod === 'NFC_SOUKCARD' ? <FiSmartphone className="h-10 w-10 text-purple-600" /> : <FiCreditCard className="h-10 w-10 text-blue-600" />}
+                  <div className="absolute inset-0 rounded-full border-4 border-brand-200 animate-ping opacity-30" />
+                  <div className="absolute inset-3 rounded-full border-4 border-brand-300 animate-ping opacity-20" style={{ animationDelay: '0.5s' }} />
+                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-100 flex items-center justify-center shadow-inner">
+                    {payMethod === 'NFC_SOUKCARD' ? <FiSmartphone className="h-10 w-10 text-brand-600" /> : <FiCreditCard className="h-10 w-10 text-blue-600" />}
                   </div>
                 </div>
                 <p className="text-lg font-bold text-gray-900">Approchez la carte</p>
@@ -685,7 +685,7 @@ export default function Payments() {
                       </p>
                       <div className="flex gap-1 justify-center">
                         {[0, 1, 2, 3, 4, 5].map(i => (
-                          <div key={i} className={`w-10 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-black ${i < cardPin.length ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 bg-gray-50 text-gray-300'}`}>
+                          <div key={i} className={`w-10 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-black ${i < cardPin.length ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 bg-gray-50 text-gray-300'}`}>
                             {i < cardPin.length ? '•' : ''}
                           </div>
                         ))}
@@ -694,7 +694,7 @@ export default function Payments() {
                         onChange={e => { setCardPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setPayError('') }}
                         className="opacity-0 absolute -z-10 w-0 h-0"
                         onKeyDown={e => e.key === 'Enter' && cardPin.length >= 4 && confirmPinAndPay()} />
-                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-purple-600 mt-2 py-1">
+                      <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-brand-600 mt-2 py-1">
                         Appuyez pour saisir le PIN
                       </button>
                     </div>
@@ -713,7 +713,7 @@ export default function Payments() {
             {/* Step: Processing */}
             {payStep === 'processing' && (
               <div className="p-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                <div className="w-16 h-16 mx-auto mb-4 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
                 <p className="text-lg font-bold text-gray-900">Traitement...</p>
               </div>
             )}

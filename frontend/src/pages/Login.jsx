@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BrandMark from '../components/BrandMark'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client, { authAPI } from '../api/client'
@@ -6,7 +7,7 @@ import toast from 'react-hot-toast'
 import { FiEye, FiEyeOff, FiMessageSquare, FiPackage, FiTrendingUp, FiShield, FiArrowLeft } from 'react-icons/fi'
 
 const FEATURES = [
-  { icon: FiMessageSquare, color: 'from-violet-500 to-purple-600', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
+  { icon: FiMessageSquare, color: 'from-brand-600 to-brand-700', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
   { icon: FiPackage, color: 'from-blue-500 to-cyan-600', title: 'Inventaire intelligent', desc: 'Alertes stock bas automatiques' },
   { icon: FiTrendingUp, color: 'from-emerald-500 to-green-600', title: 'Prévisions 7 jours', desc: 'Anticipez vos besoins en stock' },
   { icon: FiShield, color: 'from-orange-500 to-amber-500', title: 'Score de crédit', desc: 'Accédez au financement facilement' },
@@ -95,13 +96,13 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-sand-100">
       {/* ── Left panel: branding ── */}
-      <div className="hidden lg:flex lg:w-[52%] bg-gray-950 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[52%] bg-ink-950 flex-col justify-between p-12 relative overflow-hidden">
         {/* Background decoration */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/40 via-gray-950 to-indigo-900/30" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-600/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/10 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/40 via-ink-950 to-brand-950/30" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-600/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-700/10 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl" />
 
         {/* Grid overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -112,9 +113,7 @@ export default function Login() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-violet-900/50">
-              <span className="text-white font-black text-lg">S</span>
-            </div>
+            <BrandMark className="h-10 w-10" />
             <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
           </div>
           <p className="text-gray-500 text-sm mt-2 ml-0.5">Gestion Intelligente pour Commerçants Marocains</p>
@@ -123,11 +122,11 @@ export default function Login() {
         {/* Main pitch */}
         <div className="relative z-10 space-y-6">
           <div>
-            <p className="text-violet-400 text-xs font-bold tracking-widest uppercase mb-3">LA PLATEFORME N°1</p>
+            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">LA PLATEFORME N°1</p>
             <h2 className="text-white text-4xl font-black leading-tight">
               Gérez votre<br />
               commerce depuis<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">WhatsApp</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-500">WhatsApp</span>
             </h2>
           </div>
 
@@ -161,8 +160,8 @@ export default function Login() {
           <div className="flex -space-x-2">
             {['A', 'M', 'F', 'K', 'Y'].map((l, i) => (
               <div key={l}
-                className="w-8 h-8 rounded-full border-2 border-gray-950 flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: ['#7c3aed','#2563eb','#059669','#d97706','#dc2626'][i] }}>
+                className="w-8 h-8 rounded-full border-2 border-ink-950 flex items-center justify-center text-xs font-bold text-white"
+                style={{ background: ['#C2410C','#2563eb','#059669','#d97706','#dc2626'][i] }}>
                 {l}
               </div>
             ))}
@@ -175,9 +174,7 @@ export default function Login() {
       <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-14">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-black text-sm">S</span>
-          </div>
+          <BrandMark className="h-8 w-8" />
           <span className="text-gray-900 text-xl font-black">Souk.AI</span>
         </div>
 
@@ -202,10 +199,10 @@ export default function Login() {
                   value={phone}
                   onChange={handlePhoneChange}
                   placeholder="0612345678"
-                  className="w-full pl-14 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
+                  className="w-full pl-14 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">Format: 06XXXXXXXX ou 212XXXXXXXXX</p>
+              <p className="text-xs text-gray-500 mt-1.5">Format: 06XXXXXXXX ou 212XXXXXXXXX</p>
             </div>
 
             {/* Password */}
@@ -218,12 +215,12 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3.5 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
+                  className="w-full px-4 py-3.5 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white text-sm transition font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors p-1"
                 >
                   {showPass ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
                 </button>
@@ -235,7 +232,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => { setResetMode('phone'); setResetPhone(phone) }}
-                className="text-xs text-violet-600 hover:text-violet-700 font-medium transition-colors"
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors"
               >
                 Mot de passe oublié ?
               </button>
@@ -245,7 +242,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-xl shadow-violet-200 disabled:opacity-50 disabled:shadow-none text-sm mt-2"
+              className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-xl transition-all shadow-xl shadow-brand-200 disabled:opacity-50 disabled:shadow-none text-sm mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -278,13 +275,13 @@ export default function Login() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Pas encore de compte?{' '}
-            <Link to="/register" className="text-violet-600 hover:text-violet-700 font-bold transition-colors">
+            <Link to="/register" className="text-brand-600 hover:text-brand-700 font-bold transition-colors">
               Créer un compte gratuit
             </Link>
           </p>
 
           {/* Copyright */}
-          <p className="text-center text-xs text-gray-400 mt-8 border-t border-gray-100 pt-4">
+          <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-100 pt-4">
             © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.<br />
             Plateforme réservée aux commerçants marocains.
           </p>
@@ -314,7 +311,7 @@ export default function Login() {
                     value={resetPhone}
                     onChange={(e) => setResetPhone(e.target.value)}
                     placeholder="0612345678"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
                   />
                 </div>
 
@@ -329,13 +326,13 @@ export default function Login() {
                   <span>Obtenir le code via WhatsApp Bot</span>
                   <span className="ml-auto text-xs font-normal opacity-80">Recommandé</span>
                 </a>
-                <p className="text-xs text-gray-400 text-center -mt-1">
+                <p className="text-xs text-gray-500 text-center -mt-1">
                   Envoyez "code" au bot → il vous répond avec votre code
                 </p>
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-xs text-gray-400">ou</span>
+                  <span className="text-xs text-gray-500">ou</span>
                   <div className="flex-1 h-px bg-gray-100" />
                 </div>
 
@@ -344,11 +341,11 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={resetLoading || !resetPhone}
-                    className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+                    className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
                   >
                     {resetLoading ? 'Envoi en cours...' : 'Envoyer par API'}
                   </button>
-                  <p className="text-xs text-gray-400 text-center">
+                  <p className="text-xs text-gray-500 text-center">
                     (fonctionne si vous avez messagé le bot récemment)
                   </p>
                 </form>
@@ -368,7 +365,7 @@ export default function Login() {
                     value={resetCode}
                     onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm font-mono tracking-[0.5em] text-center text-lg"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm font-mono tracking-[0.5em] text-center text-lg"
                     dir="ltr"
                   />
                 </div>
@@ -381,20 +378,20 @@ export default function Login() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={resetLoading || resetCode.length < 6}
-                  className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
+                  className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm"
                 >
                   {resetLoading ? 'Changement...' : 'Changer le mot de passe'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setResetMode('phone')}
-                  className="w-full text-sm text-gray-500 hover:text-violet-600 transition-colors"
+                  className="w-full text-sm text-gray-500 hover:text-brand-600 transition-colors"
                 >
                   Renvoyer le code
                 </button>

@@ -48,7 +48,7 @@ import { useAuth } from "./context/AuthContext"
 function PageLoader() {
   return (
     <div className="flex h-screen items-center justify-center" role="status" aria-live="polite">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-200 border-t-violet-600" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
       <span className="sr-only">Chargement…</span>
     </div>
   )

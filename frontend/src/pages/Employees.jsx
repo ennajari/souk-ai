@@ -94,7 +94,7 @@ export default function Employees() {
   }
 
   const roleColor = (role) => {
-    const map = { MANAGER: 'bg-violet-100 text-violet-700', CASHIER: 'bg-blue-100 text-blue-700', VIEWER: 'bg-gray-100 text-gray-600' }
+    const map = { MANAGER: 'bg-brand-100 text-brand-700', CASHIER: 'bg-blue-100 text-blue-700', VIEWER: 'bg-gray-100 text-gray-600' }
     return map[role] || 'bg-gray-100 text-gray-600'
   }
 
@@ -156,8 +156,8 @@ export default function Employees() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-            <FiUsers className="w-5 h-5 text-violet-600" />
+          <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+            <FiUsers className="w-5 h-5 text-brand-600" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">{t('employees.title')}</h1>
@@ -166,7 +166,7 @@ export default function Employees() {
         </div>
         <button
           onClick={() => { setEditId(null); setForm({ name: '', phone: '', pin_code: '', role: 'CASHIER' }); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors text-sm font-medium"
         >
           <FiPlus className="w-4 h-4" />
           {t('employees.add')}
@@ -190,7 +190,7 @@ export default function Employees() {
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
             </div>
 
@@ -199,14 +199,14 @@ export default function Employees() {
               <input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 dir="ltr"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('employees.pin')} <span className="text-gray-400 font-normal">({t('employees.pinHint')}) — optionnel</span>
+                {t('employees.pin')} <span className="text-gray-500 font-normal">({t('employees.pinHint')}) — optionnel</span>
               </label>
               <input
                 type="password"
@@ -215,11 +215,11 @@ export default function Employees() {
                 pattern="\d{4,6}"
                 value={form.pin_code}
                 onChange={(e) => setForm({ ...form, pin_code: e.target.value.replace(/\D/g, '') })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent font-mono tracking-widest"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono tracking-widest"
                 dir="ltr"
                 placeholder={editId ? '****' : '1234'}
               />
-              <p className="text-xs text-gray-400 mt-1">Pour l'acces a la caisse POS (laissez vide si non necessaire)</p>
+              <p className="text-xs text-gray-500 mt-1">Pour l'acces a la caisse POS (laissez vide si non necessaire)</p>
             </div>
 
             <div>
@@ -227,7 +227,7 @@ export default function Employees() {
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{roleLabel(r)}</option>
@@ -239,7 +239,7 @@ export default function Employees() {
               <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-medium">
                 {t('common.cancel')}
               </button>
-              <button type="submit" className="flex-1 px-4 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 text-sm font-medium">
+              <button type="submit" className="flex-1 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-medium">
                 {t('common.save')}
               </button>
             </div>
@@ -249,12 +249,12 @@ export default function Employees() {
 
       {/* Employee list */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
       ) : employees.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
           <FiUserCheck className="w-12 h-12 mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">{t('employees.noEmployees')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('employees.noEmployeesHint')}</p>
+          <p className="text-sm text-gray-500 mt-1">{t('employees.noEmployeesHint')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -275,7 +275,7 @@ export default function Employees() {
                   <tr className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm">
+                        <div className="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center text-brand-600 font-bold text-sm">
                           {emp.name[0]?.toUpperCase()}
                         </div>
                         <span className="font-medium text-gray-900">{emp.name}</span>
@@ -294,7 +294,7 @@ export default function Employees() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className={`flex gap-1 ${isRtl ? 'justify-start' : 'justify-end'}`}>
-                        <button onClick={() => loadContracts(emp.id)} className="p-2 hover:bg-violet-50 rounded-lg text-violet-500 transition-colors" title="Calendrier">
+                        <button onClick={() => loadContracts(emp.id)} className="p-2 hover:bg-brand-50 rounded-lg text-brand-500 transition-colors" title="Calendrier">
                           {expandedEmp === emp.id ? <FiChevronUp className="w-4 h-4" /> : <FiCalendar className="w-4 h-4" />}
                         </button>
                         <button onClick={() => handleEdit(emp)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors">
@@ -309,22 +309,22 @@ export default function Employees() {
                   {/* Contracts panel */}
                   {expandedEmp === emp.id && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-4 bg-violet-50/50">
+                      <td colSpan={5} className="px-5 py-4 bg-brand-50/50">
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold text-violet-800 flex items-center gap-2">
+                            <p className="text-sm font-bold text-brand-800 flex items-center gap-2">
                               <FiCalendar className="h-4 w-4" /> Periodes de travail
                             </p>
                             <button
                               onClick={() => { setShowContractForm(true); setContractForm({ start_date: '', end_date: '', salary: '', notes: '' }) }}
-                              className="flex items-center gap-1 px-2.5 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700"
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700"
                             >
                               <FiPlus className="h-3 w-3" /> Ajouter
                             </button>
                           </div>
 
                           {showContractForm && (
-                            <form onSubmit={handleContractSubmit} className="bg-white rounded-lg p-3 border border-violet-200 space-y-2">
+                            <form onSubmit={handleContractSubmit} className="bg-white rounded-lg p-3 border border-brand-200 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
                                   <label className="text-xs text-gray-500">Date debut *</label>
@@ -353,15 +353,15 @@ export default function Employees() {
                               </div>
                               <div className="flex gap-2">
                                 <button type="button" onClick={() => setShowContractForm(false)} className="px-3 py-1.5 text-xs border rounded-lg hover:bg-gray-50">Annuler</button>
-                                <button type="submit" className="px-3 py-1.5 text-xs bg-violet-600 text-white rounded-lg hover:bg-violet-700 font-semibold">Enregistrer</button>
+                                <button type="submit" className="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold">Enregistrer</button>
                               </div>
                             </form>
                           )}
 
                           {contractsLoading ? (
-                            <p className="text-xs text-gray-400">Chargement...</p>
+                            <p className="text-xs text-gray-500">Chargement...</p>
                           ) : contracts.length === 0 ? (
-                            <p className="text-xs text-gray-400">Aucune periode enregistree</p>
+                            <p className="text-xs text-gray-500">Aucune periode enregistree</p>
                           ) : (
                             <div className="space-y-2">
                               {contracts.map(c => {

@@ -23,7 +23,7 @@ function ScoreGauge({ score }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-4xl font-black text-gray-900">{score}</span>
-          <span className="text-xs text-gray-400">/ 1000</span>
+          <span className="text-xs text-gray-500">/ 1000</span>
         </div>
       </div>
       <span className="mt-2 text-lg font-semibold" style={{ color }}>{label}</span>
@@ -52,7 +52,7 @@ export default function Credit() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600" />
     </div>
   )
 
@@ -82,15 +82,15 @@ export default function Credit() {
               <div key={f.key}>
                 <div className="flex justify-between text-xs text-gray-600 mb-1">
                   <span>{f.label}</span>
-                  <span className="font-semibold text-purple-700">+{factors[f.key] || 0} pts</span>
+                  <span className="font-semibold text-brand-700">+{factors[f.key] || 0} pts</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
-                    className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                    className="bg-brand-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, ((factors[f.key] || 0) / f.max) * 100)}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {factors[f.total_key] !== undefined
                     ? `${typeof factors[f.total_key] === 'number' ? factors[f.total_key].toFixed(f.unit === 'MAD' ? 2 : 0) : factors[f.total_key]} ${f.unit}`
                     : ''}
@@ -121,15 +121,15 @@ export default function Credit() {
             <div className="space-y-4">
               <p className="text-sm text-green-600 font-medium">✓ Vous êtes éligible au financement</p>
               {offers.offers.map((offer, i) => (
-                <div key={i} className="border border-gray-200 rounded-xl p-4 hover:border-purple-300 transition-colors">
+                <div key={i} className="border border-gray-200 rounded-xl p-4 hover:border-brand-300 transition-colors">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-xl font-bold text-gray-900">{offer.amount.toLocaleString()} MAD</p>
                       <p className="text-sm text-gray-500 mt-0.5">Durée: {offer.term_days} jours</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-purple-600">{offer.fee_percentage}% de frais</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-semibold text-brand-600">{offer.fee_percentage}% de frais</p>
+                      <p className="text-xs text-gray-500">
                         Remboursement: {(offer.amount * (1 + offer.fee_percentage / 100)).toFixed(0)} MAD
                       </p>
                     </div>
@@ -140,8 +140,8 @@ export default function Credit() {
                       requestedOffers.has(i)
                         ? 'bg-green-500 cursor-not-allowed'
                         : requestingIdx === i
-                          ? 'bg-purple-400 cursor-wait'
-                          : 'bg-purple-600 hover:bg-purple-700'
+                          ? 'bg-brand-400 cursor-wait'
+                          : 'bg-brand-600 hover:bg-brand-700'
                     }`}
                     onClick={async () => {
                       setRequestingIdx(i)
@@ -171,7 +171,7 @@ export default function Credit() {
       </div>
 
       {/* How it works */}
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-brand-50 to-brand-100 border border-brand-100 rounded-xl p-6">
         <h3 className="font-semibold text-gray-800 mb-3">Comment fonctionne le score ?</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
           <div>

@@ -25,7 +25,7 @@ export default function MoneyReportCard() {
       value: rep.lost.total, hint: t('money.expiredHint', { count: rep.lost.expired.length }), to: '/products' },
     { icon: FiClock, tone: 'text-amber-700 bg-amber-50', label: t('money.atRisk'),
       value: rep.at_risk.total, hint: t('money.atRiskHint', { soon: rep.at_risk.expiring_soon.length, dead: rep.at_risk.dead_stock.length }), to: '/products' },
-    { icon: FiShoppingBag, tone: 'text-violet-700 bg-violet-50', label: t('money.missedSales'),
+    { icon: FiShoppingBag, tone: 'text-brand-700 bg-brand-50', label: t('money.missedSales'),
       value: rep.missed_sales_per_week.total, hint: t('money.missedHint', { count: rep.missed_sales_per_week.out_of_stock.length }), to: '/forecasts' },
   ]
 
@@ -35,7 +35,7 @@ export default function MoneyReportCard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {rows.map(({ icon: Icon, tone, label, value, hint, to }) => (
           <Link key={label} to={to}
-            className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 transition">
+            className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:border-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600 transition">
             <span className={`p-2 rounded-lg ${tone}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
             <span className="min-w-0">
               <span className="block text-xs text-gray-600">{label}</span>
