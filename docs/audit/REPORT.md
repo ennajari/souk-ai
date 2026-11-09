@@ -54,3 +54,44 @@ stack complète (Timescale, Weaviate, Celery) non lancée pendant la session (AP
 3. Obtenir un avis juridique sur la carte Souk.AI et choisir : partenaire agréé ou retrait.
 4. Mettre les rappels WhatsApp en conformité (opt-in, template utilitaire, fréquence hebdomadaire).
 5. Ajouter TVA par produit + traduction complète EN, prérequis pour un 2e marché.
+
+
+---
+
+## Passes 2 et 3 (2026-11-09) — logique métier, produit, marque
+
+**Correction d'une affirmation de la passe 1.** La protection contre la double vente du dernier article
+(`c109cd3`) ne fonctionnait pas de façon fiable : le verrou était pris, mais SQLAlchemy renvoyait l'objet déjà en
+mémoire avec une quantité périmée. Mesuré sur la suite complète : survente 4 fois sur 4 sans correctif, 0 sur 4 avec
+(`populate_existing` sur toutes les lectures verrouillées).
+
+| Domaine | Avant | Après |
+|---|---|---|
+| Bénéfice net mensuel | achats fournisseurs **et** coût des ventes soustraits (double comptage) | ventes − retours − coût des ventes − salaires (mois en cours au prorata) |
+| « Aujourd'hui » / « ce mois » | en UTC (jusqu'à 5 h d'écart aux US) | fuseau du commerçant |
+| Retours dans CA et marges | ignorés | déduits partout |
+| Marges passées | recalculées au coût actuel | coût figé à la vente |
+| Livraison fournisseur | ne touchait pas le stock | stock + coût moyen pondéré, une seule fois |
+| Ventes WhatsApp | sans contrôle de stock, plantage en cas d'erreur | même chemin que la caisse, réponse explicite |
+| Marketplace | pas de machine à états (annulations multiples = stock dupliqué) | transitions explicites + verrous |
+| Ajustement de stock | pouvait rendre le stock négatif ; changement de seuil en erreur 500 | refusé sous zéro, journalisé ; seuil corrigé |
+| Fusion de produits | fusion avec soi-même = stock détruit | refusée ; coût moyen pondéré |
+| Rappels WhatsApp | quotidiens, sans consentement | hebdomadaires, opt-in du client |
+| TVA | inexistante | taux par produit figé à la vente, rapport mensuel par taux, ventilation sur le ticket |
+| Tests | 44 + 2 e2e | **66** + 2 e2e |
+
+**Produit.** Menu réorganisé autour des tâches (vendre / gérer / comprendre) ; Rapports (Ventes, Marges, Réassort,
+TVA) remplace 3 entrées ; Inventaire fusionné dans Produits ; la page Ventes devient un historique avec retours
+(aucun écran ne permettait d'annuler une vente) ; les deux formulaires de vente qui doublaient la caisse sont retirés.
+**Retiré** : offres de prêt factices (D13), score de crédit affiché, intelligence de marché non anonymisée (D14),
+chiffres de traction et témoignages invérifiables de la landing et des pages de connexion.
+
+**Marque.** Identité neutre (auvent + courbe montante), tokens terracotta/menthe/sable/encre, contrastes WCAG AA
+mesurés, version une couleur, icônes d'application ; landing réécrite en FR/AR/EN ; caisse et tableau de bord
+entièrement traduits. Guide : `docs/BRAND.md`.
+
+**Reste à faire (mis à jour)**
+1. P0 : rotation des secrets, purge GitHub via le support (anciennes PR), `ADMIN_PHONE` au moment de la migration.
+2. P1 : traduire Produits, Clients, Fournisseurs, Paiements (≈ 300 textes encore en français) ; mode sombre.
+3. P1 : décision sur la carte Souk.AI (partenaire agréé) ; k-anonymat avant de rouvrir l'intelligence de marché.
+4. P2 : export comptable (CSV/FEC, UBL quand la DGI publiera le format) ; NF525/TSE avant la France/l'Allemagne.

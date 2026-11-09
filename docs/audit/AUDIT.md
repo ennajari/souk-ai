@@ -64,8 +64,8 @@ Colonne « Statut » : ✅ corrigé sur cette branche · ◐ partiellement · �
 | L7 | M | Score de crédit gonflable : volume compté sur les ventes **brutes** (vente+retour répétés ⇒ score ↑) | `services/credit_scoring.py:27-40` | S | ✅ net des retours |
 | L8 | M | Prévision : code dupliqué (2 copies identiques), tendance non amortie qui extrapole sans borne, dates en UTC (pas l'heure locale) | `services/forecasting.py:11-100` vs `150-229` | S | ✅ dédupliqué, tendance amortie, backtest |
 | L9 | M | Retour : détection du double-retour par heuristique (même produit/qté/prix) sans verrou | `api/v1/transactions.py:189-224` | S | ◐ verrou sur la vente d'origine |
-| L10 | M | Rappels « karni » quotidiens automatiques en texte libre aux clients finaux : hors fenêtre 24 h WhatsApp ⇒ échec silencieux ; risque de blocage du numéro (politique WhatsApp Business : messages non sollicités) | `workers/tasks.py:1650-1735` | M | ✗ (exiger opt-in + template utilitaire) |
-| L11 | B | Ventes WhatsApp (`record_sale`) ne contrôlent pas le stock disponible | `services/inventory.py:178` | S | ✗ |
+| L10 | M | Rappels « karni » quotidiens automatiques en texte libre aux clients finaux : hors fenêtre 24 h WhatsApp ⇒ échec silencieux ; risque de blocage du numéro (politique WhatsApp Business : messages non sollicités) | `workers/tasks.py:1650-1735` | M | ✅ opt-in client + hebdomadaire + template (passe 2) |
+| L11 | B | Ventes WhatsApp (`record_sale`) ne contrôlent pas le stock disponible | `services/inventory.py:178` | S | ✅ service de vente unique (passe 2) |
 | L12 | **H** | *Trouvé en implémentant* — **dérive schéma/migrations** : sur une base neuve, l'enum `paymentmethod` n'a pas `NFC_SOUKCARD`/`NFC_BANK` (paiement carte → erreur 500) et `customers.is_active` est INTEGER alors que le code compare à un booléen (liste clients → erreur) | `alembic/versions/c3d4e5f6a7b8…py:66`, `e5f6a7b8c9d0…py` | S | ✅ migration `k4l5m6n7o8p9` + tests sur schéma migré |
 | L13 | **H** | *Trouvé en implémentant* — **suppression de compte impossible** (violation de clé étrangère) dès qu'il existe des transactions carte, factures ou demandes de crédit : droit à l'effacement inopérant | `api/v1/auth.py:205-280` | S | ✅ |
 
@@ -102,7 +102,7 @@ Colonne « Statut » : ✅ corrigé sur cette branche · ◐ partiellement · �
 |---|---|---|---|---|---|
 | I1 | **H** | Devise « MAD » codée en dur (136 occurrences front, messages backend) ; aucun champ pays/devise/fuseau sur le marchand | `models/merchant.py` | M | ◐ champs `country_code`/`currency`/`timezone` + profils pays + formatage front |
 | I2 | **H** | Normalisation téléphone spécifique Maroc (`0… → 212…`) dupliquée en 2 endroits | `api/v1/auth.py:31`, `services/whatsapp.py:9` | S | ✅ une seule fonction, préfixe pays paramétrable |
-| I3 | **H** | Pas de modèle de taxe (TVA/sales tax) ; factures sans ventilation fiscale ⇒ invendable en UE/US | `models/product.py` | M | ◐ profils de TVA par pays (config) ; ventilation sur facture ✗ |
+| I3 | **H** | Pas de modèle de taxe (TVA/sales tax) ; factures sans ventilation fiscale ⇒ invendable en UE/US | `models/product.py` | M | ✅ TVA par produit figée à la vente, rapport mensuel, ventilation sur ticket (passe 3) |
 | I4 | M | Fuseau Celery figé `Africa/Casablanca` pour tous les marchands | `workers/celery_app.py:16` | M | ✗ |
 | I5 | M | *Trouvé en implémentant* — la connexion normalise toujours le téléphone en marocain : un commerce français inscrit en `06…` ne peut plus se connecter | `api/v1/auth.py:31` | S | ✅ pays par défaut de l'instance (`DEFAULT_COUNTRY`) ; sélecteur de pays au login ✗ |
 
