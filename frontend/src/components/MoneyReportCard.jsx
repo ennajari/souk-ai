@@ -26,7 +26,7 @@ export default function MoneyReportCard() {
     { icon: FiClock, tone: 'text-amber-700 bg-amber-50', label: t('money.atRisk'),
       value: rep.at_risk.total, hint: t('money.atRiskHint', { soon: rep.at_risk.expiring_soon.length, dead: rep.at_risk.dead_stock.length }), to: '/products' },
     { icon: FiShoppingBag, tone: 'text-brand-700 bg-brand-50', label: t('money.missedSales'),
-      value: rep.missed_sales_per_week.total, hint: t('money.missedHint', { count: rep.missed_sales_per_week.out_of_stock.length }), to: '/forecasts' },
+      value: rep.missed_sales_per_week.total, hint: t('money.missedHint', { count: rep.missed_sales_per_week.out_of_stock.length }), to: '/reports?tab=restock' },
   ]
 
   return (

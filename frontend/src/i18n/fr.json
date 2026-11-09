@@ -262,5 +262,115 @@
     "doReturn": "Retour",
     "confirmReturn": "Confirmer le retour",
     "returned": "Retour enregistré, stock remis à jour"
+  },
+  "landing": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "how": "Comment ça marche",
+      "pilot": "Programme pilote",
+      "faq": "Questions",
+      "login": "Connexion",
+      "start": "Commencer gratuitement"
+    },
+    "hero": {
+      "eyebrow": "Caisse · stock · carnet de crédit · WhatsApp",
+      "title1": "La caisse qui vous dit",
+      "title2": "où est votre argent.",
+      "sub": "Encaissez en 2 taps, suivez qui vous doit quoi, repérez ce qui va périmer et sachez quoi recommander. Sur le téléphone que vous avez déjà, même quand le réseau coupe.",
+      "cta": "Créer mon compte gratuit",
+      "cta2": "Voir comment ça marche",
+      "note": "Sans carte bancaire · prêt en 2 minutes"
+    },
+    "money": {
+      "title": "Chaque semaine, l'argent s'échappe par quatre trous",
+      "sub": "Souk.AI les mesure et vous dit quoi faire, sur votre écran d'accueil.",
+      "recover": "À récupérer",
+      "recoverDesc": "Le carnet de crédit, avec plafond par client, reçus et rappels (avec l'accord du client).",
+      "lost": "Perdu",
+      "lostDesc": "Les produits périmés encore en rayon, valorisés à leur prix d'achat.",
+      "risk": "À risque",
+      "riskDesc": "Ce qui expire sous 7 jours et ce qui ne se vend plus depuis 30 jours.",
+      "missed": "Manqué",
+      "missedDesc": "La marge perdue quand un produit qui se vend bien est en rupture."
+    },
+    "how": {
+      "title": "Opérationnel en une matinée",
+      "s1": "Créez votre compte",
+      "s1d": "Un numéro de téléphone, un mot de passe. Choisissez votre langue.",
+      "s2": "Ajoutez vos produits",
+      "s2d": "Un par un, au scan du code-barres, en photographiant une facture fournisseur ou en important Sage.",
+      "s3": "Vendez",
+      "s3d": "Touchez le produit, choisissez espèces, crédit ou carte. Le stock, les marges et les rapports se mettent à jour seuls."
+    },
+    "features": {
+      "title": "Tout ce qu'il faut, rien de plus",
+      "items": [
+        [
+          "Caisse rapide",
+          "Gros boutons, scan caméra ou douchette, ventes en espèces même hors connexion."
+        ],
+        [
+          "Carnet de crédit",
+          "Plafonds par client, remboursements, reçus WhatsApp."
+        ],
+        [
+          "Stock & dates",
+          "Alertes de stock bas et de péremption, journal de chaque mouvement."
+        ],
+        [
+          "Réassort prévu",
+          "Prévision à 7 jours par produit, testée contre des méthodes simples."
+        ],
+        [
+          "Fournisseurs",
+          "Commandes, livraisons qui remettent le stock à jour, coût moyen recalculé."
+        ],
+        [
+          "Assistant WhatsApp",
+          "« 3 pains vendus » ou « sucre 12 » : enregistrez sans ouvrir l'appli."
+        ],
+        [
+          "Rapports honnêtes",
+          "Ventes nettes des retours, marges au coût réel, dans votre fuseau horaire."
+        ],
+        [
+          "Vos données",
+          "Export complet en un clic, suppression du compte à tout moment."
+        ]
+      ]
+    },
+    "pilot": {
+      "title": "Programme pilote",
+      "sub": "Souk.AI est jeune. Nous cherchons des commerces de proximité — épiceries, supérettes, boulangeries, petits restaurants — pour l'utiliser au quotidien et nous dire ce qui manque.",
+      "b1": "Gratuit pendant le pilote",
+      "b2": "Accompagnement pour la mise en route",
+      "b3": "Vos retours décident de la suite",
+      "cta": "Rejoindre le pilote"
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "items": [
+        [
+          "Faut-il un ordinateur ?",
+          "Non. Un smartphone Android ou un iPhone suffit ; une tablette ou un PC fonctionnent aussi."
+        ],
+        [
+          "Et si internet coupe ?",
+          "Les ventes en espèces sont gardées sur le téléphone et envoyées dès que la connexion revient, sans doublon."
+        ],
+        [
+          "Quelles langues ?",
+          "Français, arabe et anglais dans l'application ; l'assistant WhatsApp comprend aussi la darija."
+        ],
+        [
+          "Mes données sont-elles à moi ?",
+          "Oui. Vous pouvez tout exporter ou supprimer votre compte depuis les paramètres."
+        ]
+      ]
+    },
+    "footer": {
+      "tag": "La caisse qui vous dit où est votre argent.",
+      "rights": "Tous droits réservés."
+    }
   }
 }

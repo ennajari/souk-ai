@@ -85,7 +85,7 @@ export default function Register() {
             <BrandMark className="h-10 w-10" />
             <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
           </div>
-          <p className="text-gray-500 text-sm mt-2">Gestion Intelligente pour Commerçants Marocains</p>
+          <p className="text-gray-500 text-sm mt-2">La caisse qui vous dit où est votre argent</p>
         </div>
 
         {/* Pitch */}
@@ -112,7 +112,7 @@ export default function Register() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { value: '500+', label: 'Commerçants' },
+              { value: '2 taps', label: 'par vente' },
               { value: '24/7', label: 'Disponible' },
               { value: '3', label: 'Langues' },
             ].map(({ value, label }) => (
@@ -127,8 +127,7 @@ export default function Register() {
         {/* Copyright */}
         <div className="relative z-10">
           <p className="text-gray-600 text-xs">
-            © {new Date().getFullYear()} Souk.AI — Tous droits réservés.<br />
-            Plateforme réservée aux commerçants marocains.
+            © {new Date().getFullYear()} Souk.AI — Tous droits réservés.
           </p>
         </div>
       </div>
@@ -322,8 +321,7 @@ export default function Register() {
 
           {/* Copyright */}
           <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-100 pt-4">
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.<br />
-            Plateforme réservée aux commerçants marocains.
+            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.
           </p>
         </div>
       </div>

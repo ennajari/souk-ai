@@ -462,9 +462,9 @@ export default function Dashboard() {
               {[
                 { label: 'Vente', icon: FiShoppingCart, from: 'from-brand-500', to: 'to-brand-600', action: openSaleModal },
                 { label: 'Produits', icon: FiPackage, from: 'from-blue-500', to: 'to-cyan-600', action: () => navigate('/products') },
-                { label: 'Stock', icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/inventory') },
+                { label: 'Stock', icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/products') },
                 { label: 'WhatsApp', icon: FiMessageSquare, from: 'from-emerald-500', to: 'to-green-600', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Prévisions', icon: FiTrendingUp, from: 'from-brand-600', to: 'to-blue-600', action: () => navigate('/forecasts') },
+                { label: 'Prévisions', icon: FiTrendingUp, from: 'from-brand-600', to: 'to-blue-600', action: () => navigate('/reports?tab=restock') },
               ].map(({ label, icon: Icon, from, to, action, href }) => {
                 const cls = `flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors`
                 return href ? (
@@ -489,9 +489,9 @@ export default function Dashboard() {
               {[
                 { label: 'Enregistrer une vente', icon: FiShoppingCart, color: 'text-brand-600', bg: 'bg-brand-50', action: openSaleModal },
                 { label: 'Gérer les produits', icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', action: () => navigate('/products') },
-                { label: 'Vérifier le stock', icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/inventory') },
+                { label: 'Vérifier le stock', icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/products') },
                 { label: 'Bot WhatsApp', icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-brand-700', bg: 'bg-brand-100', action: () => navigate('/forecasts') },
+                { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-brand-700', bg: 'bg-brand-100', action: () => navigate('/reports?tab=restock') },
               ].map(({ label, icon: Icon, color, bg, action, href }) => {
                 const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-gray-50 group text-left`
                 return href ? (

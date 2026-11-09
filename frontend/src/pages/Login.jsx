@@ -10,11 +10,11 @@ const FEATURES = [
   { icon: FiMessageSquare, color: 'from-brand-600 to-brand-700', title: 'Bot WhatsApp IA', desc: 'Ventes en Darija, Français ou Anglais' },
   { icon: FiPackage, color: 'from-blue-500 to-cyan-600', title: 'Inventaire intelligent', desc: 'Alertes stock bas automatiques' },
   { icon: FiTrendingUp, color: 'from-emerald-500 to-green-600', title: 'Prévisions 7 jours', desc: 'Anticipez vos besoins en stock' },
-  { icon: FiShield, color: 'from-orange-500 to-amber-500', title: 'Score de crédit', desc: 'Accédez au financement facilement' },
+  { icon: FiShield, color: 'from-orange-500 to-amber-500', title: 'Carnet de crédit', desc: 'Qui vous doit quoi, toujours à jour' },
 ]
 
 const STATS = [
-  { value: '500+', label: 'Commerçants' },
+  { value: '2 taps', label: 'par vente' },
   { value: '24/7', label: 'Disponible' },
   { value: '3 langues', label: 'Supportées' },
 ]
@@ -116,13 +116,13 @@ export default function Login() {
             <BrandMark className="h-10 w-10" />
             <span className="text-white text-2xl font-black tracking-tight">Souk.AI</span>
           </div>
-          <p className="text-gray-500 text-sm mt-2 ml-0.5">Gestion Intelligente pour Commerçants Marocains</p>
+          <p className="text-gray-500 text-sm mt-2 ml-0.5">La caisse qui vous dit où est votre argent</p>
         </div>
 
         {/* Main pitch */}
         <div className="relative z-10 space-y-6">
           <div>
-            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">LA PLATEFORME N°1</p>
+            <p className="text-brand-400 text-xs font-bold tracking-widest uppercase mb-3">VOTRE CAISSE INTELLIGENTE</p>
             <h2 className="text-white text-4xl font-black leading-tight">
               Gérez votre<br />
               commerce depuis<br />
@@ -155,19 +155,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Bottom: social proof */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex -space-x-2">
-            {['A', 'M', 'F', 'K', 'Y'].map((l, i) => (
-              <div key={l}
-                className="w-8 h-8 rounded-full border-2 border-ink-950 flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: ['#C2410C','#2563eb','#059669','#d97706','#dc2626'][i] }}>
-                {l}
-              </div>
-            ))}
-          </div>
-          <p className="text-gray-500 text-xs">+500 commerçants font confiance à Souk.AI</p>
-        </div>
       </div>
 
       {/* ── Right panel: form ── */}
@@ -282,8 +269,7 @@ export default function Login() {
 
           {/* Copyright */}
           <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-100 pt-4">
-            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.<br />
-            Plateforme réservée aux commerçants marocains.
+            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Souk.AI</span> — Tous droits réservés.
           </p>
         </div>
       </div>
