@@ -8,9 +8,9 @@
 
 <p align="center"><a href="#francais">Français</a> · <a href="#english">English</a></p>
 
-| Tableau de bord (FR) | Mobile, arabe (RTL) | Caisse mobile |
-|---|---|---|
-| ![Dashboard](docs/screenshots/dashboard-fr.png) | ![Arabic RTL](docs/screenshots/dashboard-ar-mobile.png) | ![POS](docs/screenshots/pos-mobile-fr.png) |
+| Accueil | Tableau de bord | Arabe (RTL), mobile | Caisse mobile |
+|---|---|---|---|
+| ![Landing](docs/screenshots/landing-fr.png) | ![Dashboard](docs/screenshots/dashboard-fr.png) | ![Arabic RTL](docs/screenshots/dashboard-ar-mobile.png) | ![POS](docs/screenshots/pos-mobile-fr.png) |
 
 ---
 
@@ -24,13 +24,13 @@ produits périmés, en ruptures sur les meilleures ventes et en créances oubli�
 ### Ce que fait Souk.AI
 | Domaine | Fonctionnalités |
 |---|---|
-| **Caisse (POS)** | Vente en 2 taps, scan code-barres (caméra/douchette), espèces / crédit client / carte Souk.AI NFC, ticket, retours. Encaissement **atomique et idempotent** ; ventes en espèces **hors ligne** synchronisées au retour du réseau. |
+| **Caisse (POS)** | Vente en 2 taps, scan code-barres (caméra/douchette), espèces / crédit client / carte, ticket avec TVA incluse. Encaissement **atomique et idempotent** ; ventes en espèces **hors ligne** synchronisées au retour du réseau ; historique des ventes avec **retours**. |
 | **Où est votre argent ?** | Argent à récupérer (carnet), perdu (périmés), à risque (expire sous 7 j, invendus 30 j), marge manquée par rupture — chaque ligne mène à l'action. |
-| **Stock & produits** | Stock temps réel, seuils, dates d'expiration, catalogue bilingue, scan de facture fournisseur (GPT-4o Vision), import Sage 100. |
-| **Prévisions** | Demande à 7 jours par produit et réassort suggéré ; modèle backtesté (WAPE 0,205 vs 0,266 pour la moyenne naïve). |
-| **Carnet de crédit** | Plafond par client, remboursements, reçu WhatsApp, rappels. |
+| **Stock & produits** | Stock temps réel avec journal de chaque mouvement, seuils, dates d'expiration, **TVA par produit**, scan de facture fournisseur (GPT-4o Vision), import Sage 100. |
+| **Rapports** | Ventes et marges nettes des retours au coût réel, dans le fuseau du commerçant ; réassort prévu à 7 jours (modèle backtesté : WAPE 0,205 vs 0,266 pour la moyenne naïve) ; **TVA collectée par taux** pour la déclaration. |
+| **Carnet de crédit** | Plafond par client, remboursements, reçu WhatsApp, rappels hebdomadaires **avec l'accord du client**. |
 | **WhatsApp IA** | Darija / FR / EN : « sardines 10 DH », rapport du jour, alertes, réinitialisation par OTP. |
-| **Fournisseurs & B2B** | Commandes fournisseurs, portail fournisseur, marketplace entre commerçants. |
+| **Fournisseurs & B2B** | Commandes fournisseurs ; une livraison reçue **remet le stock à jour au coût moyen pondéré** ; portail fournisseur ; marketplace entre commerçants. |
 | **Langues & pays** | FR / AR (RTL) / EN ; devise, fuseau et formats par marchand ; profils pays (MA, DZ, TN, SN, CI, FR, BE, ES, DE, IT, NL, GB, US, CA). |
 | **Confiance** | Export de toutes ses données (JSON), suppression de compte, rôles marchand / fournisseur / admin. |
 
@@ -45,7 +45,7 @@ Sans clé OpenAI ni WhatsApp, l'application fonctionne ; seules les fonctions IA
 
 ### Tests & qualité
 ```bash
-make test-up && make test     # 44 tests d'intégration sur Postgres migré par Alembic + Redis
+make test-up && make test     # 66 tests d'intégration sur Postgres migré par Alembic + Redis
 cd frontend && npm run dev &  # puis, backend lancé :
 npm run e2e                   # Playwright : inscription → tableau de bord, vente cash en 2 taps
 make lint && make audit       # ruff, pip-audit, npm audit
@@ -67,6 +67,7 @@ défini pour désigner l'admin (ou `python -m scripts.grant_admin <téléphone>`
 
 ### Documentation
 - Audit, stratégie, décisions, rapport : [`docs/audit/`](docs/audit/)
+- Identité de marque (logo, couleurs, typo, ton) : [`docs/BRAND.md`](docs/BRAND.md)
 - WhatsApp : [`docs/WHATSAPP_SETUP.md`](docs/WHATSAPP_SETUP.md)
 
 ---

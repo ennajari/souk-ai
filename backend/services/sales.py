@@ -83,6 +83,7 @@ async def record_items(
             quantity=item.quantity, unit_price=unit_price, total_amount=to_money(unit_price * item.quantity),
             # frozen at sale time: later cost changes must not rewrite past margins
             unit_cost=to_money(cost if cost is not None else product.cost_price),
+            tax_rate=product.tax_rate,
         )
         db.add(txn)
         out.append((txn, product))

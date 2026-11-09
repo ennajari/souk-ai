@@ -11,9 +11,10 @@ import {
 import StatsCard from '../components/StatsCard'
 import RamadanBanner from '../components/RamadanBanner'
 import MoneyReportCard from '../components/MoneyReportCard'
-import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, creditAPI, revenueAPI, barcodeAPI } from '../api/client'
+import { analyticsAPI, transactionsAPI, productsAPI, inventoryAPI, revenueAPI, barcodeAPI } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useMoney } from '../utils/money'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 
 /* ── Custom chart tooltip ── */
@@ -29,6 +30,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation()
   const { merchant } = useAuth()
   const money = useMoney()
   const currency = merchant?.currency || 'MAD'
@@ -37,19 +39,12 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState([])
   const [recentTx, setRecentTx] = useState([])
   const [alerts, setAlerts] = useState([])
-  const [creditScore, setCreditScore] = useState(null)
   const [loading, setLoading] = useState(true)
   const [monthlyRevenue, setMonthlyRevenue] = useState(null)
   const [expiringCount, setExpiringCount] = useState(0)
 
   const [chartDays, setChartDays] = useState(7)
 
-  const [showSaleModal, setShowSaleModal] = useState(false)
-  const [products, setProducts] = useState([])
-  const [saleForm, setSaleForm] = useState({ product_id: '', quantity: 1 })
-  const [savingSale, setSavingSale] = useState(false)
-  const [productSearch, setProductSearch] = useState('')
-  const [showDropdown, setShowDropdown] = useState(false)
   const searchRef = useRef(null)
 
   useEffect(() => {
@@ -58,90 +53,38 @@ export default function Dashboard() {
       analyticsAPI.salesChart(chartDays).catch(() => ({ data: [] })),
       transactionsAPI.list(null, 5).catch(() => ({ data: [] })),
       inventoryAPI.alerts().catch(() => ({ data: [] })),
-      creditAPI.score().catch(() => ({ data: null })),
-    ]).then(([statsRes, chartRes, txRes, alertsRes, creditRes]) => {
+    ]).then(([statsRes, chartRes, txRes, alertsRes]) => {
       setStats(statsRes.data)
       setChartData(chartRes.data)
       setRecentTx(txRes.data.slice(0, 5))
       setAlerts(alertsRes.data)
-      setCreditScore(creditRes.data)
     }).finally(() => setLoading(false))
     // Load monthly revenue + expiry count (non-blocking)
     revenueAPI.monthly(1).then(r => setMonthlyRevenue(r.data)).catch(() => {})
     barcodeAPI.expiring(3).then(r => setExpiringCount((r.data || []).length)).catch(() => {})
   }, [chartDays])
 
-  const openSaleModal = () => {
-    productsAPI.list().then(r => {
-      const priced = r.data.filter(p => p.unit_price > 0)
-      setProducts(priced)
-      setSaleForm({ product_id: '', quantity: 1 })
-      setProductSearch('')
-      setShowDropdown(false)
-      setShowSaleModal(true)
-      setTimeout(() => searchRef.current?.focus(), 100)
-    }).catch(() => toast.error('Erreur chargement produits'))
-  }
-
-  const filteredProducts = useMemo(() => {
-    if (!productSearch.trim()) return products.slice(0, 8)
-    const q = productSearch.toLowerCase()
-    return products.filter(p =>
-      (p.name_fr || '').toLowerCase().includes(q) ||
-      (p.name_ar || '').toLowerCase().includes(q) ||
-      (p.barcode || '').includes(q)
-    ).slice(0, 8)
-  }, [products, productSearch])
-
-  const selectedProduct = products.find(p => p.id === saleForm.product_id)
-
-  const handleQuickSale = async (e) => {
-    e.preventDefault()
-    setSavingSale(true)
-    try {
-      const product = products.find(p => p.id === saleForm.product_id)
-      await transactionsAPI.create({
-        product_id: saleForm.product_id,
-        quantity: Number(saleForm.quantity),
-        unit_price: product?.unit_price,
-        type: 'SALE',
-        source: 'WEB',
-      })
-      toast.success(`✅ ${saleForm.quantity} × ${product?.name_fr || product?.name_ar}`)
-      setShowSaleModal(false)
-      analyticsAPI.dashboard().then(r => setStats(r.data)).catch(() => {})
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur')
-    } finally {
-      setSavingSale(false)
-    }
-  }
+  // Selling happens at the till: one fast, atomic checkout instead of a second slower form here
+  const openSaleModal = () => navigate('/pos')
 
   const checklist = [
-    { label: 'Compte créé', done: true },
-    { label: 'Premier produit ajouté', done: (stats?.total_products || 0) > 0 },
-    { label: 'Première vente enregistrée', done: (stats?.total_sales_month || 0) > 0 },
-    { label: 'Bot WhatsApp testé', done: false, link: 'https://wa.me/212763576794?text=سلام' },
-    { label: 'Stock configuré', done: (stats?.total_products || 0) >= 3 },
+    { label: t('dashboard.check.account'), done: true },
+    { label: t('dashboard.check.product'), done: (stats?.total_products || 0) > 0 },
+    { label: t('dashboard.check.sale'), done: (stats?.total_sales_month || 0) > 0 },
+    { label: t('dashboard.check.bot'), done: false, link: 'https://wa.me/212763576794?text=سلام' },
+    { label: t('dashboard.check.stock'), done: (stats?.total_products || 0) >= 3 },
   ]
   const checklistDone = checklist.filter(c => c.done).length
   const allDone = checklistDone === checklist.length
 
-  const scoreColor = !creditScore ? 'gray'
-    : creditScore.score >= 700 ? 'green'
-    : creditScore.score >= 400 ? 'yellow' : 'red'
-  const scoreLabel = !creditScore ? '—'
-    : creditScore.score >= 700 ? 'Excellent'
-    : creditScore.score >= 400 ? 'Bon' : 'À améliorer'
 
-  const saleTotal = (Number(saleForm.quantity) * (selectedProduct?.unit_price || 0)).toFixed(2)
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 animate-pulse" />
-          <p className="text-sm text-gray-500 font-medium">Chargement...</p>
+          <p className="text-sm text-gray-500 font-medium">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -157,10 +100,10 @@ export default function Dashboard() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900">
-            Bonjour, <span className="gradient-text">{merchant?.business_name || 'commerçant'}</span> 👋
+            {t('dashboard.hello')}, <span className="gradient-text">{merchant?.business_name || ''}</span> 👋
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {new Date().toLocaleDateString('fr-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString(i18n.language || 'fr', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <button
@@ -168,7 +111,7 @@ export default function Dashboard() {
           className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 transition-all text-sm font-semibold shadow-lg shadow-brand-200 flex-shrink-0"
         >
           <FiPlus className="h-4 w-4" />
-          <span>Vente rapide</span>
+          <span>{t('dashboard.quickSale')}</span>
         </button>
       </div>
 
@@ -183,33 +126,33 @@ export default function Dashboard() {
               <div className="p-1.5 bg-white/20 rounded-lg">
                 <FiDollarSign className="h-4 w-4" />
               </div>
-              <p className="text-sm font-medium text-brand-200">Revenu du mois</p>
+              <p className="text-sm font-medium text-brand-200">{t('dashboard.monthlyRevenue')}</p>
             </div>
             <p className="text-4xl font-black tabular-nums">{(stats?.total_revenue_month || 0).toFixed(0)}</p>
             <p className="text-brand-300 font-semibold text-lg">{currency}</p>
             <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-brand-300">{stats?.total_sales_month || 0} ventes ce mois</p>
+              <p className="text-xs text-brand-300">{t('dashboard.salesThisMonth', { count: stats?.total_sales_month || 0 })}</p>
               <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-lg">
                 <FiTrendingUp className="h-3 w-3 text-emerald-300" />
-                <span className="text-xs font-semibold text-emerald-300">Actif</span>
+                <span className="text-xs font-semibold text-emerald-300">{t('dashboard.active')}</span>
               </div>
             </div>
           </div>
         </div>
 
         <StatsCard
-          title="Ventes aujourd'hui"
+          title={t('dashboard.todaySales')}
           value={stats?.total_sales_today || 0}
           icon={FiShoppingCart}
           color="blue"
-          subtitle={`${money(stats?.total_revenue_today || 0, 0)} aujourd'hui`}
+          subtitle={t('dashboard.todayAmount', { amount: money(stats?.total_revenue_today || 0, 0) })}
         />
         <StatsCard
-          title="Produits"
+          title={t('dashboard.totalProducts')}
           value={stats?.total_products || 0}
           icon={FiPackage}
           color="purple"
-          subtitle={`${stats?.low_stock_count || 0} en stock bas`}
+          subtitle={t('dashboard.lowStockCount', { count: stats?.low_stock_count || 0 })}
         />
       </div>
 
@@ -217,36 +160,23 @@ export default function Dashboard() {
       <MoneyReportCard />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatsCard title="Stock bas" value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
-        <StatsCard title={`Revenu auj. (${currency})`} value={Math.round(stats?.total_revenue_today || 0).toLocaleString()} icon={FiZap} color="green" />
+        <StatsCard title={t('dashboard.lowStock')} value={stats?.low_stock_count || 0} icon={FiAlertTriangle} color="orange" />
+        <StatsCard title={t('dashboard.todayRevenue')} subtitle={currency} value={Math.round(stats?.total_revenue_today || 0).toLocaleString()} icon={FiZap} color="green" />
         {monthlyRevenue && (
           <div className="bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 hover:shadow-lg transition-all">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Benefice net/mois</p>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('dashboard.netProfitMonth')}</p>
             <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${monthlyRevenue.net_revenue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {monthlyRevenue.net_revenue.toFixed(0)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">{currency} · apres charges</p>
+            <p className="text-xs text-gray-500 mt-1">{currency} · {t('dashboard.afterCosts')}</p>
           </div>
         )}
         {expiringCount > 0 && (
           <div className="bg-white rounded-2xl border border-red-100 p-4 sm:p-5 hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/products')}>
-            <p className="text-xs font-medium text-red-500 uppercase tracking-wide">Expiration</p>
+            <p className="text-xs font-medium text-red-500 uppercase tracking-wide">{t('dashboard.expiry')}</p>
             <p className="text-2xl sm:text-3xl font-black mt-1.5 text-red-600">{expiringCount}</p>
-            <p className="text-xs text-gray-500 mt-1">produit(s) dans 3 jours</p>
+            <p className="text-xs text-gray-500 mt-1">{t('dashboard.expiringIn3')}</p>
           </div>
-        )}
-        {creditScore ? (
-          <div className={`bg-white rounded-2xl border p-4 sm:p-5 hover:shadow-lg transition-all duration-300 ${
-            scoreColor === 'green' ? 'border-emerald-100' : scoreColor === 'yellow' ? 'border-yellow-100' : 'border-red-100'
-          }`}>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Crédit Score</p>
-            <p className={`text-2xl sm:text-3xl font-black mt-1.5 tabular-nums ${
-              scoreColor === 'green' ? 'text-emerald-600' : scoreColor === 'yellow' ? 'text-yellow-600' : 'text-red-600'
-            }`}>{creditScore.score}</p>
-            <p className="text-xs text-gray-500 mt-1">{scoreLabel} · /1000</p>
-          </div>
-        ) : (
-          <StatsCard title="Crédit Score" value="—" icon={FiStar} color="indigo" subtitle="Non calculé" />
         )}
         <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-2">
@@ -259,7 +189,7 @@ export default function Dashboard() {
             rel="noreferrer"
             className="text-white text-xs font-bold hover:text-emerald-100 transition-colors flex items-center gap-1"
           >
-            Ouvrir le bot <FiArrowRight className="h-3 w-3" />
+            {t('dashboard.openBot')} <FiArrowRight className="h-3 w-3" />
           </a>
         </div>
       </div>
@@ -271,8 +201,8 @@ export default function Dashboard() {
         <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-gray-900">Évolution des ventes</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{chartDays} derniers jours</p>
+              <h3 className="text-sm font-bold text-gray-900">{t('dashboard.salesChart')}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.lastDays', { count: chartDays })}</p>
             </div>
             <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
               {[7, 30, 90].map(d => (
@@ -285,7 +215,7 @@ export default function Dashboard() {
                       : 'text-gray-500 hover:text-gray-600'
                   }`}
                 >
-                  {d}j
+                  {t('dashboard.days', { count: d })}
                 </button>
               ))}
             </div>
@@ -326,34 +256,18 @@ export default function Dashboard() {
 
         {/* Month summary */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-900 mb-4">Résumé du mois</h3>
+          <h3 className="text-sm font-bold text-gray-900 mb-4">{t('dashboard.monthSummary')}</h3>
           <div className="space-y-3">
             {[
-              { label: 'Ventes totales', value: stats?.total_sales_month || 0, valueClass: 'text-gray-900 font-bold' },
-              { label: 'Revenu total', value: `${money((stats?.total_revenue_month || 0))}`, valueClass: 'text-emerald-600 font-bold' },
-              { label: 'Alertes stock', value: alerts.length, valueClass: alerts.length > 0 ? 'text-orange-500 font-bold' : 'text-emerald-500 font-bold' },
+              { label: t('dashboard.totalSales'), value: stats?.total_sales_month || 0, valueClass: 'text-gray-900 font-bold' },
+              { label: t('dashboard.totalRevenue'), value: `${money((stats?.total_revenue_month || 0))}`, valueClass: 'text-emerald-600 font-bold' },
+              { label: t('dashboard.stockAlerts'), value: alerts.length, valueClass: alerts.length > 0 ? 'text-orange-500 font-bold' : 'text-emerald-500 font-bold' },
             ].map(({ label, value, valueClass }) => (
               <div key={label} className="flex justify-between items-center py-2.5 border-b border-gray-50 last:border-0">
                 <span className="text-sm text-gray-500">{label}</span>
                 <span className={`text-sm ${valueClass}`}>{value}</span>
               </div>
             ))}
-            {creditScore && (
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-sm text-gray-500">Score crédit</span>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${
-                    scoreColor === 'green' ? 'bg-emerald-500' :
-                    scoreColor === 'yellow' ? 'bg-yellow-400' : 'bg-red-500'
-                  }`} />
-                  <span className={`text-sm font-bold ${
-                    scoreColor === 'green' ? 'text-emerald-600' :
-                    scoreColor === 'yellow' ? 'text-yellow-600' : 'text-red-600'
-                  }`}>{creditScore.score}</span>
-                  <span className="text-xs text-gray-500 hidden sm:inline">({scoreLabel})</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -364,7 +278,7 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-900">Dernières transactions</h3>
+            <h3 className="text-sm font-bold text-gray-900">{t('dashboard.recentTransactions')}</h3>
             <button
               onClick={() => navigate('/sales')}
               className="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition-colors"
@@ -378,8 +292,8 @@ export default function Dashboard() {
               <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <FiShoppingCart className="h-6 w-6 text-gray-500" />
               </div>
-              <p className="text-sm font-medium text-gray-600">Aucune transaction encore</p>
-              <p className="text-xs text-gray-500 mt-1">Enregistrez votre première vente</p>
+              <p className="text-sm font-medium text-gray-600">{t('dashboard.noTx')}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('dashboard.noTxHint')}</p>
               <button
                 onClick={openSaleModal}
                 className="mt-3 text-xs text-brand-600 hover:underline font-semibold"
@@ -402,7 +316,7 @@ export default function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-800 truncate">
-                        {tx.product_name_fr || tx.product_name_ar || 'Produit'}
+                        {tx.product_name_fr || tx.product_name_ar || t('customers.product')}
                       </p>
                       <p className="text-xs text-gray-500">
                         {tx.quantity} unité(s) · {new Date(tx.created_at).toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}
@@ -425,7 +339,7 @@ export default function Dashboard() {
           {!allDone && (
             <div className="bg-gradient-to-br from-brand-50 to-brand-100 rounded-2xl border border-brand-100 p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-900">Démarrage rapide</h3>
+                <h3 className="text-sm font-bold text-gray-900">{t('dashboard.gettingStarted')}</h3>
                 <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
                   {checklistDone}/{checklist.length}
                 </span>
@@ -457,14 +371,14 @@ export default function Dashboard() {
 
           {/* Quick actions */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex-1">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Actions rapides</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-3">{t('dashboard.quickActions')}</h3>
             <div className="grid grid-cols-2 gap-2 lg:hidden">
               {[
-                { label: 'Vente', icon: FiShoppingCart, from: 'from-brand-500', to: 'to-brand-600', action: openSaleModal },
-                { label: 'Produits', icon: FiPackage, from: 'from-blue-500', to: 'to-cyan-600', action: () => navigate('/products') },
-                { label: 'Stock', icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/products') },
+                { label: t('dashboard.qa.sale'), icon: FiShoppingCart, from: 'from-brand-500', to: 'to-brand-600', action: openSaleModal },
+                { label: t('dashboard.qa.products'), icon: FiPackage, from: 'from-blue-500', to: 'to-cyan-600', action: () => navigate('/products') },
+                { label: t('dashboard.qa.stock'), icon: FiAlertTriangle, from: 'from-orange-500', to: 'to-amber-500', action: () => navigate('/products') },
                 { label: 'WhatsApp', icon: FiMessageSquare, from: 'from-emerald-500', to: 'to-green-600', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Prévisions', icon: FiTrendingUp, from: 'from-brand-600', to: 'to-blue-600', action: () => navigate('/reports?tab=restock') },
+                { label: t('dashboard.qa.forecasts'), icon: FiTrendingUp, from: 'from-brand-600', to: 'to-blue-600', action: () => navigate('/reports?tab=restock') },
               ].map(({ label, icon: Icon, from, to, action, href }) => {
                 const cls = `flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors`
                 return href ? (
@@ -487,11 +401,11 @@ export default function Dashboard() {
 
             <div className="hidden lg:flex flex-col gap-1">
               {[
-                { label: 'Enregistrer une vente', icon: FiShoppingCart, color: 'text-brand-600', bg: 'bg-brand-50', action: openSaleModal },
-                { label: 'Gérer les produits', icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', action: () => navigate('/products') },
-                { label: 'Vérifier le stock', icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/products') },
-                { label: 'Bot WhatsApp', icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212763576794?text=مرحبا' },
-                { label: 'Voir les prévisions', icon: FiTrendingUp, color: 'text-brand-700', bg: 'bg-brand-100', action: () => navigate('/reports?tab=restock') },
+                { label: t('dashboard.qa.recordSale'), icon: FiShoppingCart, color: 'text-brand-600', bg: 'bg-brand-50', action: openSaleModal },
+                { label: t('dashboard.qa.manageProducts'), icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', action: () => navigate('/products') },
+                { label: t('dashboard.qa.checkStock'), icon: FiAlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50', action: () => navigate('/products') },
+                { label: t('dashboard.qa.whatsappBot'), icon: FiMessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50', href: 'https://wa.me/212763576794?text=مرحبا' },
+                { label: t('dashboard.qa.seeForecasts'), icon: FiTrendingUp, color: 'text-brand-700', bg: 'bg-brand-100', action: () => navigate('/reports?tab=restock') },
               ].map(({ label, icon: Icon, color, bg, action, href }) => {
                 const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-gray-50 group text-left`
                 return href ? (
@@ -515,127 +429,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Quick Sale Modal ── */}
-      {showSaleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:px-4">
-          <div className="bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-3xl p-5 sm:p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-base font-bold text-gray-900">Vente rapide</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Enregistrer une vente</p>
-              </div>
-              <button
-                onClick={() => setShowSaleModal(false)}
-                className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleQuickSale} className="space-y-4">
-              <div className="relative">
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Produit</label>
-
-                {/* Selected product pill */}
-                {selectedProduct ? (
-                  <div className="flex items-center gap-2 px-3 py-2.5 border-2 border-brand-400 rounded-xl bg-brand-50">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-brand-800 truncate">
-                        {selectedProduct.name_fr || selectedProduct.name_ar}
-                      </p>
-                      <p className="text-xs text-brand-500">{money(Number(selectedProduct.unit_price))} · stock: {selectedProduct.stock_quantity ?? '?'}</p>
-                    </div>
-                    <button type="button" onClick={() => { setSaleForm({ ...saleForm, product_id: '' }); setProductSearch(''); setTimeout(() => searchRef.current?.focus(), 50) }}
-                      className="p-1 rounded-lg hover:bg-brand-200 text-brand-500 transition-colors flex-shrink-0">
-                      <FiX className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-                    <input
-                      ref={searchRef}
-                      type="text"
-                      placeholder="Rechercher un produit..."
-                      value={productSearch}
-                      onChange={e => { setProductSearch(e.target.value); setShowDropdown(true) }}
-                      onFocus={() => setShowDropdown(true)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
-                      autoComplete="off"
-                    />
-                  </div>
-                )}
-
-                {/* Dropdown results */}
-                {!selectedProduct && showDropdown && filteredProducts.length > 0 && (
-                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto">
-                    {filteredProducts.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onMouseDown={() => {
-                          setSaleForm({ ...saleForm, product_id: p.id })
-                          setProductSearch('')
-                          setShowDropdown(false)
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-brand-50 transition-colors text-left border-b border-gray-50 last:border-0"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{p.name_fr || p.name_ar}</p>
-                          {p.name_ar && p.name_fr && <p className="text-xs text-gray-500 truncate">{p.name_ar}</p>}
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-3">
-                          <p className="text-sm font-bold text-brand-600">{money(Number(p.unit_price))}</p>
-                          <p className="text-xs text-gray-500">stock: {p.stock_quantity ?? '?'}</p>
-                        </div>
-                      </button>
-                    ))}
-                    {products.length > 8 && !productSearch && (
-                      <p className="text-center text-xs text-gray-500 py-2">Tapez pour filtrer parmi {products.length} produits</p>
-                    )}
-                  </div>
-                )}
-                {!selectedProduct && showDropdown && productSearch && filteredProducts.length === 0 && (
-                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-500 text-center">
-                    Aucun produit trouvé pour "{productSearch}"
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Quantité</label>
-                <input
-                  type="number" min="1" step="1"
-                  value={saleForm.quantity}
-                  onChange={e => setSaleForm({ ...saleForm, quantity: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-gray-50 transition"
-                  required
-                />
-              </div>
-              {saleForm.product_id && (
-                <div className="bg-gradient-to-r from-brand-50 to-brand-100 rounded-xl px-4 py-3 flex justify-between items-center border border-brand-100">
-                  <span className="text-xs font-medium text-brand-700">Total estimé</span>
-                  <span className="text-base font-black text-brand-800">{money(saleTotal)}</span>
-                </div>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowSaleModal(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingSale || products.length === 0}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 text-sm font-semibold disabled:opacity-50 transition-all shadow-lg shadow-brand-200"
-                >
-                  {savingSale ? 'En cours...' : 'Confirmer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

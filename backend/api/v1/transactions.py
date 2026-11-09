@@ -187,5 +187,6 @@ async def return_transaction(
     )], original.customer_id)
     if original.unit_cost is not None:
         return_txn.unit_cost = original.unit_cost  # a return reverses the cost of the sale it cancels
+    return_txn.tax_rate = original.tax_rate  # and the VAT it declared
     await db.commit()
     return _to_response(return_txn, product)

@@ -16,8 +16,13 @@ Horodatage UTC. Toutes les phases sont terminées ; voir REPORT.md pour la synth
 - [2026-11-09 01:50] Phase 4.5 — e2e Playwright + captures (`9f931ea`, `01239e9`).
 - [2026-11-09 02:10] Phase 3/5 — README FR/EN, `.env.example`, pays par défaut (`6b5449e`) ; mesures finales ; STRATEGY, RESEARCH, DECISIONS, BLOCKERS, REPORT.
 
+- [2026-11-09] Passe 2 — logique : analytics (fuseau, retours, coût figé, double comptage), service de vente unique,
+  inventaire, marketplace, fournisseurs (réception → stock), concurrence (`populate_existing`), rappels opt-in, fusion.
+- [2026-11-09] Passe 3 — produit/marque : identité neutre + tokens, navigation consolidée, Rapports, retours,
+  landing honnête FR/AR/EN, TVA par produit + rapport, caisse et tableau de bord traduits.
+
 ## État final
-44 tests backend + 2 e2e verts ; ruff 0 ; pip-audit 0 ; bandit 0 medium/high ; npm audit 2 modérées ; build OK.
+66 tests backend + 2 e2e verts ; ruff 0 ; pip-audit 0 ; bandit 0 medium/high ; npm audit 2 modérées ; build OK.
 
 ## Reste à faire
 Voir REPORT.md, sections « Reste à faire » et « Actions manuelles requises ».

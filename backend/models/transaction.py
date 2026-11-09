@@ -36,6 +36,8 @@ class Transaction(Base):
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2))
     # Cost price at the time of the transaction (NULL on rows created before it existed)
     unit_cost: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    # VAT % included in total_amount, frozen at sale time (declarations must not change afterwards)
+    tax_rate: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     merchant = relationship("Merchant", back_populates="transactions")

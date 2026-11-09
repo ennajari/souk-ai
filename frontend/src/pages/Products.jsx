@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiAlertCircle, FiCamera, FiCheck, FiX, FiRefreshCw, FiZap, FiCopy, FiFilter, FiClock } from 'react-icons/fi'
 import { RiScanLine, RiBarcodeLine } from 'react-icons/ri'
-import { productsAPI, inventoryAPI } from '../api/client'
+import { productsAPI, inventoryAPI, merchantsAPI } from '../api/client'
+import { useTranslation } from 'react-i18next'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -27,12 +29,17 @@ function namesAreSimilar(a, b) {
 }
 
 export default function Products() {
+  const { t } = useTranslation()
+  const { merchant } = useAuth()
+  const currency = merchant?.currency || 'MAD'
+  const [taxInfo, setTaxInfo] = useState({ label: 'TVA', rates: [] })
+  useEffect(() => { merchantsAPI.taxRates().then(r => setTaxInfo(r.data)).catch(() => {}) }, [])
   const [products, setProducts]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId]       = useState(null)
   const [search, setSearch]       = useState('')
-  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', manufacture_date: '', expiry_date: '' })
+  const [form, setForm]           = useState({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', tax_rate: '', manufacture_date: '', expiry_date: '' })
   const [filterGroup, setFilterGroup] = useState('')  // Smart group filter
   const [expiringProducts, setExpiringProducts] = useState([])
 
@@ -208,13 +215,13 @@ export default function Products() {
 
   const openAdd = () => {
     setEditId(null)
-    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', stock_quantity: '', manufacture_date: '', expiry_date: '' })
+    setForm({ name_ar: '', name_fr: '', barcode: '', unit: 'piece', unit_price: '', cost_price: '', tax_rate: '', stock_quantity: '', manufacture_date: '', expiry_date: '' })
     setShowModal(true)
   }
 
   const openEdit = (p) => {
     setEditId(p.id)
-    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price || '', cost_price: p.cost_price || '', stock_quantity: p.stock_quantity ?? '', manufacture_date: p.manufacture_date || '', expiry_date: p.expiry_date || '' })
+    setForm({ name_ar: p.name_ar, name_fr: p.name_fr, barcode: p.barcode || '', unit: p.unit, unit_price: p.unit_price || '', cost_price: p.cost_price || '', tax_rate: p.tax_rate ?? '', stock_quantity: p.stock_quantity ?? '', manufacture_date: p.manufacture_date || '', expiry_date: p.expiry_date || '' })
     setShowModal(true)
   }
 
@@ -224,7 +231,7 @@ export default function Products() {
       if (editId) {
         const product = products.find(p => p.id === editId)
         const { stock_quantity, ...productData } = form
-        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null }
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null, tax_rate: productData.tax_rate === '' || productData.tax_rate == null ? null : parseFloat(productData.tax_rate) }
         await productsAPI.update(editId, cleanData)
         const delta = Math.round(parseFloat(stock_quantity) || 0) - Math.round(product?.stock_quantity ?? 0)
         if (delta !== 0) {
@@ -237,7 +244,7 @@ export default function Products() {
         toast.success('Produit mis à jour')
       } else {
         const { stock_quantity, ...productData } = form
-        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null }
+        const cleanData = { ...productData, unit_price: parseFloat(productData.unit_price) || 0, cost_price: parseFloat(productData.cost_price) || 0, manufacture_date: productData.manufacture_date || null, expiry_date: productData.expiry_date || null, tax_rate: productData.tax_rate === '' || productData.tax_rate == null ? null : parseFloat(productData.tax_rate) }
         await productsAPI.create({ ...cleanData, initial_stock: parseFloat(stock_quantity) || 0 })
         toast.success('Produit ajouté')
       }
@@ -747,15 +754,27 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix vente (MAD)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix vente ({currency})</label>
                   <input name="unit_price" type="text" inputMode="decimal" placeholder="0.00" value={form.unit_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat (MAD)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Prix achat ({currency})</label>
                   <input name="cost_price" type="text" inputMode="decimal" placeholder="0.00" value={form.cost_price} onChange={handleChange}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
                 </div>
+              </div>
+              <div>
+                <label htmlFor="tax_rate" className="text-xs font-medium text-gray-600 mb-1 block">
+                  {taxInfo.label} {t('products.taxIncluded')}
+                </label>
+                <select id="tax_rate" name="tax_rate" value={form.tax_rate ?? ''} onChange={e => setForm(f => ({ ...f, tax_rate: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm bg-white">
+                  <option value="">{t('products.taxUnset')}</option>
+                  {taxInfo.rates.map(r => <option key={r} value={r}>{r} %</option>)}
+                  {form.tax_rate !== '' && form.tax_rate != null && !taxInfo.rates.includes(Number(form.tax_rate)) &&
+                    <option value={form.tax_rate}>{form.tax_rate} %</option>}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
