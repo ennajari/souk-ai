@@ -71,7 +71,7 @@ export default function Header({ onMenuClick }) {
         <div>
           <h2 className="text-sm font-bold text-gray-900 leading-none">{pageTitle}</h2>
           <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
-            {new Date().toLocaleDateString(isAr ? 'ar-MA' : 'fr-MA', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString(i18n.language || 'fr', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
       </div>

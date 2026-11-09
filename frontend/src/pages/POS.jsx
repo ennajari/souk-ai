@@ -11,9 +11,9 @@ import { useAuth } from '../context/AuthContext'
 import { useMoney } from '../utils/money'
 
 const PAYMENT_METHODS = [
-  { id: 'CASH', label: 'Especes', labelAr: 'نقدي', icon: FiDollarSign, color: 'green' },
-  { id: 'NFC_SOUKCARD', label: 'Carte Souk.AI', labelAr: 'بطاقة سوق', icon: FiSmartphone, color: 'purple' },
-  { id: 'NFC_BANK', label: 'Carte bancaire', labelAr: 'بطاقة بنكية', icon: FiCreditCard, color: 'blue' },
+  { id: 'CASH', key: 'cash', icon: FiDollarSign, color: 'green' },
+  { id: 'NFC_SOUKCARD', key: 'soukCard', icon: FiSmartphone, color: 'purple' },
+  { id: 'NFC_BANK', key: 'bankCard', icon: FiCreditCard, color: 'blue' },
 ]
 
 export default function POS() {
@@ -154,10 +154,10 @@ export default function POS() {
     try {
       await productsAPI.update(product.id, { barcode: linkModal.barcode })
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, barcode: linkModal.barcode } : p))
-      toast.success(`Code-barres lié à "${product.name_fr || product.name_ar}"`)
+      toast.success(t('pos.barcodeLinked', { name: product.name_fr || product.name_ar }))
       addToCart({ ...product, barcode: linkModal.barcode })
       setLinkModal(null)
-    } catch { toast.error('Erreur lors de la liaison du code-barres') }
+    } catch { toast.error(t('pos.barcodeLinkError')) }
     finally { setLinking(false) }
   }
 
@@ -205,7 +205,7 @@ export default function POS() {
   // Start NFC scan — detect card, look up info, then ask PIN
   const startNfcScan = async () => {
     if (!hasNfc) {
-      setPayError('NFC non disponible sur cet appareil. Utilisez un telephone Android avec NFC active.')
+      setPayError(t('pos.noNfc'))
       return
     }
     try {
@@ -230,7 +230,7 @@ export default function POS() {
           if (payMethod === 'NFC_BANK') {
             executePayment('NFC_BANK', null, null, serialNumber)
           } else {
-            setPayError('Carte non reconnue. Verifiez que la carte est enregistree.')
+            setPayError(t('pos.unknownCard'))
             setPayStep('select')
           }
         }
@@ -238,7 +238,7 @@ export default function POS() {
     } catch (err) {
       setNfcReading(false)
       if (err.name !== 'AbortError') {
-        setPayError('Erreur NFC: ' + (err.message || ''))
+        setPayError(t('pos.nfcError') + (err.message ? ': ' + err.message : ''))
         setPayStep('select')
       }
     }
@@ -257,7 +257,7 @@ export default function POS() {
   const checkout = async (method, label, extra = {}) => {
     if (processing) return
     if (cart.length === 0) { toast.error(t('pos.emptyCart')); return }
-    if (method === 'CREDIT' && !selectedCustomer) { toast.error('Selectionnez un client pour le credit'); return }
+    if (method === 'CREDIT' && !selectedCustomer) { toast.error(t('pos.pickCustomer')); return }
     // randomUUID needs a secure context and Chrome 92+: fall back for old Android browsers
     saleKey.current = saleKey.current || (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
     const body = { items: cartLines(), customer_id: selectedCustomer || null, payment_method: method, ...extra }
@@ -272,7 +272,7 @@ export default function POS() {
       if (!err.response && method === 'CASH') {
         // Offline / flaky network: queue the cash sale, it syncs with the same key when back online
         await addToSyncQueue({ url: '/api/v1/transactions/bulk', method: 'POST', body, headers: { 'Idempotency-Key': saleKey.current } })
-        finalizeSale(`${label} (hors ligne — sera synchronisee)`)
+        finalizeSale(`${label} (${t('pos.offlineQueued')})`)
         return
       }
       const msg = err.response?.data?.detail || t('common.error')
@@ -285,11 +285,11 @@ export default function POS() {
   }
 
   const executePayment = (method, cardNum, pin, nfcUid) => checkout(
-    method, method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : 'Carte bancaire NFC',
+    method, method === 'NFC_SOUKCARD' ? t('pos.soukCard') : t('pos.bankCard'),
     method === 'NFC_SOUKCARD' ? { card_number: nfcUid ? null : cardNum, nfc_uid: nfcUid || null, pin: pin || null } : {},
   )
-  const handleCashCheckout = () => checkout('CASH', 'Especes')
-  const handleCreditCheckout = () => checkout('CREDIT', 'Credit')
+  const handleCashCheckout = () => checkout('CASH', t('pos.cash'))
+  const handleCreditCheckout = () => checkout('CREDIT', t('pos.credit'))
 
   const finalizeSale = (methodLabel) => {
     setLastReceipt({
@@ -309,7 +309,7 @@ export default function POS() {
 
   // Confirm PIN and pay
   const confirmPinAndPay = () => {
-    if (!cardPin || cardPin.length < 4) { setPayError('Code PIN requis (4-6 chiffres)'); return }
+    if (!cardPin || cardPin.length < 4) { setPayError(t('pos.pinRequired')); return }
     setPayError('')
     executePayment('NFC_SOUKCARD', detectedCard?.card_number, cardPin, detectedCard?.nfc_uid)
   }
@@ -345,7 +345,7 @@ export default function POS() {
 </style></head><body>
 <div class="header">
   <h1>SOUK.AI</h1>
-  <p>Ticket de caisse</p>
+  <p>${t('pos.receipt')}</p>
 </div>
 <div class="date">${receipt.date.toLocaleString(isRtl ? 'ar-MA' : 'fr-FR')}</div>
 ${receipt.customerName ? `<div style="text-align:center;font-size:10px;margin-bottom:6px;">Client: ${receipt.customerName}</div>` : ''}
@@ -362,8 +362,8 @@ ${receipt.items.map(c => `
   <span>${money(receipt.total)}</span>
 </div>
 ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.rate} % (${t('products.taxIncluded')})</span><span>${money(l.tax)}</span></div>`).join('')}
-<div class="payment">Paye par: ${receipt.paymentMethod || 'Especes'}</div>
-<div class="footer">Merci / شكرا<br/>Souk.AI — Paiement securise</div>
+<div class="payment">${t('pos.paidBy')}: ${receipt.paymentMethod || t('pos.cash')}</div>
+<div class="footer">${t('pos.thanks')}<br/>Souk.AI</div>
 </body></html>`
 
   const printReceipt = () => {
@@ -478,16 +478,16 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
         <div className="flex gap-2">
           <button onClick={() => { if (cart.length === 0) return toast.error(t('pos.emptyCart')); handleCashCheckout() }} disabled={cart.length === 0 || processing}
             className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2">
-            <FiDollarSign className="h-4 w-4" /> Cash
+            <FiDollarSign className="h-4 w-4" /> {t('pos.cash')}
           </button>
           <button onClick={handleCreditCheckout} disabled={cart.length === 0 || processing || !selectedCustomer}
             className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2"
-            title={!selectedCustomer ? 'Selectionnez un client' : ''}>
-            <FiBookOpen className="h-4 w-4" /> Credit
+            title={!selectedCustomer ? t('pos.pickCustomer') : ''}>
+            <FiBookOpen className="h-4 w-4" /> {t('pos.credit')}
           </button>
           <button onClick={openPayment} disabled={cart.length === 0}
             className="flex-1 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold rounded-xl hover:from-brand-700 hover:to-brand-800 disabled:opacity-50 transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2">
-            <FiCreditCard className="h-4 w-4" /> NFC
+            <FiCreditCard className="h-4 w-4" /> {t('pos.card')}
           </button>
         </div>
       </div>
@@ -589,14 +589,14 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FiShield className="h-5 w-5" />
-                  <h3 className="font-bold text-lg">Terminal Souk.AI</h3>
+                  <h3 className="font-bold text-lg">{t('pos.payment')}</h3>
                 </div>
                 {['select', 'nfc_waiting', 'card_found'].includes(payStep) && (
                   <button onClick={() => { stopNfcScan(); setShowPayment(false) }} className="p-1 hover:bg-white/20 rounded-lg"><FiX className="h-5 w-5" /></button>
                 )}
               </div>
               <p className="text-white text-2xl font-black mt-1">{money(cartTotal)}</p>
-              <p className="text-brand-200 text-xs">{cartCount} article(s)</p>
+              <p className="text-brand-200 text-xs">{t('pos.itemCount', { count: cartCount })}</p>
             </div>
 
             {/* ── Step: Select method ── */}
@@ -613,8 +613,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                         <m.icon className={`h-6 w-6 ${isActive ? c[3] : 'text-gray-500'}`} />
                       </div>
                       <div className="text-left flex-1">
-                        <p className={`font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{m.label}</p>
-                        <p className="text-xs text-gray-500">{m.labelAr}</p>
+                        <p className={`font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{t(`pos.${m.key}`)}</p>
                       </div>
                       {isActive && <FiCheckCircle className={`h-5 w-5 ${c[3]}`} />}
                     </button>
@@ -628,9 +627,9 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                   else startNfcScan()
                 }}
                   className="w-full py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all text-base active:scale-[0.98] flex items-center justify-center gap-3">
-                  {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> Confirmer {money(cartTotal)}</>}
-                  {payMethod === 'NFC_SOUKCARD' && <><FiSmartphone className="h-5 w-5" /> Scanner la carte Souk.AI</>}
-                  {payMethod === 'NFC_BANK' && <><FiCreditCard className="h-5 w-5" /> Scanner la carte bancaire</>}
+                  {payMethod === 'CASH' && <><FiDollarSign className="h-5 w-5" /> {t('pos.confirmAmount', { amount: money(cartTotal) })}</>}
+                  {payMethod === 'NFC_SOUKCARD' && <><FiSmartphone className="h-5 w-5" /> {t('pos.scanSoukCard')}</>}
+                  {payMethod === 'NFC_BANK' && <><FiCreditCard className="h-5 w-5" /> {t('pos.scanBankCard')}</>}
                 </button>
               </div>
             )}
@@ -651,13 +650,13 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 </div>
                 <div>
                   <p className="text-xl font-bold text-gray-900">
-                    {payMethod === 'NFC_SOUKCARD' ? 'Approchez la carte Souk.AI' : 'Approchez la carte bancaire'}
+                    {payMethod === 'NFC_SOUKCARD' ? t('pos.tapSoukCard') : t('pos.tapBankCard')}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">Placez la carte sur le dos du telephone</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('pos.tapHint')}</p>
                   <p className="text-xs text-gray-500 mt-3">{money(cartTotal)}</p>
                 </div>
                 <button onClick={() => { stopNfcScan(); setPayStep('select') }}
-                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Annuler</button>
+                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">{t('common.cancel')}</button>
               </div>
             )}
 
@@ -676,7 +675,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 {detectedCard.balance < cartTotal && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center gap-2">
                     <FiX className="h-4 w-4 flex-shrink-0" />
-                    Solde insuffisant ({money(detectedCard.balance)} &lt; {money(cartTotal)})
+                    {t('pos.insufficient', { balance: money(detectedCard.balance), total: money(cartTotal) })}
                   </div>
                 )}
 
@@ -684,7 +683,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                   <>
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
-                        <FiShield className="h-4 w-4 text-green-500" /> Entrez le code PIN du client
+                        <FiShield className="h-4 w-4 text-green-500" /> {t('pos.enterPin')}
                       </p>
                       <div className="flex gap-1 justify-center">
                         {[0,1,2,3,4,5].map(i => (
@@ -700,7 +699,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                         className="opacity-0 absolute -z-10 w-0 h-0"
                         onKeyDown={e => e.key === 'Enter' && cardPin.length >= 4 && confirmPinAndPay()} />
                       <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-brand-600 mt-2 py-1">
-                        Appuyez pour saisir le PIN
+                        {t('pos.tapForPin')}
                       </button>
                     </div>
 
@@ -709,13 +708,13 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                     <button onClick={confirmPinAndPay} disabled={cardPin.length < 4}
                       className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-40 transition-all text-base flex items-center justify-center gap-2">
                       <FiCheckCircle className="h-5 w-5" />
-                      Confirmer le paiement
+                      {t('pos.confirmPayment')}
                     </button>
                   </>
                 )}
 
                 <button onClick={() => { setPayStep('select'); setDetectedCard(null); setCardPin(''); setPayError('') }}
-                  className="w-full py-2 text-gray-500 text-sm hover:text-gray-700">Annuler</button>
+                  className="w-full py-2 text-gray-500 text-sm hover:text-gray-700">{t('common.cancel')}</button>
               </div>
             )}
 
@@ -723,8 +722,8 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
             {payStep === 'processing' && (
               <div className="p-12 text-center">
                 <div className="w-20 h-20 mx-auto mb-4 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
-                <p className="text-lg font-bold text-gray-900">Traitement en cours...</p>
-                <p className="text-sm text-gray-500 mt-1">Ne fermez pas cette fenetre</p>
+                <p className="text-lg font-bold text-gray-900">{t('pos.processing')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('pos.dontClose')}</p>
               </div>
             )}
 
@@ -734,7 +733,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 <div className="w-24 h-24 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
                   <FiCheckCircle className="h-12 w-12 text-green-500" />
                 </div>
-                <p className="text-2xl font-black text-gray-900">Paiement reussi!</p>
+                <p className="text-2xl font-black text-gray-900">{t('pos.paid')}</p>
                 <p className="text-xl text-green-600 font-black mt-2">{money(cartTotal)}</p>
                 {detectedCard && <p className="text-sm text-gray-500 mt-1">Merci {detectedCard.holder_name}</p>}
               </div>
@@ -746,11 +745,11 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 <div className="w-20 h-20 mx-auto bg-red-100 rounded-full flex items-center justify-center">
                   <FiX className="h-10 w-10 text-red-500" />
                 </div>
-                <p className="text-lg font-bold text-gray-900">Paiement refuse</p>
+                <p className="text-lg font-bold text-gray-900">{t('pos.declined')}</p>
                 <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{payError}</p>
                 <button onClick={() => { setPayStep('select'); setCardPin(''); setDetectedCard(null) }}
                   className="px-8 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">
-                  Reessayer
+                  {t('pos.retry')}
                 </button>
               </div>
             )}
@@ -770,19 +769,19 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center flex-shrink-0"><FiLink className="h-5 w-5 text-brand-600" /></div>
               <div>
-                <h3 className="text-base font-bold text-gray-900">Code-barres non reconnu</h3>
+                <h3 className="text-base font-bold text-gray-900">{t('pos.unknownBarcode')}</h3>
                 <p className="text-xs text-gray-500 font-mono mt-0.5">{linkModal.barcode}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mb-3">Associez ce code-barres à un produit existant :</p>
+            <p className="text-sm text-gray-500 mb-3">{t('pos.linkBarcode')}</p>
             <div className="relative mb-3">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <input ref={linkSearchRef} value={linkSearch} onChange={e => setLinkSearch(e.target.value)} placeholder="Rechercher produit par nom..."
+              <input ref={linkSearchRef} value={linkSearch} onChange={e => setLinkSearch(e.target.value)} placeholder={t('pos.searchByName')}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 rounded-xl border border-gray-100">
               {linkSuggestions.length === 0 ? (
-                <p className="text-center text-sm text-gray-500 py-6">Aucun produit trouvé</p>
+                <p className="text-center text-sm text-gray-500 py-6">{t('pos.noProduct')}</p>
               ) : linkSuggestions.map(p => (
                 <button key={p.id} onClick={() => handleLinkBarcode(p)} disabled={linking}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-brand-50 transition-colors text-left disabled:opacity-50">
@@ -797,7 +796,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-3 text-center">Le code-barres sera enregistré définitivement sur ce produit</p>
+            <p className="text-xs text-gray-500 mt-3 text-center">{t('pos.barcodeSaved')}</p>
           </div>
         </div>
       )}
@@ -807,11 +806,11 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setQtyPopup(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-gray-900 truncate mb-1">{qtyPopup.name}</p>
-            <p className="text-xs text-gray-500 mb-4">Combien d'unités ?</p>
+            <p className="text-xs text-gray-500 mb-4">{t('pos.howMany')}</p>
             <input type="number" min="1" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
               className="w-full text-center text-3xl font-black border-2 border-brand-300 rounded-xl py-3 outline-none focus:border-brand-500" />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setQtyPopup(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">Annuler</button>
+              <button onClick={() => setQtyPopup(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">{t('common.cancel')}</button>
               <button onClick={() => { setQtyDirect(qtyPopup.productId, qtyPopup.qty); setQtyPopup(null) }}
                 className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold">OK</button>
             </div>

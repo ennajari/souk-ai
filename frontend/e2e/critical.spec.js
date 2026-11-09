@@ -29,7 +29,7 @@ test('sale: add a product at the till, pay cash, stock goes down', async ({ page
   await page.goto('/pos')
   const start = Date.now()
   await page.getByRole('button', { name: /Sucre E2E/ }).click()   // tap 1
-  await page.getByRole('button', { name: /^Cash$/ }).click()       // tap 2
+  await page.getByRole('button', { name: /^Espèces$/ }).click()       // tap 2
   await expect(page.getByRole('heading', { name: /Vente enregistrée/ })).toBeVisible()
   console.log(`2 taps, sale confirmed in ${Date.now() - start} ms`)
 
