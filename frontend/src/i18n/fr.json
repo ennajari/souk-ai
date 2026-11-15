@@ -742,8 +742,42 @@
       "SUBMITTED": "Confirmée",
       "IN_DELIVERY": "En livraison",
       "DELIVERED": "Livrée",
-      "CANCELLED": "Annulée"
+      "CANCELLED": "Annulée",
+      "ACCEPTED": "Acceptée",
+      "SHIPPED": "Expédiée",
+      "DISPUTED": "Litige"
     },
     "searchProduct": "Chercher un produit…"
+  },
+  "market": {
+    "subtitle": "Achetez et vendez entre commerçants",
+    "publish": "Publier une annonce",
+    "publishShort": "Publier",
+    "browse": "Explorer",
+    "myListings": "Mes annonces",
+    "allCategories": "Toutes catégories",
+    "noListings": "Aucune annonce pour l'instant",
+    "order": "Commander",
+    "noMyListings": "Vous n'avez aucune annonce",
+    "title": "Titre",
+    "myPurchases": "Mes achats",
+    "noPurchases": "Aucun achat",
+    "seller": "Vendeur",
+    "buyer": "Acheteur",
+    "confirmReceipt": "Confirmer la réception",
+    "mySales": "Mes ventes",
+    "noSales": "Aucune vente",
+    "accept": "Accepter",
+    "markShipped": "Marquer expédiée",
+    "editListing": "Modifier l'annonce",
+    "newListing": "Nouvelle annonce",
+    "minQty": "Qté min.",
+    "city": "Ville",
+    "address": "Adresse de livraison",
+    "confirmOrder": "Confirmer la commande",
+    "listingUpdated": "Annonce mise à jour",
+    "listingPublished": "Annonce publiée",
+    "statusUpdated": "Statut mis à jour",
+    "listingDeleted": "Annonce supprimée"
   }
 }

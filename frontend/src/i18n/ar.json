@@ -786,8 +786,42 @@
       "SUBMITTED": "مأكدة",
       "IN_DELIVERY": "فالطريق",
       "DELIVERED": "وصلات",
-      "CANCELLED": "ملغية"
+      "CANCELLED": "ملغية",
+      "ACCEPTED": "مقبولة",
+      "SHIPPED": "تصيفطات",
+      "DISPUTED": "نزاع"
     },
     "searchProduct": "قلب على سلعة…"
+  },
+  "market": {
+    "subtitle": "شري وبيع بين الحوانت",
+    "publish": "نشر إعلان",
+    "publishShort": "نشر",
+    "browse": "تصفح",
+    "myListings": "إعلاناتي",
+    "allCategories": "جميع الفئات",
+    "noListings": "ما كاين حتى إعلان دابا",
+    "order": "اطلب",
+    "noMyListings": "ما عندك حتى إعلان",
+    "title": "العنوان",
+    "myPurchases": "المشتريات ديالي",
+    "noPurchases": "ما كاين حتى شرا",
+    "seller": "البائع",
+    "buyer": "الشاري",
+    "confirmReceipt": "أكد الاستلام",
+    "mySales": "المبيعات ديالي",
+    "noSales": "ما كاين حتى بيع",
+    "accept": "قبل",
+    "markShipped": "تصيفطات",
+    "editListing": "بدل الإعلان",
+    "newListing": "إعلان جديد",
+    "minQty": "أدنى كمية",
+    "city": "المدينة",
+    "address": "عنوان التوصيل",
+    "confirmOrder": "أكد الطلبية",
+    "listingUpdated": "الإعلان تحدث",
+    "listingPublished": "الإعلان تنشر",
+    "statusUpdated": "الحالة تبدلات",
+    "listingDeleted": "الإعلان تمسح"
   }
 }

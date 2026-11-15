@@ -742,8 +742,42 @@
       "SUBMITTED": "Confirmed",
       "IN_DELIVERY": "Out for delivery",
       "DELIVERED": "Delivered",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "ACCEPTED": "Accepted",
+      "SHIPPED": "Shipped",
+      "DISPUTED": "Disputed"
     },
     "searchProduct": "Search a product…"
+  },
+  "market": {
+    "subtitle": "Buy and sell between shops",
+    "publish": "Post a listing",
+    "publishShort": "Publish",
+    "browse": "Browse",
+    "myListings": "My listings",
+    "allCategories": "All categories",
+    "noListings": "No listings yet",
+    "order": "Order",
+    "noMyListings": "You have no listings",
+    "title": "Title",
+    "myPurchases": "My purchases",
+    "noPurchases": "No purchases",
+    "seller": "Seller",
+    "buyer": "Buyer",
+    "confirmReceipt": "Confirm receipt",
+    "mySales": "My sales",
+    "noSales": "No sales",
+    "accept": "Accept",
+    "markShipped": "Mark as shipped",
+    "editListing": "Edit listing",
+    "newListing": "New listing",
+    "minQty": "Min. qty",
+    "city": "City",
+    "address": "Delivery address",
+    "confirmOrder": "Confirm order",
+    "listingUpdated": "Listing updated",
+    "listingPublished": "Listing published",
+    "statusUpdated": "Status updated",
+    "listingDeleted": "Listing deleted"
   }
 }
