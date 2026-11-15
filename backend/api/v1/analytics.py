@@ -144,7 +144,7 @@ async def get_profit_analysis(
         profit = revenue - cost
         products.append(ProductProfit(
             product_id=pid, name_fr=name_fr or "-", name_ar=name_ar or "-",
-            quantity_sold=int(qty or 0), revenue=round(revenue, 2), cost_total=round(cost, 2),
+            quantity_sold=float(qty or 0), revenue=round(revenue, 2), cost_total=round(cost, 2),
             profit=round(profit, 2), margin_pct=round(profit / revenue * 100, 1) if revenue > 0 else 0,
         ))
     products.sort(key=lambda p: p.profit, reverse=True)

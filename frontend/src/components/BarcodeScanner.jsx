@@ -1,161 +1,226 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiCamera, FiX, FiCheck } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { FiCamera, FiX, FiCheck, FiZap } from 'react-icons/fi'
+import wasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url'
+import { validGtin } from '../utils/gtin'
+
+// Retail symbologies only: fewer formats = faster, fewer false reads (QR/Code 39 removed)
+const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
+// UPC-E's check digit belongs to its expanded UPC-A form: treated like Code 128 (double read)
+const CHECKSUM_FORMATS = new Set(['ean_13', 'ean_8', 'upc_a'])
+
+let detectorPromise = null
+/** Native detector when the device has one (Android Chrome: fast, ML-based); ZXing-C++ WebAssembly
+ * everywhere else (iPhone Safari, Firefox, desktop) — before, those devices could not scan at all. */
+function getDetector() {
+  detectorPromise ??= (async () => {
+    if ('BarcodeDetector' in window) {
+      try {
+        const supported = await window.BarcodeDetector.getSupportedFormats()
+        const formats = FORMATS.filter((f) => supported.includes(f))
+        if (formats.includes('ean_13')) return new window.BarcodeDetector({ formats })
+      } catch { /* fall through to ZXing */ }
+    }
+    const { BarcodeDetector, prepareZXingModule } = await import('barcode-detector/ponyfill')
+    // Self-hosted engine: works offline and sends nothing to a third-party CDN
+    prepareZXingModule({ overrides: { locateFile: (path, prefix) => (path.endsWith('.wasm') ? wasmUrl : prefix + path) } })
+    return new BarcodeDetector({ formats: FORMATS })
+  })()
+  return detectorPromise
+}
+
+function feedback() {
+  try { navigator.vibrate?.(60) } catch { /* not supported */ }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    osc.frequency.value = 1400
+    osc.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.08)
+  } catch { /* audio blocked */ }
+}
 
 export default function BarcodeScanner({ onScan, onClose, continuous = false }) {
-  const videoRef    = useRef(null)
-  const canvasRef   = useRef(null)
-  const [error, setError]           = useState(null)
-  const [stream, setStream]         = useState(null)
-  const [lastScanned, setLastScanned] = useState(null) // { code, name }
-  const scannerRef  = useRef(null)
-  const cooldownRef = useRef(false)
-  const lastCodeRef = useRef(null)
+  const { t } = useTranslation()
+  const videoRef = useRef(null)
+  const canvasRef = useRef(document.createElement('canvas'))
+  const streamRef = useRef(null)
+  const [error, setError] = useState(null)
+  const [ready, setReady] = useState(false)
+  const [torch, setTorch] = useState(null) // null = no torch on this camera
+  const [lastScanned, setLastScanned] = useState(null)
+  const onScanRef = useRef(onScan)
+  onScanRef.current = onScan
 
   useEffect(() => {
-    let mediaStream = null
-    const startCamera = async () => {
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-        })
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream
-          setStream(mediaStream)
-        }
-      } catch {
-        setError("Impossible d'accéder à la caméra. Vérifiez les permissions.")
+    let cancelled = false
+    let timer = null
+    let candidate = { code: null, hits: 0 }
+    let pausedUntil = 0
+
+    const stop = () => {
+      clearTimeout(timer)
+      streamRef.current?.getTracks().forEach((tr) => tr.stop())
+    }
+
+    const accept = (code) => {
+      feedback()
+      if (!continuous) {
+        stop()
+        onScanRef.current(code)
+        return
       }
-    }
-    startCamera()
-    return () => {
-      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop())
-      if (scannerRef.current) clearInterval(scannerRef.current)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!stream || !videoRef.current) return
-    if (!('BarcodeDetector' in window)) {
-      setError("Scanner non supporté. Utilisez Chrome sur Android.")
-      return
+      const result = onScanRef.current(code)
+      setLastScanned({ code, name: result?.name || code })
+      pausedUntil = Date.now() + 1200 // same item scanned twice on purpose needs a short pause
+      setTimeout(() => setLastScanned(null), 1200)
     }
 
-    const detector = new window.BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code']
-    })
-
-    scannerRef.current = setInterval(async () => {
-      if (!videoRef.current || videoRef.current.readyState !== 4) return
-      if (cooldownRef.current) return
-      try {
-        const barcodes = await detector.detect(videoRef.current)
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue
-          if (!code || code === lastCodeRef.current) return
-
-          cooldownRef.current = true
-          lastCodeRef.current = code
-
-          if (continuous) {
-            const result = onScan(code)
-            const name = result?.name || code
-            setLastScanned({ code, name })
-            // Reset cooldown after 1.5s to allow next scan
-            setTimeout(() => {
-              cooldownRef.current = false
-              lastCodeRef.current = null
-              setLastScanned(null)
-            }, 1500)
-          } else {
-            clearInterval(scannerRef.current)
-            stream.getTracks().forEach(t => t.stop())
-            onScan(code)
+    const tick = async (detector) => {
+      if (cancelled) return
+      const video = videoRef.current
+      if (video?.readyState >= 2 && Date.now() > pausedUntil) {
+        try {
+          // Decode only the centre band where the reticle is: faster and fewer stray barcodes
+          const w = video.videoWidth, h = video.videoHeight
+          const cw = Math.round(w * 0.85), ch = Math.round(h * 0.45)
+          const canvas = canvasRef.current
+          canvas.width = cw
+          canvas.height = ch
+          canvas.getContext('2d', { willReadFrequently: true })
+            .drawImage(video, (w - cw) / 2, (h - ch) / 2, cw, ch, 0, 0, cw, ch)
+          const found = await detector.detect(canvas)
+          const hit = found.find((b) => b.rawValue)
+          if (hit) {
+            const code = hit.rawValue.trim()
+            if (CHECKSUM_FORMATS.has(hit.format)) {
+              if (validGtin(code)) accept(code)
+            } else {
+              // No usable checksum (Code 128, UPC-E): require two identical reads in a row
+              candidate = candidate.code === code ? { code, hits: candidate.hits + 1 } : { code, hits: 1 }
+              if (candidate.hits >= 2) { candidate = { code: null, hits: 0 }; accept(code) }
+            }
           }
-        }
-      } catch {}
-    }, 200)
+        } catch { /* a bad frame is not an error */ }
+      }
+      timer = setTimeout(() => tick(detector), 120)
+    }
 
-    return () => { if (scannerRef.current) clearInterval(scannerRef.current) }
-  }, [stream, onScan, continuous])
+    ;(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        })
+        if (cancelled) { stream.getTracks().forEach((tr) => tr.stop()); return }
+        streamRef.current = stream
+        const track = stream.getVideoTracks()[0]
+        const caps = track.getCapabilities?.() || {}
+        // Continuous autofocus where supported: small barcodes are unreadable when blurry
+        if (caps.focusMode?.includes('continuous')) {
+          track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {})
+        }
+        if (caps.torch) setTorch(false)
+        videoRef.current.srcObject = stream
+        await videoRef.current.play().catch(() => {})
+        const detector = await getDetector()
+        if (cancelled) return
+        setReady(true)
+        tick(detector)
+      } catch (e) {
+        setError(e?.name === 'NotAllowedError' ? t('scanner.permission') : t('scanner.noCamera'))
+      }
+    })()
+
+    return () => { cancelled = true; stop() }
+  }, [continuous, t])
+
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0]
+    if (!track) return
+    try {
+      await track.applyConstraints({ advanced: [{ torch: !torch }] })
+      setTorch(!torch)
+    } catch { setTorch(null) }
+  }
 
   const handleClose = () => {
-    if (stream) stream.getTracks().forEach(t => t.stop())
-    if (scannerRef.current) clearInterval(scannerRef.current)
+    streamRef.current?.getTracks().forEach((tr) => tr.stop())
     onClose()
   }
 
+  const submitManual = (value) => {
+    const code = value.trim()
+    if (!code) return
+    handleClose()
+    onScan(code)
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" role="dialog" aria-modal="true"
+      aria-label={t('scanner.title')}>
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <FiCamera className="h-4 w-4" />
-            {continuous ? 'Scan continu — scannez les produits' : 'Scanner code-barres'}
+            <FiCamera className="h-4 w-4" aria-hidden="true" />
+            {continuous ? t('scanner.continuous') : t('scanner.title')}
           </h3>
-          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl">
+          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl" aria-label={t('common.close')}>
             <FiX className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
-        <div className="relative aspect-video bg-black">
+        <div className="relative aspect-[4/3] bg-black">
           {error ? (
             <div className="absolute inset-0 flex items-center justify-center text-white text-sm text-center p-6">
               <div>
-                <FiCamera className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <FiCamera className="h-12 w-12 mx-auto mb-3 opacity-50" aria-hidden="true" />
                 <p>{error}</p>
               </div>
             </div>
           ) : (
             <>
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-              <canvas ref={canvasRef} className="hidden" />
-              {/* Aiming reticle */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className={`w-64 h-32 border-2 rounded-lg relative transition-colors duration-200 ${lastScanned ? 'border-emerald-400' : 'border-red-500'}`}>
-                  <div className={`absolute top-0 left-0 right-0 h-0.5 animate-pulse ${lastScanned ? 'bg-emerald-400' : 'bg-red-500'}`} />
+                <div className={`w-[85%] h-[45%] border-2 rounded-xl relative transition-colors ${lastScanned ? 'border-emerald-400' : 'border-white/80'}`}>
+                  <div className={`absolute top-1/2 left-2 right-2 h-0.5 ${lastScanned ? 'bg-emerald-400' : 'bg-brand-500 animate-pulse'}`} />
                 </div>
               </div>
-              {/* Scan feedback */}
+              {!ready && (
+                <p className="absolute top-3 inset-x-0 text-center text-xs text-white/80">{t('scanner.starting')}</p>
+              )}
+              {torch !== null && (
+                <button onClick={toggleTorch} aria-pressed={torch} aria-label={t('scanner.torch')}
+                  className={`absolute top-3 end-3 p-2.5 rounded-full ${torch ? 'bg-amber-400 text-ink-900' : 'bg-black/50 text-white'}`}>
+                  <FiZap className="h-5 w-5" />
+                </button>
+              )}
               {lastScanned && (
-                <div className="absolute bottom-0 left-0 right-0 bg-emerald-500/90 text-white px-4 py-3 flex items-center gap-2 animate-fade-in">
-                  <FiCheck className="h-5 w-5 flex-shrink-0" />
+                <div className="absolute bottom-0 inset-x-0 bg-emerald-600/95 text-white px-4 py-3 flex items-center gap-2" role="status">
+                  <FiCheck className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm font-semibold truncate">{lastScanned.name}</span>
-                  <span className="text-xs opacity-75 ml-auto">ajouté ✓</span>
+                  <span className="text-xs opacity-80 ms-auto">{t('scanner.added')}</span>
                 </div>
               )}
             </>
           )}
         </div>
 
-        {continuous ? (
-          <div className="p-4 flex items-center justify-between bg-gray-50">
-            <p className="text-xs text-gray-500">Scannez autant de produits que vous voulez</p>
-            <button onClick={handleClose}
-              className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">
-              Terminer
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-gray-500">{t('scanner.hint')}</p>
+          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); submitManual(e.currentTarget.code.value) }}>
+            <label htmlFor="manual-code" className="sr-only">{t('scanner.manual')}</label>
+            <input id="manual-code" name="code" inputMode="numeric" autoComplete="off" placeholder={t('scanner.manual')}
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none" />
+            <button className="px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700">OK</button>
+          </form>
+          {continuous && (
+            <button onClick={handleClose} className="w-full py-2.5 bg-ink-900 text-white rounded-xl text-sm font-bold">
+              {t('scanner.done')}
             </button>
-          </div>
-        ) : (
-          <div className="p-4">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Ou entrez le code manuellement :</label>
-            <div className="flex gap-2">
-              <input type="text" placeholder="Ex: 6111245001234"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.target.value.trim()) {
-                    handleClose(); onScan(e.target.value.trim())
-                  }
-                }}
-              />
-              <button onClick={(e) => {
-                const input = e.target.closest('.flex').querySelector('input')
-                if (input?.value.trim()) { handleClose(); onScan(input.value.trim()) }
-              }} className="px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700">
-                OK
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

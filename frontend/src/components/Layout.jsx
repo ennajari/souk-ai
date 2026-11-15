@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import OfflineBanner from './OfflineBanner'
+import InstallAppBanner from './InstallAppBanner'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -36,6 +37,7 @@ export default function Layout() {
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <OfflineBanner />
+        <InstallAppBanner />
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />

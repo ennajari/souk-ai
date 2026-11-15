@@ -158,7 +158,7 @@ async def find_most_similar_product(
 
 
 async def record_sale(
-    db: AsyncSession, merchant_id: str, product_id: str, quantity: int, unit_price: float,
+    db: AsyncSession, merchant_id: str, product_id: str, quantity, unit_price: float,
     source: TransactionSource = TransactionSource.WHATSAPP,
 ) -> Transaction:
     """WhatsApp/voice sale: same locked, stock-checked, journaled path as the POS.
@@ -167,7 +167,7 @@ async def record_sale(
     """
     from services.sales import Line, record_items
     [(txn, _)] = await record_items(db, merchant_id, [Line(
-        product_id=product_id, quantity=int(quantity), unit_price=unit_price, source=source.value,
+        product_id=product_id, quantity=quantity, unit_price=unit_price, source=source.value,
     )])
     return txn
 

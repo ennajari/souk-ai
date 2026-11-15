@@ -20,7 +20,7 @@ class ProductProfit(BaseModel):
     product_id: str
     name_fr: str
     name_ar: str
-    quantity_sold: int = 0
+    quantity_sold: float = 0
     revenue: float = 0
     cost_total: float = 0
     profit: float = 0

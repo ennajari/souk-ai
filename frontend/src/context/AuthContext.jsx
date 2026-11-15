@@ -36,6 +36,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('merchant')
+    navigator.serviceWorker?.controller?.postMessage('LOGOUT')  // drop this account's offline data
+    window.caches?.delete('souk-api-v1').catch(() => {})
     setMerchant(null)
   }
 

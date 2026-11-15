@@ -170,7 +170,15 @@
     "nfcError": "Erreur NFC",
     "pinRequired": "Code PIN requis (4 à 6 chiffres)",
     "itemCount_one": "{{count}} article",
-    "itemCount_other": "{{count}} articles"
+    "itemCount_other": "{{count}} articles",
+    "knownElsewhere": "Produit connu : vérifiez le prix et ajoutez-le",
+    "newProduct": "Nouveau produit : créez-le en 5 secondes",
+    "inStock": "Quantité en rayon",
+    "createAndAdd": "Créer et ajouter au panier",
+    "orLink": "…ou associez ce code à un produit existant :",
+    "quickCreateInvalid": "Indiquez un nom et un prix",
+    "quickCreated": "« {{name}} » ajouté au catalogue et au panier",
+    "sendWhatsApp": "Envoyer le ticket par WhatsApp"
   },
   "customers": {
     "title": "Carnet de crédit",
@@ -607,5 +615,22 @@
     "haveAccount": "Déjà un compte ?",
     "country": "Pays",
     "countryDefault": "Pays par défaut de la plateforme"
+  },
+  "scanner": {
+    "title": "Scanner un code-barres",
+    "continuous": "Scan continu — scannez les produits",
+    "starting": "Démarrage de la caméra…",
+    "permission": "Accès à la caméra refusé. Autorisez-le dans les réglages du navigateur.",
+    "noCamera": "Caméra introuvable. Saisissez le code ci-dessous.",
+    "torch": "Lampe",
+    "added": "ajouté ✓",
+    "hint": "Placez le code-barres dans le cadre, à 10–20 cm. Activez la lampe si la boutique est sombre.",
+    "manual": "Ou tapez le code",
+    "done": "Terminer"
+  },
+  "install": {
+    "title": "Installer l'application",
+    "text": "Installez Souk.AI sur ce téléphone : il devient votre caisse, même sans connexion. Aucun matériel à acheter.",
+    "cta": "Installer"
   }
 }

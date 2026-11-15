@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink, FiCreditCard, FiDollarSign, FiSmartphone, FiShield, FiCheckCircle, FiLoader, FiBookOpen } from 'react-icons/fi'
-import { productsAPI, transactionsAPI } from '../api/client'
+import { FiSend, FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink, FiCreditCard, FiDollarSign, FiSmartphone, FiShield, FiCheckCircle, FiLoader, FiBookOpen } from 'react-icons/fi'
+import { productsAPI, transactionsAPI, barcodeAPI } from '../api/client'
 import { addToSyncQueue } from '../utils/offlineDB'
 import client from '../api/client'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -35,6 +35,17 @@ export default function POS() {
   const [selectedCustomer, setSelectedCustomer] = useState('')
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [linkModal, setLinkModal] = useState(null)
+  // Unknown barcode → create the product on the spot (catalogue builds itself while selling),
+  // pre-filled from the shared barcode database when another shop already sells it
+  const [newProd, setNewProd] = useState({ name: '', price: '', stock: '1', known: false })
+  useEffect(() => {
+    if (!linkModal?.barcode) return
+    setNewProd({ name: '', price: '', stock: '1', known: false })
+    barcodeAPI.lookup(linkModal.barcode)
+      .then(r => setNewProd(p => ({ ...p, known: true, name: r.data.name_fr || r.data.name_ar || '',
+        price: r.data.avg_price ? String(r.data.avg_price) : '' })))
+      .catch(() => {})
+  }, [linkModal?.barcode])
   const [linkSearch, setLinkSearch] = useState('')
   const [linking, setLinking] = useState(false)
   const [qtyPopup, setQtyPopup] = useState(null)
@@ -126,6 +137,21 @@ export default function POS() {
     })
   }
 
+  // Enter in the search box: USB/Bluetooth scanners type the code + Enter here (the box has focus),
+  // so a barcode must be handled exactly like a camera scan; otherwise sell the only matching product.
+  const onSearchEnter = (e) => {
+    if (e.key !== 'Enter') return
+    const q = search.trim()
+    if (!q) return
+    e.preventDefault()
+    const byCode = products.find(p => p.barcode === q)
+    if (byCode) { addToCart(byCode); toast.success(`${byCode.name_fr || byCode.name_ar} ✓`) }
+    else if (/^\d{6,14}$/.test(q)) { setLinkSearch(''); setLinkModal({ barcode: q }) }
+    else if (filtered.length === 1) addToCart(filtered[0])
+    else return
+    setSearch('')
+  }
+
   const handleBarcodeScan = (code) => {
     const product = products.find(p => p.barcode === code)
     if (product) {
@@ -161,6 +187,26 @@ export default function POS() {
     finally { setLinking(false) }
   }
 
+  const handleQuickCreate = async (e) => {
+    e.preventDefault()
+    const name = newProd.name.trim()
+    const price = parseFloat(String(newProd.price).replace(',', '.'))
+    if (!name || !(price > 0)) { toast.error(t('pos.quickCreateInvalid')); return }
+    setLinking(true)
+    try {
+      const { data } = await productsAPI.create({
+        name_fr: name, name_ar: name, barcode: linkModal.barcode, unit_price: price, cost_price: 0,
+        initial_stock: Math.max(1, parseInt(newProd.stock, 10) || 1),
+      })
+      setProducts(prev => [...prev, data])
+      addToCart(data)
+      toast.success(t('pos.quickCreated', { name }))
+      setLinkModal(null)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t('common.error'))
+    } finally { setLinking(false) }
+  }
+
   const updateQty = (productId, delta) => {
     setCart(prev => prev.map(c => {
       if (c.product.id !== productId) return c
@@ -169,8 +215,14 @@ export default function POS() {
     }))
   }
 
+  const WEIGHED = ['kg', 'litre']  // sold by weight/volume: decimal quantities (the server checks the same rule)
+  const isWeighed = (product) => WEIGHED.includes(product?.unit)
+
   const setQtyDirect = (productId, qty) => {
-    const n = parseInt(qty, 10)
+    const product = cart.find(c => c.product.id === productId)?.product || products.find(p => p.id === productId)
+    const n = isWeighed(product)
+      ? Math.round(parseFloat(String(qty).replace(',', '.')) * 1000) / 1000
+      : parseInt(qty, 10)
     if (isNaN(n) || n < 0) return
     if (n === 0) { removeFromCart(productId); return }
     setCart(prev => prev.map(c => c.product.id === productId ? { ...c, qty: n } : c))
@@ -295,6 +347,7 @@ export default function POS() {
     setLastReceipt({
       items: [...cart], total: cartTotal, date: new Date(),
       customerName: detectedCard?.holder_name || customers.find(c => c.id === selectedCustomer)?.name,
+      customerPhone: customers.find(c => c.id === selectedCustomer)?.phone || '',
       paymentMethod: methodLabel,
     })
     setShowPayment(false)
@@ -365,6 +418,29 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
 <div class="payment">${t('pos.paidBy')}: ${receipt.paymentMethod || t('pos.cash')}</div>
 <div class="footer">${t('pos.thanks')}<br/>Souk.AI</div>
 </body></html>`
+
+  // Digital receipt through the shop's own WhatsApp: no printer, no API cost, nothing to install.
+  // shortcut: phone digits are sent as typed (wa.me needs international format); the merchant can pick
+  // the contact in WhatsApp when the number is national or missing.
+  const shareReceiptWhatsApp = () => {
+    if (!lastReceipt) return
+    const name = (c) => (isRtl ? (c.product.name_ar || c.product.name_fr) : (c.product.name_fr || c.product.name_ar))
+    const lines = [
+      `🧾 ${merchant?.business_name || 'Souk.AI'}`,
+      new Date(lastReceipt.date).toLocaleString(i18n.language),
+      '',
+      ...lastReceipt.items.map(c => `${c.qty} × ${name(c)} — ${money(c.qty * c.price)}`),
+      '',
+      `${t('common.total')} : ${money(lastReceipt.total)}`,
+      ...taxLines(lastReceipt.items).map(l => `${t('tax.tax')} ${l.rate} % : ${money(l.tax)}`),
+      `${t('pos.paidBy')} : ${lastReceipt.paymentMethod}`,
+      '',
+      t('pos.thanks'),
+    ]
+    const digits = (lastReceipt.customerPhone || '').replace(/\D/g, '')
+    const to = digits.length >= 11 ? digits : ''
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener')
+  }
 
   const printReceipt = () => {
     if (!lastReceipt) return
@@ -442,8 +518,18 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 <button onClick={() => updateQty(item.product.id, -1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">
                   <FiMinus className="h-4 w-4" />
                 </button>
-                <input type="number" min="1" value={item.qty} onChange={e => setQtyDirect(item.product.id, e.target.value)} onFocus={e => e.target.select()}
-                  className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                {isWeighed(item.product) ? (
+                  <input key={item.qty} type="text" inputMode="decimal" defaultValue={item.qty}
+                    aria-label={`${t('common.quantity')} (${item.product.unit})`}
+                    onBlur={e => setQtyDirect(item.product.id, e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()} onFocus={e => e.target.select()}
+                    className="w-16 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                ) : (
+                  <input type="number" min="1" value={item.qty} onChange={e => setQtyDirect(item.product.id, e.target.value)} onFocus={e => e.target.select()}
+                    aria-label={t('common.quantity')}
+                    className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                )}
+                {isWeighed(item.product) && <span className="text-xs text-gray-500">{t(`products.units.${item.product.unit}`)}</span>}
                 <button onClick={() => updateQty(item.product.id, 1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">
                   <FiPlus className="h-4 w-4" />
                 </button>
@@ -502,6 +588,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
           <div className="relative flex-1">
             <FiSearch className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 ${isRtl ? 'right-3.5' : 'left-3.5'}`} />
             <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('pos.searchProduct')}
+              onKeyDown={onSearchEnter} enterKeyHint="search"
               className={`w-full py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'}`} />
           </div>
           <button onClick={() => setShowScanner(true)}
@@ -773,7 +860,31 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 <p className="text-xs text-gray-500 font-mono mt-0.5">{linkModal.barcode}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mb-3">{t('pos.linkBarcode')}</p>
+            <form onSubmit={handleQuickCreate} className="rounded-xl border border-brand-200 bg-brand-50/50 p-3 mb-4 space-y-2">
+              <p className="text-sm font-semibold text-gray-800">
+                {newProd.known ? t('pos.knownElsewhere') : t('pos.newProduct')}
+              </p>
+              <label className="sr-only" htmlFor="qc-name">{t('common.name')}</label>
+              <input id="qc-name" autoFocus value={newProd.name} onChange={e => setNewProd(p => ({ ...p, name: e.target.value }))}
+                placeholder={t('common.name')} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white" />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-gray-600" htmlFor="qc-price">{t('products.salePrice')} ({currency})</label>
+                  <input id="qc-price" inputMode="decimal" value={newProd.price} onChange={e => setNewProd(p => ({ ...p, price: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600" htmlFor="qc-stock">{t('pos.inStock')}</label>
+                  <input id="qc-stock" inputMode="numeric" value={newProd.stock} onChange={e => setNewProd(p => ({ ...p, stock: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white" />
+                </div>
+              </div>
+              <button type="submit" disabled={linking}
+                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-bold disabled:opacity-50">
+                {t('pos.createAndAdd')}
+              </button>
+            </form>
+            <p className="text-sm text-gray-500 mb-3">{t('pos.orLink')}</p>
             <div className="relative mb-3">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <input ref={linkSearchRef} value={linkSearch} onChange={e => setLinkSearch(e.target.value)} placeholder={t('pos.searchByName')}
@@ -807,7 +918,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-gray-900 truncate mb-1">{qtyPopup.name}</p>
             <p className="text-xs text-gray-500 mb-4">{t('pos.howMany')}</p>
-            <input type="number" min="1" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
+            <input type="text" inputMode="decimal" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
               className="w-full text-center text-3xl font-black border-2 border-brand-300 rounded-xl py-3 outline-none focus:border-brand-500" />
             <div className="flex gap-2 mt-4">
               <button onClick={() => setQtyPopup(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">{t('common.cancel')}</button>
@@ -854,6 +965,10 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 </div>
               ))}
             </div>
+            <button onClick={shareReceiptWhatsApp}
+              className="w-full mb-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+              <FiSend className="h-4 w-4" aria-hidden="true" /> {t('pos.sendWhatsApp')}
+            </button>
             <div className="flex gap-2">
               <button onClick={() => setShowReceipt(false)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors">{t('common.close')}</button>

@@ -186,3 +186,40 @@ async def test_whatsapp_sale_respects_stock_and_journal(client):
     logs = (await client.get("/api/v1/inventory/logs", headers=h)).json()
     assert [(lg["source"], lg["quantity_change"]) for lg in logs] == [("sale", -2.0)]
 
+
+
+async def test_weighed_goods_sell_by_the_gram(client):
+    """Grocers and butchers sell 1.25 kg; pieces stay whole."""
+    h = await register(client)
+    tomatoes = await make_product(client, h, stock=10, price=8, unit="kg", name_fr="Tomates", name_ar="طماطم")
+    soap = await make_product(client, h, stock=10, price=5, name_fr="Savon", name_ar="صابون")
+    r = await client.post(BULK, json={"items": [{"product_id": tomatoes["id"], "quantity": 1.25, "unit_price": 8}]},
+                          headers=h)
+    assert r.status_code == 201, r.text
+    assert r.json()[0]["quantity"] == 1.25 and r.json()[0]["total_amount"] == 10.0
+    assert await _stock(client, h, tomatoes["id"]) == 8.75
+    r = await client.post(BULK, json={"items": [{"product_id": soap["id"], "quantity": 1.5, "unit_price": 5}]}, headers=h)
+    assert r.status_code == 422 and "unite" in r.json()["detail"]
+
+
+async def test_bot_comma_decimal_quantity(client):
+    from core.database import AsyncSessionLocal
+    from services.inventory import record_sale
+    h = await register(client)
+    me = (await client.get("/api/v1/auth/me", headers=h)).json()
+    p = await make_product(client, h, stock=5, price=20, unit="kg", name_fr="Viande", name_ar="لحم")
+    async with AsyncSessionLocal() as db:
+        txn = await record_sale(db, me["id"], p["id"], "0,75", 20.0)
+        await db.commit()
+    assert float(txn.quantity) == 0.75 and float(txn.total_amount) == 15.0
+
+
+async def test_product_list_puts_best_sellers_first(client):
+    h = await register(client)
+    a = await make_product(client, h, stock=50, name_fr="Abricots", name_ar="مشمش")
+    b = await make_product(client, h, stock=50, name_fr="Pain", name_ar="خبز")
+    for _ in range(3):
+        await client.post(BULK, json={"items": [{"product_id": b["id"], "quantity": 1, "unit_price": 5}]}, headers=h)
+    names = [p["name_fr"] for p in (await client.get("/api/v1/products/", headers=h)).json()]
+    assert names == ["Pain", "Abricots"], names
+    assert a["id"]

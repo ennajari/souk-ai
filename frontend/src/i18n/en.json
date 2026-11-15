@@ -170,7 +170,15 @@
     "nfcError": "NFC error",
     "pinRequired": "PIN required (4 to 6 digits)",
     "itemCount_one": "{{count}} item",
-    "itemCount_other": "{{count}} items"
+    "itemCount_other": "{{count}} items",
+    "knownElsewhere": "Known product: check the price and add it",
+    "newProduct": "New product: create it in 5 seconds",
+    "inStock": "Quantity on shelf",
+    "createAndAdd": "Create and add to cart",
+    "orLink": "…or link this code to an existing product:",
+    "quickCreateInvalid": "Enter a name and a price",
+    "quickCreated": "\"{{name}}\" added to your catalogue and cart",
+    "sendWhatsApp": "Send the receipt on WhatsApp"
   },
   "customers": {
     "title": "Customer tabs",
@@ -607,5 +615,22 @@
     "haveAccount": "Already have an account?",
     "country": "Country",
     "countryDefault": "Platform default country"
+  },
+  "scanner": {
+    "title": "Scan a barcode",
+    "continuous": "Continuous scan — scan your products",
+    "starting": "Starting the camera…",
+    "permission": "Camera access denied. Allow it in your browser settings.",
+    "noCamera": "No camera found. Type the code below.",
+    "torch": "Torch",
+    "added": "added ✓",
+    "hint": "Hold the barcode inside the frame, 10–20 cm away. Turn on the torch if the shop is dark.",
+    "manual": "Or type the code",
+    "done": "Done"
+  },
+  "install": {
+    "title": "Install the app",
+    "text": "Install Souk.AI on this phone: it becomes your till, even offline. No hardware to buy.",
+    "cta": "Install"
   }
 }

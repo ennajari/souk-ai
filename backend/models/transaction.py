@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -31,7 +31,7 @@ class Transaction(Base):
     customer_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("customers.id"), nullable=True, index=True)
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType))
     source: Mapped[TransactionSource] = mapped_column(Enum(TransactionSource), default=TransactionSource.WEB)
-    quantity: Mapped[int] = mapped_column(Integer)
+    quantity: Mapped[float] = mapped_column(Numeric(12, 3))  # decimals for weighed goods (kg, litre)
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2))
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2))
     # Cost price at the time of the transaction (NULL on rows created before it existed)

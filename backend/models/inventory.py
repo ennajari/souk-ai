@@ -11,7 +11,7 @@ class Inventory(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     product_id: Mapped[str] = mapped_column(String(36), ForeignKey("products.id"), unique=True, index=True)
-    quantity: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    quantity: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
     reorder_threshold: Mapped[int] = mapped_column(Integer, default=5)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
@@ -25,9 +25,9 @@ class InventoryLog(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     product_id: Mapped[str] = mapped_column(String(36), ForeignKey("products.id"), index=True)
     merchant_id: Mapped[str] = mapped_column(String(36), ForeignKey("merchants.id"), index=True)
-    quantity_before: Mapped[float] = mapped_column(Numeric(10, 2))
-    quantity_change: Mapped[float] = mapped_column(Numeric(10, 2))
-    quantity_after: Mapped[float] = mapped_column(Numeric(10, 2))
+    quantity_before: Mapped[float] = mapped_column(Numeric(12, 3))
+    quantity_change: Mapped[float] = mapped_column(Numeric(12, 3))
+    quantity_after: Mapped[float] = mapped_column(Numeric(12, 3))
     reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source: Mapped[str] = mapped_column(String(50), default="manual")  # manual, sale, purchase, return
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
