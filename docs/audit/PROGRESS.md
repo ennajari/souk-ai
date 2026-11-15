@@ -20,9 +20,15 @@ Horodatage UTC. Toutes les phases sont terminées ; voir REPORT.md pour la synth
   inventaire, marketplace, fournisseurs (réception → stock), concurrence (`populate_existing`), rappels opt-in, fusion.
 - [2026-11-09] Passe 3 — produit/marque : identité neutre + tokens, navigation consolidée, Rapports, retours,
   landing honnête FR/AR/EN, TVA par produit + rapport, caisse et tableau de bord traduits.
+- [2026-11-1x] Passe 4 — terrain : scanner code-barres (ZXing WASM + checksum GTIN), douchettes USB, création rapide
+  depuis la base code-barres, produits au poids (kg/L), ticket WhatsApp, PWA installable (aucun Raspberry Pi).
+- [2026-11-1x] Passe 5 — exploitation : celery-beat en prod, sauvegardes + restauration testée, Sentry, images GHCR
+  versionnées avec rollback, journal des ventes pour le comptable (CSV Excel), toutes les pages commerçant traduites.
+- [2026-11-15] Passe 6 — pages publiques : le lien de paiement `/pay/:token` n'avait aucune route (lien mort) → corrigé ;
+  paiement + catalogue public traduits, dans la devise du commerçant ; smoke public en CI.
 
 ## État final
-66 tests backend + 2 e2e verts ; ruff 0 ; pip-audit 0 ; bandit 0 medium/high ; npm audit 2 modérées ; build OK.
+73 tests backend + 8 e2e + 2 unitaires verts ; smoke i18n EN/AR (20 pages) en CI ; ruff 0 ; build OK ; CI GitHub verte.
 
 ## Reste à faire
 Voir REPORT.md, sections « Reste à faire » et « Actions manuelles requises ».
