@@ -99,6 +99,6 @@ jobs:
         run: npx playwright test --reporter=line
       - name: Every page translated (no JS errors, no leftover French in EN/AR)
         working-directory: frontend
-        run: node scripts/i18n-smoke.cjs en && node scripts/i18n-smoke.cjs ar
+        run: node scripts/i18n-smoke.cjs en && node scripts/i18n-smoke.cjs ar && node scripts/public-smoke.cjs en && node scripts/public-smoke.cjs ar
       - if: failure()
         run: tail -100 /tmp/api.log /tmp/vite.log

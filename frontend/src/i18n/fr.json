@@ -845,5 +845,55 @@
       "CANCELLED": "Annulé",
       "EXPIRED": "Expirée"
     }
+  },
+  "reportsPage": {
+    "salesCount_one": "{{count}} vente",
+    "salesCount_other": "{{count}} ventes",
+    "salesSubtitle": "Comment évolue votre chiffre d'affaires",
+    "growth": "Croissance",
+    "perSale": "par vente",
+    "vsPrevious": "vs période précédente",
+    "notEnoughData": "pas encore assez de données",
+    "dailyRevenue": "Chiffre d'affaires par jour",
+    "perDay": "{{currency}} par jour",
+    "bestDay": "Meilleur jour",
+    "salesVolume": "Nombre de ventes",
+    "salesPerDay": "Ventes par jour",
+    "topProducts": "Produits qui rapportent le plus",
+    "noSales": "Aucune vente enregistrée",
+    "revenueSplit": "Répartition du chiffre d'affaires",
+    "combined": "Chiffre d'affaires et nombre de ventes",
+    "revenue": "Chiffre d'affaires",
+    "salesCountLabel": "Nombre de ventes",
+    "marginsSubtitle": "Ce que chaque produit vous rapporte vraiment (retours déduits, coût réel)",
+    "totalCost": "Coût des marchandises",
+    "grossMargin": "Marge brute",
+    "avgMargin": "Marge moyenne",
+    "marginByProduct": "Marge par produit",
+    "qtySold": "Qté vendue",
+    "cost": "Coût",
+    "chart": "Graphique",
+    "noSalesPeriod": "Aucune vente sur cette période",
+    "high": "Haut",
+    "expected": "Prévu",
+    "low": "Bas",
+    "noForecastHint": "Ajoutez des produits et enregistrez des ventes pour obtenir des prévisions.",
+    "restockSubtitle": "Demande prévue sur 7 jours à partir de vos ventes",
+    "demand7": "Demande prévue (7 j)",
+    "toOrder": "À commander"
+  },
+  "pay": {
+    "notFound": "Facture introuvable ou expirée",
+    "cardRequired": "Numéro de carte requis",
+    "confirmed": "Paiement confirmé !",
+    "paidAmount": "{{amount}} payés",
+    "secure": "Paiement sécurisé",
+    "payAmount": "Payer {{amount}}"
+  },
+  "catalogPublic": {
+    "orderWhatsApp": "Commander sur WhatsApp",
+    "poweredBy": "Propulsé par",
+    "inStock": "{{qty}} en stock",
+    "soldOut": "Épuisé"
   }
 }

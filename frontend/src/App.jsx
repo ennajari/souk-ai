@@ -28,6 +28,7 @@ const CoachIA = lazy(() => import("./pages/CoachIA"))
 const Employees = lazy(() => import("./pages/Employees"))
 const Catalogue = lazy(() => import("./pages/Catalogue"))
 const CataloguePublic = lazy(() => import("./pages/CataloguePublic"))
+const PayInvoice = lazy(() => import("./pages/PayInvoice"))
 const Marketplace = lazy(() => import("./pages/Marketplace"))
 const Payments = lazy(() => import("./pages/Payments"))
 const MarketIntelligence = lazy(() => import("./pages/MarketIntelligence"))
@@ -76,6 +77,7 @@ export default function App() {
         {/* ── Public pages ── */}
         <Route path="/" element={<Landing />} />
         <Route path="/catalogue/:merchantId" element={<CataloguePublic />} />
+        <Route path="/pay/:token" element={<PayInvoice />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/register" element={<Register />} />

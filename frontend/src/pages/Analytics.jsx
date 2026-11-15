@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
+import { useMoney } from '../utils/money'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, Legend
@@ -42,13 +45,15 @@ function KpiCard({ title, value, sub, icon: Icon, trend, color = 'violet' }) {
 }
 
 function CustomTooltip({ active, payload, label }) {
+  const { t } = useTranslation()
+  const money = useMoney()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-gray-900 text-white rounded-xl px-3 py-2 shadow-xl text-xs border border-white/10">
       <p className="text-gray-500 mb-1 font-medium">{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="font-bold" style={{ color: p.color }}>
-          {p.name === 'revenue' ? `${Number(p.value).toFixed(0)} MAD` : `${p.value} ventes`}
+          {p.name === 'revenue' ? money(p.value, 0) : t('reportsPage.salesCount', { count: p.value })}
         </p>
       ))}
     </div>
@@ -56,6 +61,9 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function Analytics() {
+  const { t } = useTranslation()
+  const money = useMoney()
+  const { merchant } = useAuth()
   const [chartData, setChartData]     = useState([])
   const [topProducts, setTopProducts] = useState([])
   const [days, setDays]               = useState(7)
@@ -101,7 +109,7 @@ export default function Analytics() {
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 animate-pulse" />
-          <p className="text-sm text-gray-500">Calcul des analytics...</p>
+          <p className="text-sm text-gray-500">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -113,14 +121,14 @@ export default function Analytics() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Analytics</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Performance détaillée de votre commerce</p>
+          <h1 className="text-2xl font-black text-gray-900">{t('reports.sales')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('reportsPage.salesSubtitle')}</p>
         </div>
         <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
           {[
-            { d: 7,  label: '7j' },
-            { d: 14, label: '14j' },
-            { d: 30, label: '30j' },
+            { d: 7,  label: t('dashboard.days', { count: 7 }) },
+            { d: 14, label: t('dashboard.days', { count: 14 }) },
+            { d: 30, label: t('dashboard.days', { count: 30 }) },
           ].map(({ d, label }) => (
             <button
               key={d}
@@ -140,30 +148,30 @@ export default function Analytics() {
       {/* ── KPI row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="Revenu total"
-          value={`${totalRevenue.toFixed(0)} MAD`}
-          sub={`sur ${days} jours`}
+          title={t('dashboard.totalRevenue')}
+          value={money(totalRevenue, 0)}
+          sub={t('dashboard.lastDays', { count: days })}
           icon={FiDollarSign}
           color="violet"
         />
         <KpiCard
-          title="Ventes totales"
+          title={t('dashboard.totalSales')}
           value={totalSales}
-          sub={`sur ${days} jours`}
+          sub={t('dashboard.lastDays', { count: days })}
           icon={FiShoppingCart}
           color="cyan"
         />
         <KpiCard
-          title="Panier moyen"
-          value={`${avgBasket.toFixed(0)} MAD`}
-          sub="par transaction"
+          title={t('coach.avgBasket')}
+          value={money(avgBasket, 0)}
+          sub={t('reportsPage.perSale')}
           icon={FiPercent}
           color="green"
         />
         <KpiCard
-          title="Croissance"
+          title={t('reportsPage.growth')}
           value={`${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`}
-          sub={days >= 14 ? 'vs période précédente' : 'données insuffisantes'}
+          sub={days >= 14 ? t('reportsPage.vsPrevious') : t('reportsPage.notEnoughData')}
           icon={FiTrendingUp}
           trend={growth}
           color="orange"
@@ -177,13 +185,13 @@ export default function Analytics() {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-sm font-bold text-gray-900">Revenu quotidien</h3>
-              <p className="text-xs text-gray-500 mt-0.5">MAD / jour</p>
+              <h3 className="text-sm font-bold text-gray-900">{t('reportsPage.dailyRevenue')}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t('reportsPage.perDay', { currency: merchant?.currency || 'MAD' })}</p>
             </div>
             {bestDay && (
               <div className="text-right">
-                <p className="text-xs text-gray-500">Meilleur jour</p>
-                <p className="text-xs font-bold text-brand-600">{bestDay.date} · {Number(bestDay.revenue).toFixed(0)} MAD</p>
+                <p className="text-xs text-gray-500">{t('reportsPage.bestDay')}</p>
+                <p className="text-xs font-bold text-brand-600">{bestDay.date} · {money(bestDay.revenue, 0)}</p>
               </div>
             )}
           </div>
@@ -207,8 +215,8 @@ export default function Analytics() {
         {/* Volume ventes */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="mb-5">
-            <h3 className="text-sm font-bold text-gray-900">Volume des ventes</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Nb transactions / jour</p>
+            <h3 className="text-sm font-bold text-gray-900">{t('reportsPage.salesVolume')}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t('reportsPage.salesPerDay')}</p>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -229,10 +237,10 @@ export default function Analytics() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-5">
             <FiPackage className="h-4 w-4 text-brand-500" />
-            <h3 className="text-sm font-bold text-gray-900">Top produits par revenu</h3>
+            <h3 className="text-sm font-bold text-gray-900">{t('reportsPage.topProducts')}</h3>
           </div>
           {topProducts.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 text-sm">Aucune vente enregistrée</div>
+            <div className="text-center py-10 text-gray-500 text-sm">{t('reportsPage.noSales')}</div>
           ) : (
             <div className="space-y-3">
               {topProducts.map((p, i) => {
@@ -244,7 +252,7 @@ export default function Analytics() {
                       <span className="text-sm font-medium text-gray-700 truncate max-w-[55%]">{p.name}</span>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-gray-500">{p.qty} unités</span>
-                        <span className="text-sm font-bold text-gray-900">{p.revenue.toFixed(0)} MAD</span>
+                        <span className="text-sm font-bold text-gray-900">{money(p.revenue, 0)}</span>
                       </div>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -264,10 +272,10 @@ export default function Analytics() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-5">
             <FiBarChart2 className="h-4 w-4 text-cyan-500" />
-            <h3 className="text-sm font-bold text-gray-900">Répartition du chiffre d'affaires</h3>
+            <h3 className="text-sm font-bold text-gray-900">{t('reportsPage.revenueSplit')}</h3>
           </div>
           {topProducts.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 text-sm">Aucune vente enregistrée</div>
+            <div className="text-center py-10 text-gray-500 text-sm">{t('reportsPage.noSales')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -285,7 +293,7 @@ export default function Analytics() {
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v) => `${Number(v).toFixed(0)} MAD`} />
+                <Tooltip formatter={(v) => money(v, 0)} />
                 <Legend
                   iconType="circle"
                   iconSize={8}
@@ -302,7 +310,7 @@ export default function Analytics() {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <FiCalendar className="h-4 w-4 text-brand-500" />
-            <h3 className="text-sm font-bold text-gray-900">Revenu & ventes combinés</h3>
+            <h3 className="text-sm font-bold text-gray-900">{t('reportsPage.combined')}</h3>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={200}>
@@ -319,11 +327,11 @@ export default function Analytics() {
         <div className="flex gap-5 mt-3">
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="w-4 h-0.5 bg-brand-600 inline-block rounded" />
-            Revenu (MAD)
+            {t('reportsPage.revenue')} ({merchant?.currency || 'MAD'})
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #10b981 0, #10b981 5px, transparent 5px, transparent 8px)' }} />
-            Nb ventes
+            {t('reportsPage.salesCountLabel')}
           </div>
         </div>
       </div>

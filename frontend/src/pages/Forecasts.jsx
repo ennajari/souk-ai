@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import client from '../api/client'
 
 export default function Forecasts() {
+  const { t, i18n } = useTranslation()
   const [forecasts, setForecasts] = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -19,10 +21,10 @@ export default function Forecasts() {
   }, [])
 
   const chartData = selected?.forecast?.map(f => ({
-    date: new Date(f.date).toLocaleDateString('fr-MA', { weekday: 'short', day: 'numeric' }),
-    Prévu: f.demand,
-    Min: f.lower,
-    Max: f.upper,
+    date: new Date(f.date).toLocaleDateString(i18n.language, { weekday: 'short', day: 'numeric' }),
+    expected: f.demand,
+    low: f.lower,
+    high: f.upper,
   })) || []
 
   if (loading) return (
@@ -37,16 +39,16 @@ export default function Forecasts() {
 
   if (forecasts.length === 0) return (
     <div className="text-center py-16 text-gray-500">
-      <p className="text-lg font-medium">Aucun produit trouvé</p>
-      <p className="text-sm mt-1">Ajoutez des produits et enregistrez des ventes pour obtenir des prévisions.</p>
+      <p className="text-lg font-medium">{t('pos.noProduct')}</p>
+      <p className="text-sm mt-1">{t('reportsPage.noForecastHint')}</p>
     </div>
   )
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Prévisions de Demande</h1>
-        <p className="text-sm text-gray-500 mt-1">Prédictions sur 7 jours basées sur l'historique des ventes</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('reports.restock')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('reportsPage.restockSubtitle')}</p>
       </div>
 
       {/* Product grid */}
@@ -65,11 +67,11 @@ export default function Forecasts() {
             {f.product_name_fr && <p className="text-xs text-gray-500">{f.product_name_fr}</p>}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xs text-gray-500">Stock actuel</p>
+                <p className="text-xs text-gray-500">{t('products.currentStock')}</p>
                 <p className="text-lg font-semibold text-gray-800">{f.current_stock}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Demande 7j</p>
+                <p className="text-xs text-gray-500">{t('reportsPage.demand7')}</p>
                 <p className="text-lg font-semibold text-blue-600">{f.predicted_demand_7d}</p>
               </div>
             </div>
@@ -86,7 +88,7 @@ export default function Forecasts() {
       {selected && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Prévisions — {selected.product_name_ar}
+            {t('reports.restock')} — {selected.product_name_ar}
           </h2>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={chartData}>
@@ -101,24 +103,24 @@ export default function Forecasts() {
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="Max" stroke="#F4C9B5" fill="none" strokeDasharray="4 2" dot={false} />
-              <Area type="monotone" dataKey="Prévu" stroke="#C2410C" fill="url(#colorPrev)" strokeWidth={2} dot={{ r: 4 }} />
-              <Area type="monotone" dataKey="Min" stroke="#F4C9B5" fill="none" strokeDasharray="4 2" dot={false} />
+              <Area type="monotone" dataKey="high" name={t('reportsPage.high')} stroke="#F4C9B5" fill="none" strokeDasharray="4 2" dot={false} />
+              <Area type="monotone" dataKey="expected" name={t('reportsPage.expected')} stroke="#C2410C" fill="url(#colorPrev)" strokeWidth={2} dot={{ r: 4 }} />
+              <Area type="monotone" dataKey="low" name={t('reportsPage.low')} stroke="#F4C9B5" fill="none" strokeDasharray="4 2" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
 
           {/* Summary row */}
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
-              <p className="text-xs text-gray-500">Stock actuel</p>
+              <p className="text-xs text-gray-500">{t('products.currentStock')}</p>
               <p className="text-xl font-bold text-gray-800">{selected.current_stock}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">Demande prévue (7j)</p>
+              <p className="text-xs text-gray-500">{t('reportsPage.demand7')}</p>
               <p className="text-xl font-bold text-blue-600">{selected.predicted_demand_7d}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">À commander</p>
+              <p className="text-xs text-gray-500">{t('reportsPage.toOrder')}</p>
               <p className={`text-xl font-bold ${selected.restock_quantity > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                 {selected.restock_quantity > 0 ? `+${selected.restock_quantity}` : '✓ OK'}
               </p>

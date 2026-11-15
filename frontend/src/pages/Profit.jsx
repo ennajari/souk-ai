@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useMoney } from '../utils/money'
 import { FiTrendingUp, FiDollarSign, FiDownload } from 'react-icons/fi'
 import { analyticsAPI } from '../api/client'
 import toast from 'react-hot-toast'
@@ -6,6 +8,8 @@ import toast from 'react-hot-toast'
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export default function Profit() {
+  const { t } = useTranslation()
+  const money = useMoney()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
@@ -14,7 +18,7 @@ export default function Profit() {
     setLoading(true)
     analyticsAPI.profit(days)
       .then(r => setData(r.data))
-      .catch(() => toast.error('Erreur chargement profits'))
+      .catch(() => toast.error(t('common.error')))
       .finally(() => setLoading(false))
   }
 
@@ -35,7 +39,7 @@ export default function Profit() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast.error('Erreur export CSV')
+      toast.error(t('common.error'))
     }
   }
 
@@ -51,15 +55,15 @@ export default function Profit() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analyse des profits</h1>
-          <p className="text-sm text-gray-500 mt-1">Marge et rentabilite par produit</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reports.margins')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('reportsPage.marginsSubtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <select value={days} onChange={e => setDays(parseInt(e.target.value))}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-            <option value={7}>7 jours</option>
-            <option value={30}>30 jours</option>
-            <option value={90}>90 jours</option>
+            <option value={7}>{t('dashboard.lastDays', { count: 7 })}</option>
+            <option value={30}>{t('dashboard.lastDays', { count: 30 })}</option>
+            <option value={90}>{t('dashboard.lastDays', { count: 90 })}</option>
             <option value={365}>1 an</option>
           </select>
           <button onClick={handleExport}
@@ -72,21 +76,21 @@ export default function Profit() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-xs text-gray-500">Chiffre d'affaires</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_revenue.toFixed(0)} <span className="text-sm font-normal text-gray-500">MAD</span></p>
+          <p className="text-xs text-gray-500">{t('reportsPage.revenue')}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{money(data.total_revenue, 0)}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-xs text-gray-500">Cout total</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{data.total_cost.toFixed(0)} <span className="text-sm font-normal text-gray-500">MAD</span></p>
+          <p className="text-xs text-gray-500">{t('reportsPage.totalCost')}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{money(data.total_cost, 0)}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-xs text-gray-500">Profit net</p>
+          <p className="text-xs text-gray-500">{t('reportsPage.grossMargin')}</p>
           <p className={`text-2xl font-black mt-1 ${data.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {data.total_profit.toFixed(0)} <span className="text-sm font-normal">MAD</span>
+            {money(data.total_profit, 0)}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-xs text-gray-500">Marge moyenne</p>
+          <p className="text-xs text-gray-500">{t('reportsPage.avgMargin')}</p>
           <p className={`text-2xl font-black mt-1 ${data.avg_margin >= 20 ? 'text-green-600' : data.avg_margin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
             {data.avg_margin.toFixed(1)}%
           </p>
@@ -97,24 +101,24 @@ export default function Profit() {
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center gap-2">
           <FiTrendingUp className="h-4 w-4 text-brand-600" />
-          <h2 className="font-semibold text-gray-900 text-sm">Profit par produit</h2>
+          <h2 className="font-semibold text-gray-900 text-sm">{t('reportsPage.marginByProduct')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qte vendue</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">CA</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cout</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Profit</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Marge</th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Visual</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('customers.product')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('reportsPage.qtySold')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('coach.revenue')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('reportsPage.cost')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('coach.margin')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">%</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase"><span className="sr-only">{t('reportsPage.chart')}</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {data.products.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">Aucune vente sur cette periode</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">{t('reportsPage.noSalesPeriod')}</td></tr>
               ) : data.products.map(p => (
                 <tr key={p.product_id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">

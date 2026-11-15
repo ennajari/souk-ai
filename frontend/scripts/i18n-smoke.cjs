@@ -7,7 +7,7 @@ const PAGES = ['/dashboard', '/pos', '/products', '/sales', '/customers', '/supp
   '/reports?tab=restock', '/reports?tab=tax', '/payments', '/marketplace', '/my-catalogue', '/employees', '/coach',
   '/sage-import', '/settings', '/notifications']
 // frequent French words that should never appear in the EN/AR UI (product names from the demo are ignored)
-const FR = /\b(Ajouter|Annuler|Enregistrer|Supprimer|Modifier|Rechercher|Fournisseur|Commande|Paiement|Montant|Aucun|Aucune|Chargement|Erreur|Produits?|Ventes?|Prix|Quantité|Statut|Nouvelle?|Mes|Votre|Vos|Créer|Télécharger)\b/g
+const FR = /\b(Ajouter|Annuler|Enregistrer|Supprimer|Modifier|Rechercher|Fournisseurs?|Commandes?|Paiements?|Montant|Aucun|Aucune|Chargement|Erreur|Produits?|Ventes?|Prix|Quantité|Statut|Nouvelle?|Mes|Votre|Vos|Créer|Télécharger|jours|Chiffre|Analyse|Prévisions?|Demande|Revenu|Marge|Coût|Meilleur|Répartition|Clients?|Stock actuel|Panier|Croissance|Total encaissé)\b/g
 ;(async () => {
   const b = await chromium.launch({ channel: 'chrome' })
   const c0 = await b.newContext()
