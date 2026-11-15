@@ -212,3 +212,14 @@ async def test_bot_comma_decimal_quantity(client):
         txn = await record_sale(db, me["id"], p["id"], "0,75", 20.0)
         await db.commit()
     assert float(txn.quantity) == 0.75 and float(txn.total_amount) == 15.0
+
+
+async def test_product_list_puts_best_sellers_first(client):
+    h = await register(client)
+    a = await make_product(client, h, stock=50, name_fr="Abricots", name_ar="مشمش")
+    b = await make_product(client, h, stock=50, name_fr="Pain", name_ar="خبز")
+    for _ in range(3):
+        await client.post(BULK, json={"items": [{"product_id": b["id"], "quantity": 1, "unit_price": 5}]}, headers=h)
+    names = [p["name_fr"] for p in (await client.get("/api/v1/products/", headers=h)).json()]
+    assert names == ["Pain", "Abricots"], names
+    assert a["id"]

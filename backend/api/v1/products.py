@@ -7,6 +7,8 @@ from core.money import to_money
 from core.ratelimit import enforce
 from core.uploads import IMAGE_TYPES, read_limited
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select, or_, func
 
 from core.database import get_db
@@ -15,6 +17,7 @@ from app.config import settings
 from models.merchant import Merchant
 from models.product import Product
 from models.inventory import Inventory, InventoryLog
+from models.transaction import Transaction, TransactionType
 from schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from services.barcode_service import register_barcode, lookup_barcode
 
@@ -30,8 +33,18 @@ async def list_products(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    # Best sellers first (30 days), then by name: the till shows what is sold most without searching
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    sold = (
+        select(Transaction.product_id, func.count(Transaction.id).label("n"))
+        .where(Transaction.merchant_id == merchant.id, Transaction.type == TransactionType.SALE,
+               Transaction.created_at >= since)
+        .group_by(Transaction.product_id).subquery()
+    )
     result = await db.execute(
-        select(Product).where(Product.merchant_id == merchant.id, Product.is_active == True)  # noqa: E712
+        select(Product).outerjoin(sold, sold.c.product_id == Product.id)
+        .where(Product.merchant_id == merchant.id, Product.is_active == True)  # noqa: E712
+        .order_by(func.coalesce(sold.c.n, 0).desc(), func.lower(Product.name_fr))
     )
     products = result.scalars().all()
 
