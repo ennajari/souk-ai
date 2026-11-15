@@ -929,5 +929,19 @@
     "restockSubtitle": "الطلب المتوقع فـ 7 أيام الجاية من المبيعات ديالك",
     "demand7": "الطلب المتوقع (7 أيام)",
     "toOrder": "خاصك تطلب"
+  },
+  "pay": {
+    "notFound": "الفاتورة ما كايناش ولا فاتت",
+    "cardRequired": "رقم البطاقة ضروري",
+    "confirmed": "الأداء تأكد!",
+    "paidAmount": "تخلص {{amount}}",
+    "secure": "أداء آمن",
+    "payAmount": "خلص {{amount}}"
+  },
+  "catalogPublic": {
+    "orderWhatsApp": "اطلب فواتساب",
+    "poweredBy": "بدعم من",
+    "inStock": "{{qty}} متوفر",
+    "soldOut": "سالا"
   }
 }

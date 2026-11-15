@@ -223,3 +223,14 @@ async def test_product_list_puts_best_sellers_first(client):
     names = [p["name_fr"] for p in (await client.get("/api/v1/products/", headers=h)).json()]
     assert names == ["Pain", "Abricots"], names
     assert a["id"]
+
+
+async def test_public_catalogue_with_weighed_stock_and_currency(client):
+    """The shareable catalogue must not crash on decimal stock (kg) and must say which currency."""
+    h = await register(client)
+    me = (await client.get("/api/v1/auth/me", headers=h)).json()
+    p = await make_product(client, h, stock=10, price=8, unit="kg", name_fr="Tomates", name_ar="طماطم")
+    await client.post(BULK, json={"items": [{"product_id": p["id"], "quantity": 1.25, "unit_price": 8}]}, headers=h)
+    r = await client.get(f"/api/v1/catalogue/{me['id']}")
+    assert r.status_code == 200, r.text
+    assert r.json()["currency"] == "MAD" and r.json()["products"][0]["stock"] == 8.75

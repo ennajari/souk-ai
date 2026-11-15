@@ -881,5 +881,19 @@
     "restockSubtitle": "Expected demand for the next 7 days, from your sales",
     "demand7": "Expected demand (7 d)",
     "toOrder": "To order"
+  },
+  "pay": {
+    "notFound": "Invoice not found or expired",
+    "cardRequired": "Card number required",
+    "confirmed": "Payment confirmed!",
+    "paidAmount": "{{amount}} paid",
+    "secure": "Secure payment",
+    "payAmount": "Pay {{amount}}"
+  },
+  "catalogPublic": {
+    "orderWhatsApp": "Order on WhatsApp",
+    "poweredBy": "Powered by",
+    "inStock": "{{qty}} in stock",
+    "soldOut": "Sold out"
   }
 }

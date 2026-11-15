@@ -881,5 +881,19 @@
     "restockSubtitle": "Demande prévue sur 7 jours à partir de vos ventes",
     "demand7": "Demande prévue (7 j)",
     "toOrder": "À commander"
+  },
+  "pay": {
+    "notFound": "Facture introuvable ou expirée",
+    "cardRequired": "Numéro de carte requis",
+    "confirmed": "Paiement confirmé !",
+    "paidAmount": "{{amount}} payés",
+    "secure": "Paiement sécurisé",
+    "payAmount": "Payer {{amount}}"
+  },
+  "catalogPublic": {
+    "orderWhatsApp": "Commander sur WhatsApp",
+    "poweredBy": "Propulsé par",
+    "inStock": "{{qty}} en stock",
+    "soldOut": "Épuisé"
   }
 }

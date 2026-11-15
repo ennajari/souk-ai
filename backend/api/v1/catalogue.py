@@ -18,13 +18,14 @@ class CatalogueProduct(BaseModel):
     name_fr: str
     unit: str
     unit_price: float
-    stock: int
+    stock: float  # weighed goods have decimal stock (8.75 kg); int crashed the page
 
     model_config = {"from_attributes": True}
 
 
 class CatalogueResponse(BaseModel):
     business_name: str
+    currency: str = "MAD"
     category: str
     phone: str
     products: list[CatalogueProduct]
@@ -59,11 +60,12 @@ async def get_public_catalogue(
             name_fr=p.name_fr,
             unit=p.unit,
             unit_price=float(p.unit_price),
-            stock=p.inventory.quantity if p.inventory else 0,
+            stock=float(p.inventory.quantity) if p.inventory else 0,
         ))
 
     return CatalogueResponse(
         business_name=merchant.business_name,
+        currency=merchant.currency or "MAD",
         category=merchant.business_category.value,
         phone=merchant.phone_number,
         products=items,

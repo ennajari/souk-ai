@@ -1,22 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { FiShoppingBag, FiPhone, FiPackage } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { formatMoney } from '../utils/money'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-const CATEGORY_LABELS = {
-  GROCERY: { fr: 'Épicerie', ar: 'بقالة' },
-  BAKERY: { fr: 'Boulangerie', ar: 'مخبزة' },
-  BUTCHER: { fr: 'Boucherie', ar: 'جزارة' },
-  PHARMACY: { fr: 'Pharmacie', ar: 'صيدلية' },
-  RESTAURANT: { fr: 'Restaurant', ar: 'مطعم' },
-  MARKET: { fr: 'Marché', ar: 'سوق' },
-  OTHER: { fr: 'Commerce', ar: 'تجارة' },
-}
-
-const UNIT_LABELS = { piece: 'pièce', kg: 'kg', litre: 'L', carton: 'carton' }
 
 export default function CataloguePublic() {
+  const { t, i18n } = useTranslation()
   const { merchantId } = useParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +45,6 @@ export default function CataloguePublic() {
     )
   }
 
-  const cat = CATEGORY_LABELS[data.category] || CATEGORY_LABELS.OTHER
   const filtered = data.products.filter(
     (p) =>
       (p.name_fr || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -70,7 +61,7 @@ export default function CataloguePublic() {
           <FiShoppingBag className="w-8 h-8" />
         </div>
         <h1 className="text-2xl font-bold">{data.business_name}</h1>
-        <p className="text-brand-200 text-sm mt-1">{cat.fr} • {cat.ar}</p>
+        <p className="text-brand-200 text-sm mt-1">{t(`settings.categories.${data.category || 'OTHER'}`, { defaultValue: data.category })}</p>
         <a
           href={whatsappLink}
           target="_blank"
@@ -78,7 +69,7 @@ export default function CataloguePublic() {
           className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 rounded-full text-sm font-medium transition-colors"
         >
           <FiPhone className="w-4 h-4" />
-          Commander via WhatsApp
+          {t('catalogPublic.orderWhatsApp')}
         </a>
       </div>
 
@@ -86,7 +77,7 @@ export default function CataloguePublic() {
       <div className="max-w-2xl mx-auto px-4 -mt-5">
         <input
           type="text"
-          placeholder="Rechercher un produit..."
+          placeholder={t('suppliersPage.searchProduct')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-4 py-3 bg-white rounded-xl shadow-lg border-0 focus:ring-2 focus:ring-brand-500 text-sm"
@@ -102,7 +93,7 @@ export default function CataloguePublic() {
         {filtered.length === 0 ? (
           <div className="text-center py-12">
             <FiPackage className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-            <p className="text-gray-500">Aucun produit trouvé</p>
+            <p className="text-gray-500">{t('pos.noProduct')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -118,13 +109,13 @@ export default function CataloguePublic() {
                 <p className="text-xs text-gray-500 mt-0.5" dir="rtl">{p.name_ar}</p>
                 <div className="mt-3 flex items-end justify-between">
                   <div>
-                    <span className="text-lg font-bold text-brand-600">{p.unit_price}</span>
-                    <span className="text-xs text-gray-500 ml-0.5">DH/{UNIT_LABELS[p.unit] || p.unit}</span>
+                    <span className="text-lg font-bold text-brand-600">{formatMoney(p.unit_price, data?.currency || 'MAD', i18n.language)}</span>
+                    <span className="text-xs text-gray-500 ms-0.5">/ {t(`products.units.${p.unit}`, { defaultValue: p.unit })}</span>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     p.stock > 5 ? 'bg-green-50 text-green-600' : p.stock > 0 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'
                   }`}>
-                    {p.stock > 0 ? `${p.stock} en stock` : 'Épuisé'}
+                    {p.stock > 0 ? t('catalogPublic.inStock', { qty: p.stock }) : t('catalogPublic.soldOut')}
                   </span>
                 </div>
               </div>
@@ -136,7 +127,7 @@ export default function CataloguePublic() {
       {/* Footer */}
       <div className="text-center py-6 border-t border-gray-100">
         <p className="text-xs text-gray-500">
-          Propulsé par <span className="font-semibold text-brand-500">Souk.AI</span>
+          {t('catalogPublic.poweredBy')} <span className="font-semibold text-brand-500">Souk.AI</span>
         </p>
       </div>
     </div>
