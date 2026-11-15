@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { FiPlus, FiTrash2, FiEdit2, FiX, FiUserCheck, FiUsers, FiCalendar, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
@@ -28,6 +29,7 @@ function api(path, options = {}) {
 
 export default function Employees() {
   const { t, i18n } = useTranslation()
+  const { merchant } = useAuth()
   const isRtl = i18n.language === 'ar'
 
   const [employees, setEmployees] = useState([])
@@ -50,7 +52,7 @@ export default function Employees() {
       const data = await api(`/employees/${empId}/contracts`)
       setContracts(data)
     } catch {
-      toast.error('Erreur chargement contrats')
+      toast.error(t('common.error'))
     } finally {
       setContractsLoading(false)
     }
@@ -219,7 +221,7 @@ export default function Employees() {
                 dir="ltr"
                 placeholder={editId ? '****' : '1234'}
               />
-              <p className="text-xs text-gray-500 mt-1">Pour l'acces a la caisse POS (laissez vide si non necessaire)</p>
+              <p className="text-xs text-gray-500 mt-1">{t('employees.pinHelp')}</p>
             </div>
 
             <div>
@@ -294,7 +296,7 @@ export default function Employees() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className={`flex gap-1 ${isRtl ? 'justify-start' : 'justify-end'}`}>
-                        <button onClick={() => loadContracts(emp.id)} className="p-2 hover:bg-brand-50 rounded-lg text-brand-500 transition-colors" title="Calendrier">
+                        <button onClick={() => loadContracts(emp.id)} className="p-2 hover:bg-brand-50 rounded-lg text-brand-500 transition-colors" title={t('employees.periods')} aria-label={t('employees.periods')}>
                           {expandedEmp === emp.id ? <FiChevronUp className="w-4 h-4" /> : <FiCalendar className="w-4 h-4" />}
                         </button>
                         <button onClick={() => handleEdit(emp)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors">
@@ -327,41 +329,41 @@ export default function Employees() {
                             <form onSubmit={handleContractSubmit} className="bg-white rounded-lg p-3 border border-brand-200 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="text-xs text-gray-500">Date debut *</label>
+                                  <label className="text-xs text-gray-500">{t('employees.startDate')} *</label>
                                   <input type="date" required value={contractForm.start_date}
                                     onChange={e => setContractForm(f => ({ ...f, start_date: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-500">Date fin</label>
+                                  <label className="text-xs text-gray-500">{t('employees.endDate')}</label>
                                   <input type="date" value={contractForm.end_date}
                                     onChange={e => setContractForm(f => ({ ...f, end_date: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-500">Salaire (MAD)</label>
+                                  <label className="text-xs text-gray-500">{t('employees.salary')} ({merchant?.currency || 'MAD'})</label>
                                   <input type="number" step="0.01" value={contractForm.salary}
                                     onChange={e => setContractForm(f => ({ ...f, salary: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-500">Notes</label>
+                                  <label className="text-xs text-gray-500">{t('common.notes')}</label>
                                   <input value={contractForm.notes}
                                     onChange={e => setContractForm(f => ({ ...f, notes: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                <button type="button" onClick={() => setShowContractForm(false)} className="px-3 py-1.5 text-xs border rounded-lg hover:bg-gray-50">Annuler</button>
-                                <button type="submit" className="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold">Enregistrer</button>
+                                <button type="button" onClick={() => setShowContractForm(false)} className="px-3 py-1.5 text-xs border rounded-lg hover:bg-gray-50">{t('common.cancel')}</button>
+                                <button type="submit" className="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold">{t('common.save')}</button>
                               </div>
                             </form>
                           )}
 
                           {contractsLoading ? (
-                            <p className="text-xs text-gray-500">Chargement...</p>
+                            <p className="text-xs text-gray-500">{t('common.loading')}</p>
                           ) : contracts.length === 0 ? (
-                            <p className="text-xs text-gray-500">Aucune periode enregistree</p>
+                            <p className="text-xs text-gray-500">{t('employees.noPeriods')}</p>
                           ) : (
                             <div className="space-y-2">
                               {contracts.map(c => {
@@ -374,9 +376,9 @@ export default function Employees() {
                                     <div className={`w-2 h-10 rounded-full ${isOngoing ? 'bg-green-500' : 'bg-gray-300'}`} />
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900">
-                                        {start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        {start.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })}
                                         {' → '}
-                                        {end ? end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : <span className="text-green-600 font-semibold">En cours</span>}
+                                        {end ? end.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' }) : <span className="text-green-600 font-semibold">En cours</span>}
                                       </p>
                                       <p className="text-xs text-gray-500">
                                         {days ? `${days} jours` : 'En cours'}

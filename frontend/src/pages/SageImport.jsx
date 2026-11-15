@@ -1,12 +1,13 @@
 import { useState, useRef } from "react"
+import { useTranslation } from 'react-i18next'
 import { FiUploadCloud, FiFileText, FiCheckCircle, FiAlertCircle, FiPackage, FiDollarSign, FiRefreshCw } from "react-icons/fi"
 import { sageAPI } from "../api/client"
 
 const importTypes = [
   {
     id: "articles",
-    label: "Articles / Produits",
-    description: "Importer la liste des articles avec prix et stock",
+    label: "sage.typeArticles",
+    description: "sage.typeArticlesDesc",
     icon: FiPackage,
     activeBorder: "border-brand-500 bg-brand-50 shadow-md",
     activeText: "text-brand-600",
@@ -14,8 +15,8 @@ const importTypes = [
   },
   {
     id: "sales",
-    label: "Ventes / Factures",
-    description: "Importer l'historique des ventes et factures",
+    label: "sage.typeSales",
+    description: "sage.typeSalesDesc",
     icon: FiDollarSign,
     activeBorder: "border-emerald-500 bg-emerald-50 shadow-md",
     activeText: "text-emerald-600",
@@ -23,8 +24,8 @@ const importTypes = [
   },
   {
     id: "auto",
-    label: "Détection auto",
-    description: "Souk.AI détecte automatiquement le type de fichier",
+    label: "sage.typeAuto",
+    description: "sage.typeAutoDesc",
     icon: FiRefreshCw,
     activeBorder: "border-blue-500 bg-blue-50 shadow-md",
     activeText: "text-blue-600",
@@ -33,6 +34,7 @@ const importTypes = [
 ]
 
 export default function SageImport() {
+  const { t } = useTranslation()
   const [selectedType, setSelectedType] = useState(null)
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -57,7 +59,7 @@ export default function SageImport() {
       }
       setResult(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || "Erreur lors de l'import")
+      setError(err.response?.data?.detail || t('common.error'))
     } finally {
       setLoading(false)
     }
@@ -75,27 +77,27 @@ export default function SageImport() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Import Sage 100</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('nav.sageImport')}</h1>
         <p className="text-gray-500 mt-1">
-          Importez vos données depuis Sage 100 v7 — articles, ventes, clients
+          {t('sage.subtitle')}
         </p>
       </div>
 
       {/* How to export from Sage */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="font-semibold text-blue-800 text-sm">Comment exporter depuis Sage 100 ?</h3>
+        <h3 className="font-semibold text-blue-800 text-sm">{t('sage.howTo')}</h3>
         <ol className="mt-2 text-sm text-blue-700 space-y-1 list-decimal list-inside">
-          <li>Ouvrez Sage 100 → Menu <strong>Fichier</strong> → <strong>Exporter</strong></li>
-          <li>Choisissez le type: <strong>Articles</strong>, <strong>Ventes</strong>, ou <strong>Clients</strong></li>
-          <li>Format: <strong>CSV</strong> (séparateur point-virgule)</li>
-          <li>Encodage: <strong>Windows (ANSI)</strong> ou <strong>UTF-8</strong></li>
-          <li>Enregistrez et uploadez le fichier ici</li>
+          <li>{t('sage.step1')}</li>
+          <li>{t('sage.step2')}</li>
+          <li>{t('sage.step3')}</li>
+          <li>{t('sage.step4')}</li>
+          <li>{t('sage.step5')}</li>
         </ol>
       </div>
 
       {/* Step 1: Choose type */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">1. Type d'import</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">1. {t('sage.importType')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {importTypes.map((type) => (
             <button
@@ -110,8 +112,8 @@ export default function SageImport() {
               <type.icon className={`h-6 w-6 mb-2 ${
                 selectedType === type.id ? type.activeText : "text-gray-500"
               }`} />
-              <p className="font-semibold text-sm text-gray-900">{type.label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{type.description}</p>
+              <p className="font-semibold text-sm text-gray-900">{t(type.label)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t(type.description)}</p>
             </button>
           ))}
         </div>
@@ -120,7 +122,7 @@ export default function SageImport() {
       {/* Step 2: Upload file */}
       {selectedType && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">2. Fichier CSV</h2>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">2. {t('sage.csvFile')}</h2>
           <div
             className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors"
             onClick={() => fileRef.current?.click()}
@@ -140,8 +142,8 @@ export default function SageImport() {
               </div>
             ) : (
               <div>
-                <p className="font-medium text-gray-700">Cliquez pour choisir un fichier</p>
-                <p className="text-sm text-gray-500 mt-1">CSV ou TXT — Export Sage 100</p>
+                <p className="font-medium text-gray-700">{t('sage.chooseFile')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('sage.fileHint')}</p>
               </div>
             )}
           </div>
@@ -159,12 +161,12 @@ export default function SageImport() {
             {loading ? (
               <>
                 <FiRefreshCw className="h-4 w-4 animate-spin" />
-                Import en cours...
+                {t('sage.importing')}
               </>
             ) : (
               <>
                 <FiUploadCloud className="h-4 w-4" />
-                Importer
+                {t('sage.import')}
               </>
             )}
           </button>
@@ -172,7 +174,7 @@ export default function SageImport() {
             onClick={resetForm}
             className="px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
           >
-            Réinitialiser
+            {t('sage.reset')}
           </button>
         </div>
       )}
@@ -182,7 +184,7 @@ export default function SageImport() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
           <FiAlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-800 text-sm">Erreur d'import</p>
+            <p className="font-semibold text-red-800 text-sm">{t('sage.importError')}</p>
             <p className="text-sm text-red-600 mt-1">{error}</p>
           </div>
         </div>
@@ -193,36 +195,36 @@ export default function SageImport() {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-3">
           <div className="flex items-center gap-2">
             <FiCheckCircle className="h-5 w-5 text-emerald-600" />
-            <p className="font-bold text-emerald-800">Import réussi !</p>
+            <p className="font-bold text-emerald-800">{t('sage.importOk')}</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-gray-900">{result.total_parsed}</p>
-              <p className="text-xs text-gray-500">Lignes lues</p>
+              <p className="text-xs text-gray-500">{t('sage.rowsRead')}</p>
             </div>
             {result.added !== undefined && (
               <div className="bg-white rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-600">+{result.added}</p>
-                <p className="text-xs text-gray-500">Ajoutés</p>
+                <p className="text-xs text-gray-500">{t('sage.added')}</p>
               </div>
             )}
             {result.updated !== undefined && (
               <div className="bg-white rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-blue-600">{result.updated}</p>
-                <p className="text-xs text-gray-500">Mis à jour</p>
+                <p className="text-xs text-gray-500">{t('sage.updated')}</p>
               </div>
             )}
             {result.imported !== undefined && (
               <div className="bg-white rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-600">{result.imported}</p>
-                <p className="text-xs text-gray-500">Importées</p>
+                <p className="text-xs text-gray-500">{t('sage.imported')}</p>
               </div>
             )}
             {result.skipped !== undefined && result.skipped > 0 && (
               <div className="bg-white rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-amber-600">{result.skipped}</p>
-                <p className="text-xs text-gray-500">Ignorées</p>
+                <p className="text-xs text-gray-500">{t('sage.skipped')}</p>
               </div>
             )}
           </div>
@@ -235,7 +237,7 @@ export default function SageImport() {
 
           {result.added_products?.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-700">Produits ajoutés:</p>
+              <p className="text-sm font-semibold text-gray-700">{t('sage.productsAdded')}</p>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {result.added_products.map((name, i) => (
                   <span key={i} className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">
@@ -248,7 +250,7 @@ export default function SageImport() {
 
           {result.updated_products?.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-700">Produits mis à jour:</p>
+              <p className="text-sm font-semibold text-gray-700">{t('sage.productsUpdated')}</p>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {result.updated_products.map((name, i) => (
                   <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
@@ -263,18 +265,18 @@ export default function SageImport() {
 
       {/* Supported Sage formats */}
       <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="font-semibold text-gray-700 text-sm mb-2">Formats Sage 100 supportés</h3>
+        <h3 className="font-semibold text-gray-700 text-sm mb-2">{t('sage.formats')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
           <div>
-            <p className="font-semibold text-gray-800 mb-1">Articles</p>
+            <p className="font-semibold text-gray-800 mb-1">{t('sage.typeArticles')}</p>
             <p>Reference, Designation, PrixVente, PrixAchat, Unite, CodeBarre, Stock</p>
           </div>
           <div>
-            <p className="font-semibold text-gray-800 mb-1">Ventes</p>
+            <p className="font-semibold text-gray-800 mb-1">{t('sage.typeSales')}</p>
             <p>Date, NumPiece, Designation, Quantite, PrixUnitaire, MontantTTC</p>
           </div>
           <div>
-            <p className="font-semibold text-gray-800 mb-1">Clients</p>
+            <p className="font-semibold text-gray-800 mb-1">{t('sage.customers')}</p>
             <p>NumClient, RaisonSociale, Adresse, Ville, Telephone, Email</p>
           </div>
         </div>

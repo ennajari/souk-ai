@@ -109,6 +109,8 @@ export const suppliersAPI = {
   aggregate: (supplierId) => client.post(`/suppliers/${supplierId}/aggregate`),
   payOrder: (supplierId, orderId, method) =>
     client.post(`/suppliers/${supplierId}/orders/${orderId}/pay`, { method }),
+  receiveOrder: (supplierId, orderId) =>
+    client.post(`/suppliers/${supplierId}/orders/${orderId}/receive`),
   deleteOrder: (supplierId, orderId) =>
     client.delete(`/suppliers/${supplierId}/orders/${orderId}`),
 }
