@@ -4,15 +4,14 @@ import client from '../api/client'
 import { suppliersAPI, supplierCatalogAPI } from '../api/client'
 import SoukCardVisual from '../components/SoukCardVisual'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
+import { useAuth } from '../context/AuthContext'
+import { useMoney } from '../utils/money'
 
 const CATEGORIES = ['FMCG', 'FRESH', 'BEVERAGES', 'DAIRY', 'SNACKS', 'OTHER']
 
 const emptyForm = { name: '', category: 'FMCG', contact_name: '', phone_number: '', email: '', minimum_order_value: 0 }
 
-const ORDER_STATUS_LABELS = {
-  PENDING: 'En attente', SUBMITTED: 'Soumise', IN_DELIVERY: 'En livraison',
-  DELIVERED: 'Livree', CANCELLED: 'Annulee',
-}
 const orderStatusColor = {
   PENDING: 'bg-yellow-100 text-yellow-700', SUBMITTED: 'bg-blue-100 text-blue-700',
   IN_DELIVERY: 'bg-orange-100 text-orange-700', DELIVERED: 'bg-green-100 text-green-700',
@@ -29,6 +28,9 @@ const categoryColor = {
 }
 
 export default function Suppliers() {
+  const { t, i18n } = useTranslation()
+  const { merchant } = useAuth()
+  const money = useMoney()
   const [suppliers, setSuppliers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -75,10 +77,23 @@ export default function Suppliers() {
       const res = await supplierCatalogAPI.list(supplier.id)
       setCatalogItems(res.data || [])
     } catch {
-      toast.error('Erreur chargement catalogue')
+      toast.error(t('common.error'))
     } finally {
       setCatalogLoading(false)
     }
+  }
+
+  // Delivery arrived: goods go into stock at the weighted-average cost (POST …/receive)
+  const [receivingId, setReceivingId] = useState(null)
+  const receiveOrder = async (o) => {
+    setReceivingId(o.id)
+    try {
+      const { data } = await suppliersAPI.receiveOrder(o.supplier_id, o.id)
+      toast.success(t('suppliersPage.received', { count: data.lines_received }))
+      fetchOrders()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t('common.error'))
+    } finally { setReceivingId(null) }
   }
 
   const fetchOrders = () => {
@@ -99,7 +114,7 @@ export default function Suppliers() {
     setPaying(true)
     try {
       await suppliersAPI.payOrder(payModal.supplier_id, payModal.id, payMethod)
-      toast.success('Paiement effectue avec succes')
+      toast.success(t('suppliersPage.paid'))
       closePayModal()
       fetchOrders()
     } catch (err) {
@@ -165,7 +180,7 @@ export default function Suppliers() {
     try {
       await suppliersAPI.payOrder(payModal.supplier_id, payModal.id, 'NFC_SOUKCARD')
       setPayStep('success')
-      toast.success('Paiement effectue avec succes')
+      toast.success(t('suppliersPage.paid'))
       setTimeout(() => {
         closePayModal()
         fetchOrders()
@@ -180,7 +195,7 @@ export default function Suppliers() {
     setDeletingOrder(true)
     try {
       await suppliersAPI.deleteOrder(order.supplier_id, order.id)
-      toast.success('Commande supprimee')
+      toast.success(t('suppliersPage.orderDeleted'))
       setDeleteOrderConfirm(null)
       fetchOrders()
     } catch (err) {
@@ -204,7 +219,7 @@ export default function Suppliers() {
   }
 
   const addCustomItem = () => {
-    if (!customName.trim() || !customPrice) return toast.error('Nom et prix requis')
+    if (!customName.trim() || !customPrice) return toast.error(t('pos.quickCreateInvalid'))
     const id = `custom_${Date.now()}`
     setOrderItems(prev => [...prev, {
       product_id: null,
@@ -251,8 +266,8 @@ export default function Suppliers() {
   }).slice(0, 8)
 
   const handlePlaceOrder = async () => {
-    if (!orderSupplier) return toast.error('Choisissez un fournisseur')
-    if (orderItems.length === 0) return toast.error('Ajoutez au moins un produit')
+    if (!orderSupplier) return toast.error(t('suppliersPage.pickSupplier'))
+    if (orderItems.length === 0) return toast.error(t('products.selectOne'))
     setOrdering(true)
     try {
       const items = orderItems.map(i => i.isCustom
@@ -260,7 +275,7 @@ export default function Suppliers() {
         : { product_id: i.product_id, quantity: i.quantity }
       )
       await suppliersAPI.placeOrder(orderSupplier, items)
-      toast.success('Commande passee avec succes !')
+      toast.success(t('suppliersPage.orderPlaced'))
       setOrderModal(false)
       if (tab === 'orders') fetchOrders()
       setTab('orders')
@@ -275,7 +290,7 @@ export default function Suppliers() {
     setLoading(true)
     client.get('/suppliers/')
       .then(r => setSuppliers(r.data))
-      .catch(() => toast.error('Erreur lors du chargement'))
+      .catch(() => toast.error(t('common.error')))
       .finally(() => setLoading(false))
   }
 
@@ -290,15 +305,15 @@ export default function Suppliers() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.minimum_order_value < 0) return toast.error('La commande minimum ne peut pas etre negative')
+    if (form.minimum_order_value < 0) return toast.error(t('suppliersPage.minNegative'))
     setSaving(true)
     try {
       if (editingId) {
         await client.patch(`/suppliers/${editingId}`, form)
-        toast.success('Fournisseur mis a jour')
+        toast.success(t('suppliersPage.updated'))
       } else {
         await client.post('/suppliers/', form)
-        toast.success('Fournisseur ajoute')
+        toast.success(t('suppliersPage.added'))
       }
       closeModal()
       fetchSuppliers()
@@ -337,11 +352,11 @@ export default function Suppliers() {
   const handleDelete = async (s) => {
     try {
       await client.delete(`/suppliers/${s.id}`)
-      toast.success('Fournisseur supprime')
+      toast.success(t('suppliersPage.deleted'))
       setDeleteConfirm(null)
       fetchSuppliers()
     } catch {
-      toast.error('Erreur lors de la suppression')
+      toast.error(t('common.error'))
     }
   }
 
@@ -350,15 +365,15 @@ export default function Suppliers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fournisseurs</h1>
-          <p className="text-sm text-gray-500 mt-1">Gerez vos fournisseurs et passez des commandes groupees</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('nav.suppliers')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('suppliersPage.subtitle')}</p>
         </div>
         {tab === 'suppliers' && (
           <button
             onClick={openAdd}
             className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200 transition-all"
           >
-            <FiPlus className="h-4 w-4" /> Ajouter
+            <FiPlus className="h-4 w-4" /> {t('common.add')}
           </button>
         )}
       </div>
@@ -367,9 +382,9 @@ export default function Suppliers() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
           {[
-            { key: 'suppliers', label: 'Fournisseurs', icon: FiTruck },
-            { key: 'orders', label: 'Commandes', icon: FiShoppingCart },
-            { key: 'catalog', label: 'Catalogue', icon: FiList },
+            { key: 'suppliers', label: t('nav.suppliers'), icon: FiTruck },
+            { key: 'orders', label: t('suppliersPage.orders'), icon: FiShoppingCart },
+            { key: 'catalog', label: t('nav.catalogue'), icon: FiList },
           ].map(t => (
             <button
               key={t.key}
@@ -388,7 +403,7 @@ export default function Suppliers() {
             onClick={openOrderModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 text-sm font-semibold shadow-lg shadow-orange-200 transition-all"
           >
-            <FiShoppingCart className="h-4 w-4" /> Nouvelle commande
+            <FiShoppingCart className="h-4 w-4" /> {t('suppliersPage.newOrder')}
           </button>
         )}
       </div>
@@ -402,8 +417,8 @@ export default function Suppliers() {
         ) : orders.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <FiShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-lg font-medium">Aucune commande</p>
-            <p className="text-sm mt-1">Les commandes passees a vos fournisseurs apparaitront ici.</p>
+            <p className="text-lg font-medium">{t('suppliersPage.noOrders')}</p>
+            <p className="text-sm mt-1">{t('suppliersPage.noOrdersHint')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -414,7 +429,7 @@ export default function Suppliers() {
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-bold text-gray-900">{o.supplier_name}</p>
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${orderStatusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {ORDER_STATUS_LABELS[o.status] || o.status}
+                        {t(`suppliersPage.status.${o.status}`, { defaultValue: o.status })}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">
@@ -426,31 +441,36 @@ export default function Suppliers() {
                       }
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      {o.created_at ? new Date(o.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="text-lg font-black text-gray-900">{Number(o.total_amount || o.total_cost || 0).toFixed(2)}</p>
-                      <p className="text-[10px] text-gray-500">MAD</p>
+                      <p className="text-lg font-black text-gray-900">{money(o.total_amount || o.total_cost || 0)}</p>
                     </div>
+                    {['PENDING', 'SUBMITTED', 'IN_DELIVERY'].includes(o.status) && (
+                      <button onClick={() => receiveOrder(o)} disabled={receivingId === o.id}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-mint-700 hover:bg-mint-800 text-white text-xs font-bold rounded-xl transition disabled:opacity-50">
+                        <FiPackage className="h-3.5 w-3.5" aria-hidden="true" /> {t('suppliersPage.receive')}
+                      </button>
+                    )}
                     {o.status === 'DELIVERED' && !o.payment_id && (
                       <button
                         onClick={() => { setPayModal(o); setPayMethod('CASH'); setPayStep('select'); setPayError('') }}
                         className="flex items-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition"
                       >
                         <FiDollarSign className="h-3.5 w-3.5" />
-                        Payer
+                        {t('suppliersPage.pay')}
                       </button>
                     )}
                     {o.payment_id && (
-                      <span className="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">Paye</span>
+                      <span className="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">{t('suppliersPage.paidBadge')}</span>
                     )}
                     {!o.payment_id && (
                       <button
                         onClick={() => setDeleteOrderConfirm(o)}
                         className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Supprimer la commande"
+                        title={t('suppliersPage.deleteOrder')} aria-label={t('suppliersPage.deleteOrder')}
                       >
                         <FiTrash2 className="h-3.5 w-3.5 text-red-400 hover:text-red-600" />
                       </button>
@@ -469,7 +489,7 @@ export default function Suppliers() {
           {/* Supplier selector for catalog */}
           {!catalogSupplier ? (
             <div className="space-y-3">
-              <p className="text-sm text-gray-500">Choisissez un fournisseur pour voir son catalogue :</p>
+              <p className="text-sm text-gray-500">{t('suppliersPage.pickForCatalog')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {suppliers.map(s => (
                   <button
@@ -505,19 +525,19 @@ export default function Suppliers() {
               ) : catalogItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">Aucun article dans le catalogue</p>
-                  <p className="text-xs mt-1">Le fournisseur n'a pas encore ajoute de produits a son catalogue.</p>
+                  <p className="text-sm">{t('suppliersPage.emptyCatalog')}</p>
+                  <p className="text-xs mt-1">{t('suppliersPage.emptyCatalogHint')}</p>
                 </div>
               ) : (
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produit</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unite</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prix</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code-barres</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categorie</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('customers.product')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('products.unit')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.price')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('products.barcode')}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('settings.category')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -525,7 +545,7 @@ export default function Suppliers() {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{Number(item.unit_price).toFixed(2)} MAD</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{money(item.unit_price)}</td>
                           <td className="px-4 py-3 text-sm text-gray-500 font-mono">{item.barcode || '—'}</td>
                           <td className="px-4 py-3 text-sm text-gray-500">{item.category || '—'}</td>
                         </tr>
@@ -549,7 +569,7 @@ export default function Suppliers() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un fournisseur..."
+            placeholder={t('suppliersPage.search')}
             className="w-full sm:w-80 pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
@@ -565,8 +585,8 @@ export default function Suppliers() {
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
             <FiPlus className="h-7 w-7 text-gray-500" />
           </div>
-          <p className="text-lg font-medium">Aucun fournisseur</p>
-          <p className="text-sm mt-1">Ajoutez votre premier fournisseur pour commencer.</p>
+          <p className="text-lg font-medium">{t('suppliersPage.none')}</p>
+          <p className="text-sm mt-1">{t('suppliersPage.noneHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -581,14 +601,14 @@ export default function Suppliers() {
                   <button
                     onClick={() => openEdit(s)}
                     className="p-2 hover:bg-brand-50 rounded-lg transition-colors"
-                    title="Modifier"
+                    title={t('common.edit')} aria-label={t('common.edit')}
                   >
                     <FiEdit2 className="h-3.5 w-3.5 text-brand-600" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(s)}
                     className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Supprimer"
+                    title={t('common.delete')} aria-label={t('common.delete')}
                   >
                     <FiTrash2 className="h-3.5 w-3.5 text-red-500" />
                   </button>
@@ -610,11 +630,11 @@ export default function Suppliers() {
                     <FiMail className="h-3.5 w-3.5 text-gray-500" /> {s.email}
                   </p>
                 )}
-                <p className="text-gray-600 font-medium">Min: {s.minimum_order_value} MAD</p>
+                <p className="text-gray-600 font-medium">{t('suppliersPage.minShort')} {money(s.minimum_order_value)}</p>
               </div>
               <div className={`mt-3 text-xs font-medium flex items-center gap-1.5 ${s.is_active ? 'text-green-600' : 'text-red-500'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${s.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
-                {s.is_active ? 'Actif' : 'Inactif'}
+                {s.is_active ? t('settings.active') : t('suppliersPage.inactive')}
               </div>
             </div>
           ))}
@@ -633,7 +653,7 @@ export default function Suppliers() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <h2 className="text-lg font-bold text-gray-900">
-                {editingId ? 'Modifier le fournisseur' : 'Nouveau fournisseur'}
+                {editingId ? t('suppliersPage.editTitle') : t('suppliersPage.newTitle')}
               </h2>
               <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <FiX className="h-5 w-5 text-gray-500" />
@@ -641,17 +661,17 @@ export default function Suppliers() {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('common.name')} *</label>
                 <input
                   required
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                  placeholder="Ex: Marjane Grossiste"
+                  placeholder={t('suppliersPage.namePh')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Categorie</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('settings.category')}</label>
                 <select
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
@@ -662,26 +682,26 @@ export default function Suppliers() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom du contact</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('suppliersPage.contact')}</label>
                   <input
                     value={form.contact_name}
                     onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))}
                     className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                    placeholder="Ahmed Benali"
+                    placeholder={t('suppliersPage.contactPh')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Telephone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('common.phone')}</label>
                   <input
                     value={form.phone_number}
                     onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
                     className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                    placeholder="+212..."
+                    placeholder={t('customers.phonePlaceholder')}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('settings.email')}</label>
                 <input
                   type="email"
                   value={form.email}
@@ -690,7 +710,7 @@ export default function Suppliers() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Commande min. (MAD)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('suppliersPage.minOrder')} ({merchant?.currency || 'MAD'})</label>
                 <input
                   type="number"
                   value={form.minimum_order_value}
@@ -705,14 +725,14 @@ export default function Suppliers() {
                   disabled={saving}
                   className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-semibold disabled:opacity-50 transition-colors"
                 >
-                  {saving ? 'Enregistrement...' : editingId ? 'Mettre a jour' : 'Enregistrer'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </button>
                 <button
                   type="button"
                   onClick={closeModal}
                   className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -736,7 +756,7 @@ export default function Suppliers() {
                   <div className="w-12 h-12 mx-auto mb-3 bg-green-100 rounded-full flex items-center justify-center">
                     <FiDollarSign className="h-6 w-6 text-green-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">Payer la commande</h3>
+                  <h3 className="text-lg font-bold text-gray-900">{t('suppliersPage.payTitle')}</h3>
                   <p className="text-sm text-gray-500 mt-1">{payModal.supplier_name}</p>
                 </div>
 
@@ -746,28 +766,28 @@ export default function Suppliers() {
                       {payModal.items.map((it, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
                           <span className="text-gray-600">{it.product_name} x{it.quantity}</span>
-                          <span className="font-medium text-gray-800">{(it.quantity * (it.unit_price || 0)).toFixed(2)} MAD</span>
+                          <span className="font-medium text-gray-800">{money(it.quantity * (it.unit_price || 0))}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-500">Commande</span>
+                      <span className="text-gray-500">{t('suppliersPage.order')}</span>
                       <span className="font-medium text-gray-800">{payModal.supplier_name}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm pt-2 border-t border-gray-200 mt-2">
-                    <span className="font-semibold text-gray-700">Total</span>
-                    <span className="font-black text-gray-900">{Number(payModal.total_amount || payModal.total_cost || 0).toFixed(2)} MAD</span>
+                    <span className="font-semibold text-gray-700">{t('common.total')}</span>
+                    <span className="font-black text-gray-900">{money(payModal.total_amount || payModal.total_cost || 0)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-5">
-                  <p className="text-sm font-semibold text-gray-700">Methode de paiement</p>
+                  <p className="text-sm font-semibold text-gray-700">{t('suppliersPage.payMethod')}</p>
                   {[
-                    { value: 'CASH', label: 'Especes', icon: FiDollarSign, desc: 'Paiement immediat' },
-                    { value: 'NFC_SOUKCARD', label: 'Carte Souk.AI', icon: FiSmartphone, desc: 'Scanner la carte NFC' },
-                    { value: 'NFC_BANK', label: 'Carte bancaire', icon: FiCreditCard, desc: 'TPE / paiement NFC' },
+                    { value: 'CASH', label: t('pos.cash'), icon: FiDollarSign, desc: t('suppliersPage.cashDesc') },
+                    { value: 'NFC_SOUKCARD', label: t('pos.soukCard'), icon: FiSmartphone, desc: t('pos.scanSoukCard') },
+                    { value: 'NFC_BANK', label: t('pos.bankCard'), icon: FiCreditCard, desc: t('suppliersPage.bankDesc') },
                   ].map(m => (
                     <button
                       key={m.value}
@@ -794,7 +814,7 @@ export default function Suppliers() {
                     onClick={closePayModal}
                     className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition"
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={handlePay}
@@ -802,7 +822,7 @@ export default function Suppliers() {
                     className="flex-1 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 text-sm font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {payMethod === 'NFC_SOUKCARD' && <FiSmartphone className="h-4 w-4" />}
-                    {paying ? 'Paiement...' : payMethod === 'NFC_SOUKCARD' ? 'Scanner la carte' : 'Confirmer'}
+                    {paying ? t('pos.processing') : payMethod === 'NFC_SOUKCARD' ? t('pos.scanSoukCard') : t('common.confirm')}
                   </button>
                 </div>
               </div>
@@ -820,12 +840,12 @@ export default function Suppliers() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-gray-900">Approchez la carte Souk.AI</p>
-                  <p className="text-sm text-gray-500 mt-1">Placez la carte sur le dos du telephone</p>
-                  <p className="text-xs text-gray-500 mt-3">{Number(payModal.total_amount || 0).toFixed(2)} MAD</p>
+                  <p className="text-xl font-bold text-gray-900">{t('pos.tapSoukCard')}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('pos.tapHint')}</p>
+                  <p className="text-xs text-gray-500 mt-3">{money(payModal.total_amount || 0)}</p>
                 </div>
                 <button onClick={() => { stopNfcScan(); setPayStep('select') }}
-                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Annuler</button>
+                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">{t('common.cancel')}</button>
               </div>
             )}
 
@@ -844,7 +864,7 @@ export default function Suppliers() {
                 {detectedCard.balance < Number(payModal.total_amount || 0) && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center gap-2">
                     <FiX className="h-4 w-4 flex-shrink-0" />
-                    Solde insuffisant ({Number(detectedCard.balance).toFixed(2)} MAD &lt; {Number(payModal.total_amount || 0).toFixed(2)} MAD)
+                    Solde insuffisant ({Number(detectedCard.balance).toFixed(2)} MAD &lt; {money(payModal.total_amount || 0)})
                   </div>
                 )}
 
@@ -868,7 +888,7 @@ export default function Suppliers() {
                         className="opacity-0 absolute -z-10 w-0 h-0"
                         onKeyDown={e => e.key === 'Enter' && cardPin.length >= 4 && confirmPinAndPay()} />
                       <button onClick={() => pinRef.current?.focus()} className="w-full text-center text-xs text-brand-600 mt-2 py-1">
-                        Appuyez pour saisir le PIN
+                        {t('pos.tapForPin')}
                       </button>
                     </div>
 
@@ -877,13 +897,13 @@ export default function Suppliers() {
                     <button onClick={confirmPinAndPay} disabled={cardPin.length < 4}
                       className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-40 transition-all text-base flex items-center justify-center gap-2">
                       <FiCheckCircle className="h-5 w-5" />
-                      Confirmer le paiement
+                      {t('pos.confirmPayment')}
                     </button>
                   </>
                 )}
 
                 <button onClick={() => { setPayStep('select'); setDetectedCard(null); setCardPin(''); setPayError('') }}
-                  className="w-full py-2 text-gray-500 text-sm hover:text-gray-700">Annuler</button>
+                  className="w-full py-2 text-gray-500 text-sm hover:text-gray-700">{t('common.cancel')}</button>
               </div>
             )}
 
@@ -891,8 +911,8 @@ export default function Suppliers() {
             {payStep === 'processing' && (
               <div className="p-12 text-center">
                 <div className="w-20 h-20 mx-auto mb-4 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
-                <p className="text-lg font-bold text-gray-900">Traitement en cours...</p>
-                <p className="text-sm text-gray-500 mt-1">Ne fermez pas cette fenetre</p>
+                <p className="text-lg font-bold text-gray-900">{t('pos.processing')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('pos.dontClose')}</p>
               </div>
             )}
 
@@ -902,8 +922,8 @@ export default function Suppliers() {
                 <div className="w-20 h-20 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
                   <FiCheckCircle className="h-10 w-10 text-green-600" />
                 </div>
-                <p className="text-lg font-bold text-gray-900">Paiement reussi !</p>
-                <p className="text-sm text-gray-500 mt-1">{Number(payModal.total_amount || 0).toFixed(2)} MAD</p>
+                <p className="text-lg font-bold text-gray-900">{t('pos.paid')}</p>
+                <p className="text-sm text-gray-500 mt-1">{money(payModal.total_amount || 0)}</p>
               </div>
             )}
 
@@ -913,10 +933,10 @@ export default function Suppliers() {
                 <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
                   <FiX className="h-8 w-8 text-red-600" />
                 </div>
-                <p className="text-lg font-bold text-gray-900">Erreur de paiement</p>
+                <p className="text-lg font-bold text-gray-900">{t('pos.declined')}</p>
                 {payError && <p className="text-sm text-red-600">{payError}</p>}
                 <button onClick={() => { setPayStep('select'); setPayError('') }}
-                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Reessayer</button>
+                  className="px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">{t('pos.retry')}</button>
               </div>
             )}
 
@@ -931,8 +951,8 @@ export default function Suppliers() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Nouvelle commande</h3>
-                <p className="text-xs text-gray-500">Ajoutez les produits et quantites</p>
+                <h3 className="text-lg font-bold text-gray-900">{t('suppliersPage.newOrder')}</h3>
+                <p className="text-xs text-gray-500">{t('suppliersPage.newOrderHint')}</p>
               </div>
               <button onClick={() => setOrderModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
                 <FiX className="h-5 w-5 text-gray-500" />
@@ -942,7 +962,7 @@ export default function Suppliers() {
             <div className="p-6 space-y-4">
               {/* Supplier select */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Fournisseur</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">{t('suppliersPage.supplier')}</label>
                 <select
                   value={orderSupplier}
                   onChange={e => setOrderSupplier(e.target.value)}
@@ -956,13 +976,13 @@ export default function Suppliers() {
 
               {/* Product search */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Ajouter des produits</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">{t('suppliersPage.addProducts')}</label>
                 <div className="relative">
                   <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                   <input
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
-                    placeholder="Chercher un produit..."
+                    placeholder={t('suppliersPage.searchProduct')}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
                   />
                 </div>
@@ -992,29 +1012,29 @@ export default function Suppliers() {
                     onClick={() => setShowCustomForm(true)}
                     className="mt-2 flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
                   >
-                    <FiPlus className="h-4 w-4" /> Produit hors catalogue
+                    <FiPlus className="h-4 w-4" /> {t('suppliersPage.customItem')}
                   </button>
                 ) : (
                   <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
-                    <p className="text-xs font-bold text-orange-700 uppercase">Produit personnalise</p>
+                    <p className="text-xs font-bold text-orange-700 uppercase">{t('suppliersPage.customItem')}</p>
                     <input
                       value={customName}
                       onChange={e => setCustomName(e.target.value)}
-                      placeholder="Nom du produit"
+                      placeholder={t('common.name')}
                       className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-400"
                     />
                     <input
                       type="number"
                       value={customPrice}
                       onChange={e => setCustomPrice(e.target.value)}
-                      placeholder="Prix unitaire (MAD)"
+                      placeholder={`${t('customers.unitPrice')} (${merchant?.currency || 'MAD'})`}
                       min="0"
                       step="0.01"
                       className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-400"
                     />
                     <div className="flex gap-2">
-                      <button onClick={() => setShowCustomForm(false)} className="flex-1 py-2 text-sm text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50">Annuler</button>
-                      <button onClick={addCustomItem} className="flex-1 py-2 text-sm text-white bg-orange-500 rounded-lg hover:bg-orange-600 font-semibold">Ajouter</button>
+                      <button onClick={() => setShowCustomForm(false)} className="flex-1 py-2 text-sm text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-50">{t('common.cancel')}</button>
+                      <button onClick={addCustomItem} className="flex-1 py-2 text-sm text-white bg-orange-500 rounded-lg hover:bg-orange-600 font-semibold">{t('common.add')}</button>
                     </div>
                   </div>
                 )}
@@ -1034,7 +1054,7 @@ export default function Suppliers() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
-                              {item.isCustom && <span className="text-[9px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">CUSTOM</span>}
+                              {item.isCustom && <span className="text-[9px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">{t('suppliersPage.customBadge')}</span>}
                             </div>
                             <p className="text-xs text-gray-500">{item.cost_price.toFixed(2)} MAD/u</p>
                           </div>
@@ -1074,7 +1094,7 @@ export default function Suppliers() {
               {/* Total */}
               {orderItems.length > 0 && (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">Total commande</span>
+                  <span className="text-sm font-semibold text-gray-700">{t('suppliersPage.orderTotal')}</span>
                   <span className="text-xl font-black text-orange-700">{orderTotal.toFixed(2)} MAD</span>
                 </div>
               )}
@@ -1083,7 +1103,7 @@ export default function Suppliers() {
               {orderItems.length === 0 && (
                 <div className="text-center py-6 text-gray-500">
                   <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">Cherchez et ajoutez des produits</p>
+                  <p className="text-sm">{t('suppliersPage.searchAdd')}</p>
                 </div>
               )}
             </div>
@@ -1094,7 +1114,7 @@ export default function Suppliers() {
                 onClick={() => setOrderModal(false)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handlePlaceOrder}
@@ -1118,7 +1138,7 @@ export default function Suppliers() {
               <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
                 <FiTrash2 className="h-5 w-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Supprimer la commande ?</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('suppliersPage.deleteOrderTitle')}</h3>
               <p className="text-sm text-gray-500 mt-2">
                 Commande de <strong>{deleteOrderConfirm.supplier_name}</strong> — {Number(deleteOrderConfirm.total_amount || 0).toFixed(2)} MAD
               </p>
@@ -1128,14 +1148,14 @@ export default function Suppliers() {
                 onClick={() => setDeleteOrderConfirm(null)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => handleDeleteOrder(deleteOrderConfirm)}
                 disabled={deletingOrder}
                 className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                {deletingOrder ? 'Suppression...' : 'Supprimer'}
+                {deletingOrder ? t('settings.deleting') : t('common.delete')}
               </button>
             </div>
           </div>
@@ -1151,7 +1171,7 @@ export default function Suppliers() {
               <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
                 <FiTrash2 className="h-5 w-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Supprimer le fournisseur ?</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('suppliersPage.deleteTitle')}</h3>
               <p className="text-sm text-gray-500 mt-2">
                 Etes-vous sur de vouloir supprimer <strong>{deleteConfirm.name}</strong> ? Cette action est irreversible.
               </p>
@@ -1161,13 +1181,13 @@ export default function Suppliers() {
                 onClick={() => setDeleteConfirm(null)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors"
               >
-                Supprimer
+                {t('common.delete')}
               </button>
             </div>
           </div>
