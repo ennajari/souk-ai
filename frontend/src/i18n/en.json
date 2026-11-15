@@ -607,5 +607,17 @@
     "haveAccount": "Already have an account?",
     "country": "Country",
     "countryDefault": "Platform default country"
+  },
+  "scanner": {
+    "title": "Scan a barcode",
+    "continuous": "Continuous scan — scan your products",
+    "starting": "Starting the camera…",
+    "permission": "Camera access denied. Allow it in your browser settings.",
+    "noCamera": "No camera found. Type the code below.",
+    "torch": "Torch",
+    "added": "added ✓",
+    "hint": "Hold the barcode inside the frame, 10–20 cm away. Turn on the torch if the shop is dark.",
+    "manual": "Or type the code",
+    "done": "Done"
   }
 }
