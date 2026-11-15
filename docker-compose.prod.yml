@@ -1,7 +1,8 @@
-version: "3.8"
 
 services:
   postgres:
+    # shortcut: floating tag. Pin it to the version already running (deploy/RUNBOOK.md §Pin) — never to an older
+    # one: the TimescaleDB extension cannot be downgraded and the database would not start.
     image: timescale/timescaledb:latest-pg16
     restart: always
     environment:
@@ -26,6 +27,8 @@ services:
       retries: 5
 
   backend:
+    # Prebuilt by .github/workflows/release.yml; IMAGE_TAG = commit to deploy (rollback = previous one)
+    image: ghcr.io/ennajari/souk-ai-backend:${IMAGE_TAG:-latest}
     build: ./backend
     restart: always
     env_file: .env
@@ -39,9 +42,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    # Migrations are additive (docs/audit/DECISIONS.md); applying them at start keeps code and schema in step
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   celery:
+    # Prebuilt by .github/workflows/release.yml; IMAGE_TAG = commit to deploy (rollback = previous one)
+    image: ghcr.io/ennajari/souk-ai-backend:${IMAGE_TAG:-latest}
     build: ./backend
     restart: always
     env_file: .env
@@ -55,11 +67,52 @@ services:
         condition: service_healthy
     command: celery -A workers.celery_app worker --loglevel=info --concurrency=4
 
+  # The scheduler was missing in production: daily reports, reminders, nightly forecasts and expiry alerts
+  # never ran. Exactly ONE beat instance must run.
+  celery-beat:
+    # Prebuilt by .github/workflows/release.yml; IMAGE_TAG = commit to deploy (rollback = previous one)
+    image: ghcr.io/ennajari/souk-ai-backend:${IMAGE_TAG:-latest}
+    build: ./backend
+    restart: always
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A workers.celery_app beat --loglevel=info --schedule /tmp/celerybeat-schedule
+
+  # Daily pg_dump (custom format, integrity-checked, 14-day rotation) into ./backups on the host.
+  # Copy them off the server too: BACKUP_UPLOAD_CMD in .env (deploy/RUNBOOK.md §Backups).
+  db-backup:
+    image: timescale/timescaledb:latest-pg16
+    restart: always
+    entrypoint: ["sh", "/deploy/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_UPLOAD_CMD: ${BACKUP_UPLOAD_CMD:-}
+    volumes:
+      - ./deploy:/deploy:ro
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   frontend:
+    # Prebuilt by .github/workflows/release.yml; IMAGE_TAG = commit to deploy (rollback = previous one)
+    image: ghcr.io/ennajari/souk-ai-frontend:${IMAGE_TAG:-latest}
     build: ./frontend
     restart: always
 
   nginx:
+    # Prebuilt by .github/workflows/release.yml; IMAGE_TAG = commit to deploy (rollback = previous one)
+    image: ghcr.io/ennajari/souk-ai-nginx:${IMAGE_TAG:-latest}
     build: ./nginx
     restart: always
     ports:

@@ -10,8 +10,10 @@ from sqlalchemy import text
 
 from api.v1.router import api_router
 from app.config import settings
+from core.monitoring import init_monitoring
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+init_monitoring("api")
 access_log = logging.getLogger("souk_ai.access")
 
 app = FastAPI(
