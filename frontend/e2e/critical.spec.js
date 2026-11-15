@@ -82,3 +82,22 @@ test('USB/Bluetooth scanner at the till: known code sells, unknown code is creat
   const list = await (await request.get('/api/v1/products/', { headers: { Authorization: `Bearer ${token}` } })).json()
   expect(list.find((p) => p.barcode === '96385074')?.stock_quantity).toBe(0)  // created with 1, sold 1
 })
+
+test('weighed goods: sell 1,25 kg of tomatoes at the till', async ({ page, request }) => {
+  const { access_token: token } = await (await request.post('/api/v1/auth/register', {
+    data: { phone_number: phone(), password: PASSWORD, business_name: 'Primeur' },
+  })).json()
+  const headers = { Authorization: `Bearer ${token}` }
+  const prod = await (await request.post('/api/v1/products/', { headers,
+    data: { name_fr: 'Tomates', name_ar: 'طماطم', unit: 'kg', unit_price: 8, initial_stock: 10 } })).json()
+  await page.addInitScript((t) => { localStorage.setItem('token', t); localStorage.setItem('i18nextLng', 'fr') }, token)
+  await page.goto('/pos')
+  await page.getByRole('button', { name: /Tomates/ }).click()
+  const qty = page.getByLabel(/Quantité \(kg\)/)
+  await qty.fill('1,25')
+  await qty.press('Enter')
+  await page.getByRole('button', { name: /^Espèces$/ }).click()
+  await expect(page.getByRole('heading', { name: /Vente enregistrée/ })).toBeVisible()
+  const after = await (await request.get(`/api/v1/products/${prod.id}`, { headers })).json()
+  expect(after.stock_quantity).toBe(8.75)
+})

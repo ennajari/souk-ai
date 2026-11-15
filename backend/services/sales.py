@@ -2,16 +2,18 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.money import to_money
+from core.money import to_money, to_qty
 from models.inventory import Inventory, InventoryLog
 from models.product import Product
 from models.transaction import Transaction, TransactionSource, TransactionType
 
 _STOCK_IN = {"PURCHASE", "RETURN"}
+WEIGHED_UNITS = {"kg", "litre"}  # sold by weight/volume: decimal quantities allowed
 
 
 class SaleError(Exception):
@@ -25,7 +27,7 @@ class SaleError(Exception):
 @dataclass
 class Line:
     product_id: str
-    quantity: int
+    quantity: object  # int, float, Decimal or numeric string (weighed goods allowed)
     unit_price: object
     type: str = "SALE"
     source: str = "WEB"
@@ -45,6 +47,11 @@ async def record_items(
     test oversold 4/4 runs without it, 0/4 with it).
     """
     for item in items:
+        try:
+            # the WhatsApp bot may say "1,5" (comma decimal)
+            item.quantity = to_qty(str(item.quantity).replace(",", "."))
+        except (ArithmeticError, ValueError):
+            raise SaleError("Quantite invalide", 422) from None
         if item.quantity <= 0:
             raise SaleError("La quantite doit etre positive", 422)
     product_ids = sorted({i.product_id for i in items})
@@ -56,15 +63,18 @@ async def record_items(
         .order_by(Inventory.product_id).with_for_update().execution_options(populate_existing=True)
     )).scalars().all()}
 
-    wanted: dict[str, int] = defaultdict(int)
+    wanted: dict[str, Decimal] = defaultdict(Decimal)
     for item in items:
         if item.product_id not in products:
             raise SaleError(f"Produit introuvable: {item.product_id}", 404)
+        if products[item.product_id].unit not in WEIGHED_UNITS and to_qty(item.quantity) % 1:
+            p = products[item.product_id]
+            raise SaleError(f"{p.name_fr or p.name_ar} se vend a l'unite : quantite entiere requise", 422)
         if item.type == "SALE":
-            wanted[item.product_id] += item.quantity
+            wanted[item.product_id] += to_qty(item.quantity)
     for pid, qty in wanted.items():
         inv = inv_map.get(pid)
-        if inv and to_money(inv.quantity) < qty:
+        if inv and to_qty(inv.quantity) < qty:
             p = products[pid]
             raise SaleError(
                 f"Stock insuffisant pour {p.name_fr or p.name_ar} — disponible: {float(inv.quantity):g}, demandé: {qty}"
@@ -75,12 +85,13 @@ async def record_items(
     for item in items:
         product = products[item.product_id]
         unit_price = to_money(item.unit_price)
+        qty = to_qty(item.quantity)
         cost = getattr(item, "unit_cost", None)
         txn = Transaction(
             merchant_id=merchant_id, product_id=item.product_id,
             customer_id=customer_id or item.customer_id,
             type=TransactionType(item.type), source=TransactionSource(item.source),
-            quantity=item.quantity, unit_price=unit_price, total_amount=to_money(unit_price * item.quantity),
+            quantity=qty, unit_price=unit_price, total_amount=to_money(unit_price * qty),
             # frozen at sale time: later cost changes must not rewrite past margins
             unit_cost=to_money(cost if cost is not None else product.cost_price),
             tax_rate=product.tax_rate,
@@ -89,8 +100,8 @@ async def record_items(
         out.append((txn, product))
         inv = inv_map.get(item.product_id)
         if inv and item.type in ("SALE", *_STOCK_IN):
-            before = to_money(inv.quantity)
-            change = -item.quantity if item.type == "SALE" else item.quantity
+            before = to_qty(inv.quantity)
+            change = -qty if item.type == "SALE" else qty
             inv.quantity = before + change
             inv.updated_at = now
             db.add(InventoryLog(
@@ -131,7 +142,7 @@ async def receive_supplier_order(db: AsyncSession, order) -> int:
             inv = Inventory(product_id=p.id, quantity=0)
             db.add(inv)
             stocks[p.id] = inv
-        on_hand = max(to_money(stocks[p.id].quantity), to_money(0))
+        on_hand = max(to_qty(stocks[p.id].quantity), to_qty(0))
         if on_hand + qty > 0:
             p.cost_price = to_money((on_hand * to_money(p.cost_price) + qty * price) / (on_hand + qty))
         purchases.append(Line(product_id=p.id, quantity=qty, unit_price=price, type="PURCHASE",

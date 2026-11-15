@@ -13,7 +13,8 @@ class TransactionCreate(BaseModel):
     customer_id: str | None = Field(None, max_length=36)
     type: TxType = "SALE"
     source: TxSource = "WEB"
-    quantity: int = Field(..., gt=0, le=100_000)  # a negative "sale" used to add stock (AUDIT L1)
+    # > 0 (a negative "sale" used to add stock — AUDIT L1); decimals allowed for weighed goods
+    quantity: Decimal = Field(..., gt=0, le=100_000)
     unit_price: Decimal = Field(..., ge=0, le=10_000_000)
 
 
@@ -36,7 +37,7 @@ class TransactionResponse(BaseModel):
     product_name_fr: str | None = None
     type: str
     source: str
-    quantity: int
+    quantity: float
     unit_price: float
     total_amount: float
     created_at: datetime

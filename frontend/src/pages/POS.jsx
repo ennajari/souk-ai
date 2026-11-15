@@ -215,8 +215,14 @@ export default function POS() {
     }))
   }
 
+  const WEIGHED = ['kg', 'litre']  // sold by weight/volume: decimal quantities (the server checks the same rule)
+  const isWeighed = (product) => WEIGHED.includes(product?.unit)
+
   const setQtyDirect = (productId, qty) => {
-    const n = parseInt(qty, 10)
+    const product = cart.find(c => c.product.id === productId)?.product || products.find(p => p.id === productId)
+    const n = isWeighed(product)
+      ? Math.round(parseFloat(String(qty).replace(',', '.')) * 1000) / 1000
+      : parseInt(qty, 10)
     if (isNaN(n) || n < 0) return
     if (n === 0) { removeFromCart(productId); return }
     setCart(prev => prev.map(c => c.product.id === productId ? { ...c, qty: n } : c))
@@ -512,8 +518,18 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 <button onClick={() => updateQty(item.product.id, -1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">
                   <FiMinus className="h-4 w-4" />
                 </button>
-                <input type="number" min="1" value={item.qty} onChange={e => setQtyDirect(item.product.id, e.target.value)} onFocus={e => e.target.select()}
-                  className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                {isWeighed(item.product) ? (
+                  <input key={item.qty} type="text" inputMode="decimal" defaultValue={item.qty}
+                    aria-label={`${t('common.quantity')} (${item.product.unit})`}
+                    onBlur={e => setQtyDirect(item.product.id, e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()} onFocus={e => e.target.select()}
+                    className="w-16 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                ) : (
+                  <input type="number" min="1" value={item.qty} onChange={e => setQtyDirect(item.product.id, e.target.value)} onFocus={e => e.target.select()}
+                    aria-label={t('common.quantity')}
+                    className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-400 bg-white py-1" />
+                )}
+                {isWeighed(item.product) && <span className="text-xs text-gray-500">{t(`products.units.${item.product.unit}`)}</span>}
                 <button onClick={() => updateQty(item.product.id, 1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">
                   <FiPlus className="h-4 w-4" />
                 </button>
@@ -902,7 +918,7 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-gray-900 truncate mb-1">{qtyPopup.name}</p>
             <p className="text-xs text-gray-500 mb-4">{t('pos.howMany')}</p>
-            <input type="number" min="1" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
+            <input type="text" inputMode="decimal" autoFocus value={qtyPopup.qty} onChange={e => setQtyPopup(p => ({ ...p, qty: e.target.value }))} onFocus={e => e.target.select()}
               className="w-full text-center text-3xl font-black border-2 border-brand-300 rounded-xl py-3 outline-none focus:border-brand-500" />
             <div className="flex gap-2 mt-4">
               <button onClick={() => setQtyPopup(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">{t('common.cancel')}</button>

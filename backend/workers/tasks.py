@@ -861,7 +861,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         price = float(product.unit_price)
                         display_name = product.name_fr if lang in ("fr", "en") and product.name_fr else product.name_ar
                         try:
-                            await record_sale(db, merchant.id, product.id, int(quantity), price, source=source)
+                            await record_sale(db, merchant.id, product.id, quantity, price, source=source)
                             stock = await get_stock_level(db, product.id)
                             data_ctx = (
                                 "Vente enregistree: " + str(quantity) + " " + str(product.unit) +
@@ -1356,7 +1356,7 @@ async def _process_message(phone_number: str, text: str, message_type: MessageTy
                         ex_price = float(ex_prod.unit_price)
                         ex_dname = ex_prod.name_fr if lang in ("fr", "en") and ex_prod.name_fr else ex_prod.name_ar
                         try:
-                            await record_sale(db, merchant.id, ex_prod.id, int(ex_qty), ex_price, source=source)
+                            await record_sale(db, merchant.id, ex_prod.id, ex_qty, ex_price, source=source)
                             ex_stock = await get_stock_level(db, ex_prod.id)
                             ex_ctx = "Vente enregistree: " + str(ex_qty) + " " + str(ex_prod.unit) + " de " + str(ex_dname) + " — " + str(round(ex_qty * ex_price, 2)) + " MAD. Stock restant: " + str(ex_stock) + " " + str(ex_prod.unit) + "."
                         except SaleError as e:
