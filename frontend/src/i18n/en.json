@@ -170,7 +170,14 @@
     "nfcError": "NFC error",
     "pinRequired": "PIN required (4 to 6 digits)",
     "itemCount_one": "{{count}} item",
-    "itemCount_other": "{{count}} items"
+    "itemCount_other": "{{count}} items",
+    "knownElsewhere": "Known product: check the price and add it",
+    "newProduct": "New product: create it in 5 seconds",
+    "inStock": "Quantity on shelf",
+    "createAndAdd": "Create and add to cart",
+    "orLink": "…or link this code to an existing product:",
+    "quickCreateInvalid": "Enter a name and a price",
+    "quickCreated": "\"{{name}}\" added to your catalogue and cart"
   },
   "customers": {
     "title": "Customer tabs",

@@ -170,7 +170,14 @@
     "nfcError": "Erreur NFC",
     "pinRequired": "Code PIN requis (4 à 6 chiffres)",
     "itemCount_one": "{{count}} article",
-    "itemCount_other": "{{count}} articles"
+    "itemCount_other": "{{count}} articles",
+    "knownElsewhere": "Produit connu : vérifiez le prix et ajoutez-le",
+    "newProduct": "Nouveau produit : créez-le en 5 secondes",
+    "inStock": "Quantité en rayon",
+    "createAndAdd": "Créer et ajouter au panier",
+    "orLink": "…ou associez ce code à un produit existant :",
+    "quickCreateInvalid": "Indiquez un nom et un prix",
+    "quickCreated": "« {{name}} » ajouté au catalogue et au panier"
   },
   "customers": {
     "title": "Carnet de crédit",

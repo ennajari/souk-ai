@@ -57,3 +57,28 @@ test('a shop in France signs up and works in euros', async ({ page }) => {
   await expect(page).toHaveURL(/\/dashboard/)
   await expect(page.getByText(/€/).first()).toBeVisible()
 })
+
+test('USB/Bluetooth scanner at the till: known code sells, unknown code is created on the spot', async ({ page, request }) => {
+  const { access_token: token } = await (await request.post('/api/v1/auth/register', {
+    data: { phone_number: phone(), password: PASSWORD, business_name: 'Hanout Scan' },
+  })).json()
+  await request.post('/api/v1/products/', { headers: { Authorization: `Bearer ${token}` },
+    data: { name_fr: 'Biscuits', name_ar: 'بسكويت', unit_price: 5, initial_stock: 10, barcode: '4006381333931' } })
+  await page.addInitScript((t) => { localStorage.setItem('token', t); localStorage.setItem('i18nextLng', 'fr') }, token)
+  await page.goto('/pos')
+  const search = page.getByPlaceholder(/Rechercher produit/)
+  await search.pressSequentially('4006381333931', { delay: 5 })   // scanner = fast keyboard
+  await search.press('Enter')
+  await expect(page.getByText('Biscuits').last()).toBeVisible()
+  await expect(search).toHaveValue('')
+
+  await search.pressSequentially('96385074', { delay: 5 })        // unknown EAN-8
+  await search.press('Enter')
+  await page.locator('#qc-name').fill('Chewing-gum')
+  await page.locator('#qc-price').fill('2')
+  await page.getByRole('button', { name: 'Créer et ajouter au panier' }).click()
+  await page.getByRole('button', { name: /^Espèces$/ }).click()
+  await expect(page.getByRole('heading', { name: /Vente enregistrée/ })).toBeVisible()
+  const list = await (await request.get('/api/v1/products/', { headers: { Authorization: `Bearer ${token}` } })).json()
+  expect(list.find((p) => p.barcode === '96385074')?.stock_quantity).toBe(0)  // created with 1, sold 1
+})

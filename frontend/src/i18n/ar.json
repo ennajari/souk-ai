@@ -190,7 +190,14 @@
     "itemCount_two": "جوج منتوجات",
     "itemCount_few": "{{count}} منتوجات",
     "itemCount_many": "{{count}} منتوج",
-    "itemCount_other": "{{count}} منتوج"
+    "itemCount_other": "{{count}} منتوج",
+    "knownElsewhere": "سلعة معروفة: تأكد من الثمن وزيدها",
+    "newProduct": "سلعة جديدة: صاوبها فـ 5 ثواني",
+    "inStock": "شحال عندك فالرف",
+    "createAndAdd": "صاوب وزيد للسلة",
+    "orLink": "…ولا ربط هاد الكود مع سلعة موجودة:",
+    "quickCreateInvalid": "دخل السمية والثمن",
+    "quickCreated": "«{{name}}» تزادت للكاتالوج والسلة"
   },
   "customers": {
     "title": "دفتر الائتمان",
