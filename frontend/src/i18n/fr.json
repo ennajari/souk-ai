@@ -245,7 +245,24 @@
       "AR": "العربية / الدارجة",
       "FR": "Français",
       "EN": "English"
-    }
+    },
+    "subtitle": "Profil, outils et configuration",
+    "saved": "Profil mis à jour",
+    "botLanguage": "Langue de l'assistant WhatsApp",
+    "dangerHint": "Suppression définitive de toutes vos données. Téléchargez-les d'abord si besoin.",
+    "exportData": "Télécharger mes données (JSON)",
+    "tools": "Outils",
+    "toolsHint": "Utilisés de temps en temps : installation ou fin de mois.",
+    "toolCatalogue": "Catalogue en ligne",
+    "toolCatalogueDesc": "Partagez vos produits avec vos clients",
+    "toolPaymentsDesc": "Moyens de paiement et suivi",
+    "toolSageDesc": "Import depuis votre logiciel comptable",
+    "toolAdmin": "Administration",
+    "toolAdminDesc": "Supervision et comptes",
+    "deleteTitle": "Supprimer votre compte ?",
+    "typeToConfirm": "Tapez pour confirmer :",
+    "confirmWord": "SUPPRIMER",
+    "deleted": "Compte supprimé"
   },
   "notifications": {
     "title": "Notifications",

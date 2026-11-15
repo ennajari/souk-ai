@@ -40,7 +40,8 @@ function ToolCard({ to, icon: Icon, title, desc, color = 'violet' }) {
 
 export default function Settings() {
   const { logout, merchant } = useAuth()
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const confirmWord = t('settings.confirmWord')
   const [profile, setProfile]               = useState(null)
   const [loading, setLoading]               = useState(true)
   const [saving, setSaving]                 = useState(false)
@@ -62,7 +63,7 @@ export default function Settings() {
           business_category: res.data.business_category || 'GROCERY',
         })
       })
-      .catch(() => toast.error('Erreur chargement profil'))
+      .catch(() => toast.error(t('common.error')))
       .finally(() => setLoading(false))
   }, [])
 
@@ -76,9 +77,9 @@ export default function Settings() {
     setSaving(true)
     try {
       await merchantsAPI.update(form)
-      toast.success('Profil mis à jour')
+      toast.success(t('settings.saved'))
     } catch {
-      toast.error('Erreur sauvegarde')
+      toast.error(t('common.error'))
     } finally {
       setSaving(false)
     }
@@ -95,8 +96,8 @@ export default function Settings() {
   return (
     <div className="space-y-2">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Paramètres</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Profil, outils avancés et configuration</p>
+        <h1 className="text-2xl font-black text-gray-900">{t('settings.title')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('settings.subtitle')}</p>
       </div>
 
       {/* ── 2-column grid ── */}
@@ -107,56 +108,57 @@ export default function Settings() {
 
           {/* Profile form */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Informations du commerce</h2>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{t('settings.businessInfo')}</h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Nom du commerce</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">{t('settings.businessName')}</label>
                 <input name="business_name" value={form.business_name} onChange={handleChange}
                   className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Email</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">{t('settings.email')}</label>
                 <input name="email" type="email" value={form.email} onChange={handleChange}
                   className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Catégorie</label>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">{t('settings.category')}</label>
                   <select name="business_category" value={form.business_category} onChange={handleChange}
                     className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm">
-                    <option value="GROCERY">Épicerie</option>
-                    <option value="BAKERY">Boulangerie</option>
-                    <option value="BUTCHER">Boucherie</option>
-                    <option value="PHARMACY">Pharmacie</option>
-                    <option value="RESTAURANT">Restaurant</option>
-                    <option value="MARKET">Marché</option>
-                    <option value="OTHER">Autre</option>
+                    <option value="GROCERY">{t('settings.categories.GROCERY')}</option>
+                    <option value="BAKERY">{t('settings.categories.BAKERY')}</option>
+                    <option value="BUTCHER">{t('settings.categories.BUTCHER')}</option>
+                    <option value="PHARMACY">{t('settings.categories.PHARMACY')}</option>
+                    <option value="RESTAURANT">{t('settings.categories.RESTAURANT')}</option>
+                    <option value="MARKET">{t('settings.categories.MARKET')}</option>
+                    <option value="OTHER">{t('settings.categories.OTHER')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Langue du bot</label>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">{t('settings.botLanguage')}</label>
                   <select name="preferred_language" value={form.preferred_language} onChange={handleChange}
                     className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm">
-                    <option value="AR">Arabe / Darija</option>
+                    <option value="AR">العربية / الدارجة</option>
                     <option value="FR">Français</option>
+                    <option value="EN">English</option>
                   </select>
                 </div>
               </div>
               <button type="submit" disabled={saving}
                 className="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-brand-600 text-white rounded-xl hover:from-brand-700 hover:to-brand-700 text-sm font-semibold disabled:opacity-50 shadow-sm transition-all">
-                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                {saving ? t('common.saving') : t('common.save')}
               </button>
             </form>
           </div>
 
           {/* Account info */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Informations du compte</h2>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">{t('settings.accountInfo')}</h2>
             <div className="space-y-0 divide-y divide-gray-50">
               {[
-                { icon: FiPhone,       label: 'Téléphone',     value: profile?.phone_number },
-                { icon: FiCalendar,    label: 'Membre depuis', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('fr-FR') : '-' },
-                { icon: FiCheckCircle, label: 'Statut',        value: <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Actif</span> },
+                { icon: FiPhone,       label: t('common.phone'),     value: profile?.phone_number },
+                { icon: FiCalendar,    label: t('settings.memberSince'), value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString(i18n.language) : '-' },
+                { icon: FiCheckCircle, label: t('common.status'),        value: <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">{t('settings.active')}</span> },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-2 text-gray-500">
@@ -172,10 +174,10 @@ export default function Settings() {
           {/* Danger zone */}
           <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
             <h2 className="text-sm font-bold text-red-700 uppercase tracking-wide mb-1 flex items-center gap-2">
-              <FiAlertTriangle className="h-4 w-4" /> Zone dangereuse
+              <FiAlertTriangle className="h-4 w-4" /> {t('settings.dangerZone')}
             </h2>
             <p className="text-xs text-gray-500 mb-4">
-              Suppression permanente de toutes vos données. Téléchargez-les d'abord si besoin.
+              {t('settings.dangerHint')}
             </p>
             <button
               onClick={async () => {
@@ -185,17 +187,17 @@ export default function Settings() {
                   const a = Object.assign(document.createElement('a'), { href: url, download: 'souk-ai-export.json' })
                   a.click()
                   URL.revokeObjectURL(url)
-                } catch { toast.error('Export impossible, réessayez') }
+                } catch { toast.error(t('common.error')) }
               }}
               className="flex items-center gap-2 px-4 py-2.5 mb-3 bg-white border border-gray-300 text-gray-800 rounded-xl hover:bg-gray-50 text-sm font-semibold transition-colors"
             >
-              Télécharger mes données (JSON)
+              {t('settings.exportData')}
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors"
             >
-              <FiTrash2 className="h-4 w-4" /> Supprimer mon compte
+              <FiTrash2 className="h-4 w-4" /> {t('settings.deleteAccount')}
             </button>
           </div>
         </div>
@@ -205,13 +207,13 @@ export default function Settings() {
 
           {/* Outils mensuels */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-1">Outils & Modules avancés</h2>
-            <p className="text-xs text-gray-500 mb-4">Utilisés occasionnellement — configuration initiale ou mensuelle.</p>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-1">{t('settings.tools')}</h2>
+            <p className="text-xs text-gray-500 mb-4">{t('settings.toolsHint')}</p>
             <div className="grid grid-cols-1 gap-2">
-              <ToolCard to="/my-catalogue"        icon={FiShoppingCart} title="Catalogue en ligne"  desc="Partagez votre catalogue produits public"      color="emerald" />
-              <ToolCard to="/payments"            icon={FiCreditCard}   title="Paiements"           desc="Modes de règlement et suivi des paiements"     color="orange" />
-              <ToolCard to="/sage-import"         icon={FiDatabase}     title="Import Sage 100"     desc="Import depuis votre logiciel comptable"         color="gray" />
-              {merchant?.is_admin && <ToolCard to="/admin" icon={FiMonitor} title="Administration" desc="Monitoring système et gestion des comptes" color="gray" />}
+              <ToolCard to="/my-catalogue"        icon={FiShoppingCart} title={t('settings.toolCatalogue')} desc={t('settings.toolCatalogueDesc')}      color="emerald" />
+              <ToolCard to="/payments"            icon={FiCreditCard}   title={t('nav.payments')} desc={t('settings.toolPaymentsDesc')}     color="orange" />
+              <ToolCard to="/sage-import"         icon={FiDatabase}     title={t('nav.sageImport')} desc={t('settings.toolSageDesc')}         color="gray" />
+              {merchant?.is_admin && <ToolCard to="/admin" icon={FiMonitor} title={t('settings.toolAdmin')} desc={t('settings.toolAdminDesc')} color="gray" />}
             </div>
           </div>
         </div>
@@ -226,39 +228,39 @@ export default function Settings() {
               <div className="w-14 h-14 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
                 <FiAlertTriangle className="h-7 w-7 text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Supprimer votre compte ?</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('settings.deleteTitle')}</h3>
               <p className="text-sm text-gray-500 mt-2">
-                Action <strong>irréversible</strong>. Tous vos produits, ventes et données seront supprimés.
+                {t('settings.deleteWarning')}
               </p>
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Tapez <strong className="text-red-600">SUPPRIMER</strong> pour confirmer
+                {t('settings.typeToConfirm')} <strong className="text-red-600">{confirmWord}</strong>
               </label>
               <input
                 value={deleteConfirmText}
                 onChange={e => setDeleteConfirmText(e.target.value)}
-                placeholder="SUPPRIMER"
+                placeholder={confirmWord}
                 className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div className="flex gap-3">
               <button onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors">
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={async () => {
-                  if (deleteConfirmText !== 'SUPPRIMER') return toast.error('Tapez SUPPRIMER pour confirmer')
+                  if (deleteConfirmText !== confirmWord) return toast.error(`${t('settings.typeToConfirm')} ${confirmWord}`)
                   setDeleting(true)
-                  try { await authAPI.deleteAccount(); toast.success('Compte supprimé'); logout() }
-                  catch { toast.error('Erreur lors de la suppression') }
+                  try { await authAPI.deleteAccount(); toast.success(t('settings.deleted')); logout() }
+                  catch { toast.error(t('common.error')) }
                   finally { setDeleting(false) }
                 }}
-                disabled={deleteConfirmText !== 'SUPPRIMER' || deleting}
+                disabled={deleteConfirmText !== confirmWord || deleting}
                 className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                {deleting ? 'Suppression...' : 'Supprimer définitivement'}
+                {deleting ? t('settings.deleting') : t('settings.deleteForever')}
               </button>
             </div>
           </div>

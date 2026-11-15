@@ -265,7 +265,24 @@
       "AR": "العربية / الدارجة",
       "FR": "Français",
       "EN": "English"
-    }
+    },
+    "subtitle": "الملف، الأدوات والإعدادات",
+    "saved": "الملف تحدث",
+    "botLanguage": "لغة مساعد واتساب",
+    "dangerHint": "كيتمسحو جميع البيانات ديالك نهائيا. صدّرهم قبل إلا كنتي محتاجهم.",
+    "exportData": "تحميل البيانات ديالي (JSON)",
+    "tools": "الأدوات",
+    "toolsHint": "كيتستعملو من حين لآخر: البداية ولا آخر الشهر.",
+    "toolCatalogue": "كاتالوج أونلاين",
+    "toolCatalogueDesc": "شارك السلع ديالك مع الكليان",
+    "toolPaymentsDesc": "طرق الأداء والمتابعة",
+    "toolSageDesc": "استيراد من برنامج المحاسبة",
+    "toolAdmin": "الإدارة",
+    "toolAdminDesc": "المراقبة والحسابات",
+    "deleteTitle": "تمسح الحساب ديالك؟",
+    "typeToConfirm": "كتب باش تأكد:",
+    "confirmWord": "حذف",
+    "deleted": "الحساب تمسح"
   },
   "notifications": {
     "title": "الإشعارات",

@@ -245,7 +245,24 @@
       "AR": "العربية / الدارجة",
       "FR": "Français",
       "EN": "English"
-    }
+    },
+    "subtitle": "Profile, tools and configuration",
+    "saved": "Profile updated",
+    "botLanguage": "WhatsApp assistant language",
+    "dangerHint": "Permanently deletes all your data. Download it first if you need it.",
+    "exportData": "Download my data (JSON)",
+    "tools": "Tools",
+    "toolsHint": "Used now and then: setup or month end.",
+    "toolCatalogue": "Online catalogue",
+    "toolCatalogueDesc": "Share your products with customers",
+    "toolPaymentsDesc": "Payment methods and tracking",
+    "toolSageDesc": "Import from your accounting software",
+    "toolAdmin": "Administration",
+    "toolAdminDesc": "Monitoring and accounts",
+    "deleteTitle": "Delete your account?",
+    "typeToConfirm": "Type to confirm:",
+    "confirmWord": "DELETE",
+    "deleted": "Account deleted"
   },
   "notifications": {
     "title": "Notifications",
