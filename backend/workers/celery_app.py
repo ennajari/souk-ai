@@ -1,6 +1,7 @@
 from celery import Celery
 from celery.schedules import crontab
 from app.config import settings
+from core.monitoring import init_monitoring
 
 celery_app = Celery(
     "souk_ai",
@@ -55,5 +56,9 @@ celery_app.conf.update(
         },
     },
 )
+
+# A worker killed mid-task (deploy, OOM) puts the task back instead of losing it
+celery_app.conf.task_reject_on_worker_lost = True
+init_monitoring("worker")
 
 celery_app.autodiscover_tasks(["workers"])

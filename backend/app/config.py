@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     ADMIN_PHONE: str = ""
     ADMIN_EMAIL: str = ""
 
+    # Error monitoring: off unless set (https://sentry.io or self-hosted GlitchTip, same SDK)
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
+
     # Locale defaults for new merchants (see core/locale.py)
     DEFAULT_COUNTRY: str = "MA"
 

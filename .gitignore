@@ -52,3 +52,6 @@ celerybeat-schedule*
 
 # Vite dependency cache
 .vite/
+
+# Database dumps (contain customer data)
+backups/
