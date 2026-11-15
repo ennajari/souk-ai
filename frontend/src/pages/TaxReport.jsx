@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FiAlertTriangle } from 'react-icons/fi'
-import { analyticsAPI } from '../api/client'
+import { FiAlertTriangle, FiDownload } from 'react-icons/fi'
+import { analyticsAPI, downloadExport } from '../api/client'
 import { useMoney } from '../utils/money'
+import toast from 'react-hot-toast'
 
 /** VAT collected per rate for a month (prices are tax-inclusive) — what the merchant needs to file. */
 export default function TaxReport() {
@@ -78,6 +79,11 @@ export default function TaxReport() {
               )}
             </table>
           </div>
+          <button onClick={() => downloadExport('sales-journal', { month_offset: offset }, `journal_ventes_${data.period}.csv`)
+              .catch(() => toast.error(t('common.error')))}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-ink-900 hover:bg-ink-800 text-white text-sm font-semibold">
+            <FiDownload className="h-4 w-4" aria-hidden="true" /> {t('tax.exportJournal')}
+          </button>
           <p className="text-xs text-gray-500">{t('tax.disclaimer')}</p>
         </>
       )}

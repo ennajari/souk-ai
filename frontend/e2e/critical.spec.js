@@ -101,3 +101,24 @@ test('weighed goods: sell 1,25 kg of tomatoes at the till', async ({ page, reque
   const after = await (await request.get(`/api/v1/products/${prod.id}`, { headers })).json()
   expect(after.stock_quantity).toBe(8.75)
 })
+
+test('accountant export: the monthly sales journal downloads as an Excel-friendly CSV', async ({ page, request }) => {
+  const { access_token: token } = await (await request.post('/api/v1/auth/register', {
+    data: { phone_number: phone(), password: PASSWORD, business_name: 'Compta test' },
+  })).json()
+  const headers = { Authorization: `Bearer ${token}` }
+  const prod = await (await request.post('/api/v1/products/', { headers,
+    data: { name_fr: 'Soda', name_ar: 'مشروب', unit_price: 12, initial_stock: 5, tax_rate: 20 } })).json()
+  await request.post('/api/v1/transactions/bulk', { headers,
+    data: { items: [{ product_id: prod.id, quantity: 1, unit_price: 12 }] } })
+  await page.addInitScript((t) => { localStorage.setItem('token', t); localStorage.setItem('i18nextLng', 'fr') }, token)
+  await page.goto('/reports?tab=tax')
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: /Journal des ventes/ }).click(),
+  ])
+  expect(download.suggestedFilename()).toMatch(/^journal_ventes_\d{4}-\d{2}\.csv$/)
+  const text = (await (await download.createReadStream()).toArray()).join('')
+  expect(text.startsWith('﻿Date;Heure;Reference')).toBe(true)
+  expect(text).toContain('Soda;1;12,00;12,00;20;2,00;10,00')
+})

@@ -561,7 +561,8 @@
     "empty": "Aucune vente avec un taux de TVA ce mois-ci.",
     "unsetWarning": "{{amount}} de ventes concernent des produits sans taux de TVA.",
     "setRates": "Renseigner les taux",
-    "disclaimer": "Aide au calcul, pas un document fiscal : faites valider votre déclaration par votre comptable."
+    "disclaimer": "Aide au calcul, pas un document fiscal : faites valider votre déclaration par votre comptable.",
+    "exportJournal": "Journal des ventes pour le comptable (CSV)"
   },
   "login": {
     "f1t": "Assistant WhatsApp",

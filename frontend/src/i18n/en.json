@@ -561,7 +561,8 @@
     "empty": "No sales with a tax rate this month.",
     "unsetWarning": "{{amount}} of sales are for products without a tax rate.",
     "setRates": "Set rates",
-    "disclaimer": "A calculation aid, not a tax document: have your filing checked by your accountant."
+    "disclaimer": "A calculation aid, not a tax document: have your filing checked by your accountant.",
+    "exportJournal": "Sales journal for your accountant (CSV)"
   },
   "login": {
     "f1t": "WhatsApp assistant",

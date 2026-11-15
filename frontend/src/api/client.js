@@ -82,6 +82,15 @@ export const exportAPI = {
   profit: (days = 30) => `${API_URL}/export/profit?days=${days}`,
 }
 
+/** Download an authenticated export as a file (the browser can't add the auth header to a plain link). */
+export async function downloadExport(path, params, filename) {
+  const res = await client.get(`/export/${path}`, { params, responseType: 'blob' })
+  const url = URL.createObjectURL(res.data)
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename })
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ---- Merchants ----
 export const merchantsAPI = {
   me: () => client.get('/merchants/me'),
