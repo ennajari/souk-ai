@@ -328,7 +328,13 @@
     "delete": "Remove this staff member?",
     "pinHint": "4 to 6 digits",
     "active": "Active",
-    "never": "Never"
+    "never": "Never",
+    "pinHelp": "To access the till (leave empty if not needed)",
+    "periods": "Work periods",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "salary": "Salary",
+    "noPeriods": "No periods recorded"
   },
   "catalogue": {
     "title": "WhatsApp catalog",
@@ -649,5 +655,38 @@
     "title": "Install the app",
     "text": "Install Souk.AI on this phone: it becomes your till, even offline. No hardware to buy.",
     "cta": "Install"
+  },
+  "sage": {
+    "typeArticles": "Items / products",
+    "typeArticlesDesc": "Item list with prices and stock",
+    "typeSales": "Sales / invoices",
+    "typeSalesDesc": "Sales and invoice history",
+    "typeAuto": "Auto-detect",
+    "typeAutoDesc": "Souk.AI recognises the file type",
+    "subtitle": "Import your Sage 100 data: items, sales, customers",
+    "howTo": "How to export from Sage 100",
+    "step1": "Open Sage 100 → File → Export",
+    "step2": "Choose Items, Sales or Customers",
+    "step3": "CSV format (semicolon separator)",
+    "step4": "Windows (ANSI) or UTF-8 encoding",
+    "step5": "Save the file and drop it here",
+    "importType": "Import type",
+    "csvFile": "CSV file",
+    "chooseFile": "Tap to choose a file",
+    "fileHint": "CSV or TXT exported from Sage 100",
+    "importing": "Importing…",
+    "import": "Import",
+    "reset": "Start over",
+    "importError": "Import failed",
+    "importOk": "Import done!",
+    "rowsRead": "Rows read",
+    "added": "Added",
+    "updated": "Updated",
+    "imported": "Imported",
+    "skipped": "Skipped",
+    "productsAdded": "Products added:",
+    "productsUpdated": "Products updated:",
+    "formats": "Supported Sage 100 formats",
+    "customers": "Customers"
   }
 }

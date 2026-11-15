@@ -328,7 +328,13 @@
     "delete": "Supprimer cet employé ?",
     "pinHint": "4 à 6 chiffres",
     "active": "Actif",
-    "never": "Jamais"
+    "never": "Jamais",
+    "pinHelp": "Pour accéder à la caisse (laissez vide si inutile)",
+    "periods": "Périodes de travail",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "salary": "Salaire",
+    "noPeriods": "Aucune période enregistrée"
   },
   "catalogue": {
     "title": "Catalogue WhatsApp",
@@ -649,5 +655,38 @@
     "title": "Installer l'application",
     "text": "Installez Souk.AI sur ce téléphone : il devient votre caisse, même sans connexion. Aucun matériel à acheter.",
     "cta": "Installer"
+  },
+  "sage": {
+    "typeArticles": "Articles / produits",
+    "typeArticlesDesc": "Liste des articles avec prix et stock",
+    "typeSales": "Ventes / factures",
+    "typeSalesDesc": "Historique des ventes et factures",
+    "typeAuto": "Détection automatique",
+    "typeAutoDesc": "Souk.AI reconnaît le type de fichier",
+    "subtitle": "Importez vos données Sage 100 : articles, ventes, clients",
+    "howTo": "Comment exporter depuis Sage 100 ?",
+    "step1": "Ouvrez Sage 100 → Fichier → Exporter",
+    "step2": "Choisissez Articles, Ventes ou Clients",
+    "step3": "Format CSV (séparateur point-virgule)",
+    "step4": "Encodage Windows (ANSI) ou UTF-8",
+    "step5": "Enregistrez le fichier et déposez-le ici",
+    "importType": "Type d'import",
+    "csvFile": "Fichier CSV",
+    "chooseFile": "Touchez pour choisir un fichier",
+    "fileHint": "CSV ou TXT exporté de Sage 100",
+    "importing": "Import en cours…",
+    "import": "Importer",
+    "reset": "Recommencer",
+    "importError": "L'import a échoué",
+    "importOk": "Import réussi !",
+    "rowsRead": "Lignes lues",
+    "added": "Ajoutés",
+    "updated": "Mis à jour",
+    "imported": "Importées",
+    "skipped": "Ignorées",
+    "productsAdded": "Produits ajoutés :",
+    "productsUpdated": "Produits mis à jour :",
+    "formats": "Formats Sage 100 acceptés",
+    "customers": "Clients"
   }
 }
