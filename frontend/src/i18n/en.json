@@ -177,7 +177,8 @@
     "createAndAdd": "Create and add to cart",
     "orLink": "…or link this code to an existing product:",
     "quickCreateInvalid": "Enter a name and a price",
-    "quickCreated": "\"{{name}}\" added to your catalogue and cart"
+    "quickCreated": "\"{{name}}\" added to your catalogue and cart",
+    "sendWhatsApp": "Send the receipt on WhatsApp"
   },
   "customers": {
     "title": "Customer tabs",
@@ -626,5 +627,10 @@
     "hint": "Hold the barcode inside the frame, 10–20 cm away. Turn on the torch if the shop is dark.",
     "manual": "Or type the code",
     "done": "Done"
+  },
+  "install": {
+    "title": "Install the app",
+    "text": "Install Souk.AI on this phone: it becomes your till, even offline. No hardware to buy.",
+    "cta": "Install"
   }
 }

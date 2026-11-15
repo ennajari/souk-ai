@@ -177,7 +177,8 @@
     "createAndAdd": "Créer et ajouter au panier",
     "orLink": "…ou associez ce code à un produit existant :",
     "quickCreateInvalid": "Indiquez un nom et un prix",
-    "quickCreated": "« {{name}} » ajouté au catalogue et au panier"
+    "quickCreated": "« {{name}} » ajouté au catalogue et au panier",
+    "sendWhatsApp": "Envoyer le ticket par WhatsApp"
   },
   "customers": {
     "title": "Carnet de crédit",
@@ -626,5 +627,10 @@
     "hint": "Placez le code-barres dans le cadre, à 10–20 cm. Activez la lampe si la boutique est sombre.",
     "manual": "Ou tapez le code",
     "done": "Terminer"
+  },
+  "install": {
+    "title": "Installer l'application",
+    "text": "Installez Souk.AI sur ce téléphone : il devient votre caisse, même sans connexion. Aucun matériel à acheter.",
+    "cta": "Installer"
   }
 }

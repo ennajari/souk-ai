@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink, FiCreditCard, FiDollarSign, FiSmartphone, FiShield, FiCheckCircle, FiLoader, FiBookOpen } from 'react-icons/fi'
+import { FiSend, FiSearch, FiPlus, FiMinus, FiTrash2, FiPrinter, FiX, FiShoppingCart, FiCamera, FiUser, FiChevronUp, FiLink, FiCreditCard, FiDollarSign, FiSmartphone, FiShield, FiCheckCircle, FiLoader, FiBookOpen } from 'react-icons/fi'
 import { productsAPI, transactionsAPI, barcodeAPI } from '../api/client'
 import { addToSyncQueue } from '../utils/offlineDB'
 import client from '../api/client'
@@ -341,6 +341,7 @@ export default function POS() {
     setLastReceipt({
       items: [...cart], total: cartTotal, date: new Date(),
       customerName: detectedCard?.holder_name || customers.find(c => c.id === selectedCustomer)?.name,
+      customerPhone: customers.find(c => c.id === selectedCustomer)?.phone || '',
       paymentMethod: methodLabel,
     })
     setShowPayment(false)
@@ -411,6 +412,29 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
 <div class="payment">${t('pos.paidBy')}: ${receipt.paymentMethod || t('pos.cash')}</div>
 <div class="footer">${t('pos.thanks')}<br/>Souk.AI</div>
 </body></html>`
+
+  // Digital receipt through the shop's own WhatsApp: no printer, no API cost, nothing to install.
+  // shortcut: phone digits are sent as typed (wa.me needs international format); the merchant can pick
+  // the contact in WhatsApp when the number is national or missing.
+  const shareReceiptWhatsApp = () => {
+    if (!lastReceipt) return
+    const name = (c) => (isRtl ? (c.product.name_ar || c.product.name_fr) : (c.product.name_fr || c.product.name_ar))
+    const lines = [
+      `🧾 ${merchant?.business_name || 'Souk.AI'}`,
+      new Date(lastReceipt.date).toLocaleString(i18n.language),
+      '',
+      ...lastReceipt.items.map(c => `${c.qty} × ${name(c)} — ${money(c.qty * c.price)}`),
+      '',
+      `${t('common.total')} : ${money(lastReceipt.total)}`,
+      ...taxLines(lastReceipt.items).map(l => `${t('tax.tax')} ${l.rate} % : ${money(l.tax)}`),
+      `${t('pos.paidBy')} : ${lastReceipt.paymentMethod}`,
+      '',
+      t('pos.thanks'),
+    ]
+    const digits = (lastReceipt.customerPhone || '').replace(/\D/g, '')
+    const to = digits.length >= 11 ? digits : ''
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener')
+  }
 
   const printReceipt = () => {
     if (!lastReceipt) return
@@ -925,6 +949,10 @@ ${taxLines(receipt.items).map(l => `<div class="item"><span>${t('tax.tax')} ${l.
                 </div>
               ))}
             </div>
+            <button onClick={shareReceiptWhatsApp}
+              className="w-full mb-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+              <FiSend className="h-4 w-4" aria-hidden="true" /> {t('pos.sendWhatsApp')}
+            </button>
             <div className="flex gap-2">
               <button onClick={() => setShowReceipt(false)}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium transition-colors">{t('common.close')}</button>
