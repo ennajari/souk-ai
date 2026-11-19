@@ -36,7 +36,6 @@ const MarketIntelligence = lazy(() => import("./pages/MarketIntelligence"))
 const SupplierDashboard = lazy(() => import("./pages/SupplierDashboard"))
 const SupplierOrders = lazy(() => import("./pages/SupplierOrders"))
 const SupplierPayments = lazy(() => import("./pages/SupplierPayments"))
-const SupplierChat = lazy(() => import("./pages/SupplierChat"))
 const SupplierSettings = lazy(() => import("./pages/SupplierSettings"))
 const SupplierCatalog = lazy(() => import("./pages/SupplierCatalog"))
 import { useAuth } from "./context/AuthContext"
@@ -140,7 +139,6 @@ export default function App() {
           <Route path="supplier-orders" element={<SupplierRoute><SupplierOrders /></SupplierRoute>} />
           <Route path="supplier-catalog" element={<SupplierRoute><SupplierCatalog /></SupplierRoute>} />
           <Route path="supplier-payments" element={<SupplierRoute><SupplierPayments /></SupplierRoute>} />
-          <Route path="supplier-chat" element={<SupplierRoute><SupplierChat /></SupplierRoute>} />
           <Route path="supplier-settings" element={<SupplierRoute><SupplierSettings /></SupplierRoute>} />
         </Route>
 

@@ -12,7 +12,7 @@ from core.database import get_db
 from core.security import hash_password, verify_password, create_access_token
 from core.deps import get_current_merchant
 from models.merchant import Merchant, BusinessCategory, AccountType
-from models.supplier import Supplier
+from services.supplier_link import link_new_account
 from schemas.auth import RegisterRequest, LoginRequest, AdminLoginRequest, TokenResponse
 from app.config import settings
 from core.locale import get_country
@@ -80,17 +80,8 @@ async def register(req: RegisterRequest, request: Request, db: Annotated[AsyncSe
     db.add(merchant)
     await db.commit()
 
-    # Auto-link: if supplier account, link existing Supplier records with same phone
     if acct_type == AccountType.SUPPLIER:
-        # Fetch ALL active suppliers and compare normalized phones
-        all_suppliers = await db.execute(
-            select(Supplier).where(Supplier.phone_number.isnot(None), Supplier.is_active == True)
-        )
-        linked = 0
-        for sup in all_suppliers.scalars().all():
-            if normalize_phone(sup.phone_number) == phone:
-                sup.supplier_account_id = merchant.id
-                linked += 1
+        linked = await link_new_account(db, merchant)
         if linked:
             await db.commit()
             logger.info("auto-linked %s supplier records to account %s", linked, merchant.id)
@@ -293,4 +284,5 @@ async def delete_account(
 async def countries():
     """Supported countries for sign-up (currency, phone prefix). Names are localised by the browser."""
     from core.locale import COUNTRIES
-    return [{"code": c.code, "currency": c.currency, "calling_code": c.calling_code} for c in COUNTRIES.values()]
+    return [{"code": c.code, "currency": c.currency, "calling_code": c.calling_code, "timezone": c.timezone}
+            for c in COUNTRIES.values()]

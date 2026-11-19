@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { FiEdit2, FiTrash2, FiX, FiPlus, FiPhone, FiMail, FiSearch, FiShoppingCart, FiDollarSign, FiCreditCard, FiTruck, FiPackage, FiSmartphone, FiShield, FiCheckCircle, FiList } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiX, FiPlus, FiPhone, FiMail, FiSearch, FiShoppingCart, FiDollarSign, FiCreditCard, FiTruck, FiPackage, FiSmartphone, FiShield, FiCheckCircle, FiList, FiCheck } from 'react-icons/fi'
 import client from '../api/client'
 import { suppliersAPI, supplierCatalogAPI } from '../api/client'
 import SoukCardVisual from '../components/SoukCardVisual'
@@ -25,6 +25,18 @@ const categoryColor = {
   DAIRY: 'bg-yellow-100 text-yellow-700',
   SNACKS: 'bg-orange-100 text-orange-700',
   OTHER: 'bg-gray-100 text-gray-700',
+}
+
+// The supplier signs up with the number the shop saved; both sides are then connected automatically.
+// wa.me without a recipient lets the shopkeeper pick the contact (the saved number may lack its country code).
+function InviteLink({ t }) {
+  const text = t('supplierPortal.inviteText', { url: `${window.location.origin}/register?as=supplier` })
+  return (
+    <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer"
+      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline">
+      {t('supplierPortal.invite')}
+    </a>
+  )
 }
 
 export default function Suppliers() {
@@ -513,8 +525,8 @@ export default function Suppliers() {
                   <button onClick={() => { setCatalogSupplier(null); setCatalogItems([]) }}
                     className="p-2 hover:bg-gray-100 rounded-lg"><FiX className="h-4 w-4" /></button>
                   <div>
-                    <h3 className="font-bold text-gray-900">Catalogue — {catalogSupplier.name}</h3>
-                    <p className="text-xs text-gray-500">{catalogItems.length} article(s) · Lecture seule</p>
+                    <h3 className="font-bold text-gray-900">{t('nav.catalogue')} — {catalogSupplier.name}</h3>
+                    <p className="text-xs text-gray-500">{t('supplierPortal.itemsCount', { count: catalogItems.length })}</p>
                   </div>
                 </div>
               </div>
@@ -526,7 +538,8 @@ export default function Suppliers() {
                 <div className="text-center py-12 text-gray-500">
                   <FiPackage className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                   <p className="text-sm">{t('suppliersPage.emptyCatalog')}</p>
-                  <p className="text-xs mt-1">{t('suppliersPage.emptyCatalogHint')}</p>
+                  <p className="text-xs mt-1 max-w-sm mx-auto">{catalogSupplier.is_connected ? t('suppliersPage.emptyCatalogHint') : t('supplierPortal.notConnectedHint')}</p>
+                  {!catalogSupplier.is_connected && <InviteLink t={t} />}
                 </div>
               ) : (
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -636,6 +649,11 @@ export default function Suppliers() {
                 <span className={`w-1.5 h-1.5 rounded-full ${s.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
                 {s.is_active ? t('settings.active') : t('suppliersPage.inactive')}
               </div>
+              {s.is_connected ? (
+                <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">
+                  <FiCheck className="h-3 w-3" /> {t('supplierPortal.connected')}
+                </p>
+              ) : <InviteLink t={t} />}
             </div>
           ))}
           {filtered.length === 0 && search && (

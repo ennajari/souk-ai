@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import BrandMark from '../components/BrandMark'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../api/client'
 import toast from 'react-hot-toast'
@@ -28,11 +28,14 @@ const BENEFITS = [
 ]
 
 const SUPPORTED_LANGS = ['AR', 'FR', 'EN']
-// Default country from the browser locale (fr-FR → FR); the server falls back to its DEFAULT_COUNTRY
+// Default country: the device time zone first (a French-language phone in Casablanca still says fr-FR),
+// then the locale region (en-GB → GB); the server falls back to its DEFAULT_COUNTRY.
 const browserRegion = (navigator.language || '').split('-')[1]?.toUpperCase()
+const browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return '' } })()
 
 export default function Register() {
   const { t, i18n } = useTranslation()
+  const asSupplier = useSearchParams()[0].get('as') === 'supplier'
   const [countries, setCountries] = useState([])
   useEffect(() => { authAPI.countries().then(r => setCountries(r.data)).catch(() => {}) }, [])
   const regionName = (code) => {
@@ -47,14 +50,15 @@ export default function Register() {
     preferred_language: SUPPORTED_LANGS.includes(uiLang) ? uiLang : 'FR',
     country_code: '',
     business_category: 'GROCERY',
-    account_type: 'MERCHANT',
+    account_type: asSupplier ? 'SUPPLIER' : 'MERCHANT',  // invite link from a shop: /register?as=supplier
   })
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const browserCountry = countries.some(c => c.code === browserRegion) ? browserRegion : ''
+  const browserCountry = countries.find(c => c.timezone === browserZone)?.code
+    || (countries.some(c => c.code === browserRegion) ? browserRegion : '')
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
@@ -190,7 +194,7 @@ export default function Register() {
             {/* Business name */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {form.account_type === 'SUPPLIER' ? "Nom de l'entreprise" : 'Nom du commerce'}
+                {form.account_type === 'SUPPLIER' ? t('register.companyName') : t('register.shopName')}
               </label>
               <div className="relative">
                 <FiShoppingBag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />

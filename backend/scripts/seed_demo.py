@@ -1,6 +1,7 @@
 """Demo shop with 30 days of history, so every screen has something real to show.
 
     python -m scripts.seed_demo            # login 0600000001 / $DEMO_PASSWORD (default Demo-2026!)
+                                           # wholesaler portal: 0600000002, same password
 
 Idempotent: does nothing if the demo merchant already exists. Never run against production.
 """
@@ -17,12 +18,17 @@ from core.security import hash_password
 from models.customer import Customer
 from models.inventory import Inventory
 from models.merchant import Merchant
+from models.merchant import AccountType
 from models.product import Product
+from models.supplier import Supplier
+from models.supplier_catalog import SupplierCatalogItem
+from models.supplier_order import SupplierOrder, SupplierOrderStatus
 from models.transaction import Transaction
 from services.credit_ledger import apply_entry
 from services.sales import Line, record_items
 
 PHONE = "212600000001"
+WHOLESALER_PHONE = "212600000002"
 # name_fr, name_ar, price, cost, opening stock, VAT %, daily demand, expiry in days (None = no expiry)
 CATALOG = [
     ("Pain", "خبز", 1.5, 0.9, 60, None, 25, None),
@@ -82,9 +88,22 @@ async def main() -> None:
             db.add(c)
             await db.flush()
             apply_entry(db, c, m.id, "CREDIT", amount, "Courses du mois")
+        # the dairy wholesaler is on Souk.AI too: linked record, a catalogue, one order waiting for them
+        w = Merchant(phone_number=WHOLESALER_PHONE, business_name="Atlas Distribution", account_type=AccountType.SUPPLIER,
+                     hashed_password=m.hashed_password, preferred_language="FR")
+        db.add(w)
+        await db.flush()
+        sup = Supplier(merchant_id=m.id, name="Atlas Distribution", phone_number="0600000002", supplier_account_id=w.id)
+        db.add(sup)
+        await db.flush()
+        for name, price in (("Lait 1L (carton de 12)", 62), ("Yaourt nature (x24)", 40), ("Œufs (plateau de 30)", 38)):
+            db.add(SupplierCatalogItem(supplier_id=sup.id, name=name, unit="carton", unit_price=price))
+        milk = next(p for p, _ in products if p.name_fr.startswith("Lait"))
+        db.add(SupplierOrder(merchant_id=m.id, supplier_id=sup.id, status=SupplierOrderStatus.PENDING, total_amount=27 * 5.5,
+                             items=[{"product_id": milk.id, "product_name": milk.name_fr, "quantity": 27, "unit_price": 5.5}]))
         await db.commit()
         n = len((await db.execute(select(Transaction.id).where(Transaction.merchant_id == m.id))).all())
-        print(f"demo shop ready: {len(products)} products, {n} sale lines, login 0600000001")
+        print(f"demo shop ready: {len(products)} products, {n} sale lines, login 0600000001, wholesaler 0600000002")
 
 
 if __name__ == "__main__":

@@ -89,9 +89,8 @@ export default function Header({ onMenuClick }) {
           <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
           <span>{nextLang.toUpperCase()}</span>
         </button>
-
-        {/* Quick modules — hidden on mobile */}
-        <div className="hidden md:flex items-center gap-0.5">
+        {/* Quick shop tools, hidden on mobile; a wholesaler has none of these */}
+        {merchant?.account_type !== 'SUPPLIER' && <div className="hidden md:flex items-center gap-0.5">
           {[
             { to: '/pos',     icon: FiShoppingCart, label: t('nav.pos') },
             { to: '/reports', icon: FiBarChart2,    label: t('nav.reports') },
@@ -111,7 +110,7 @@ export default function Header({ onMenuClick }) {
               <Icon className="h-4 w-4" />
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Notification bell */}
         <div className="relative">

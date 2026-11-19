@@ -136,11 +136,6 @@ export const supplierPortalAPI = {
   deleteCatalogItem: (itemId) => client.delete(`/supplier-portal/catalog/${itemId}`),
 }
 
-// ---- Supplier Chat ----
-export const supplierChatAPI = {
-  send: (message) => client.post('/supplier-chat/message', { message }),
-}
-
 // ---- Supplier Catalog ----
 export const supplierCatalogAPI = {
   list: (supplierId) => client.get(`/supplier-catalog/${supplierId}`),
