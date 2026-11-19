@@ -74,3 +74,18 @@ de pages introuvables (Paiements, Catalogue, Import Sage, Employés n'étaient p
 
 **D16 — Identité visuelle neutre** : à la demande du fondateur, aucune référence culturelle ou régionale dans le
 logo ; auvent de boutique + courbe montante, palette terracotta/menthe/sable/encre (docs/BRAND.md).
+
+## Portail fournisseur (2026-11-19)
+
+**D17 — Lien commerce ↔ grossiste par numéro, dans les deux sens** : le lien se fait quand le grossiste
+s'inscrit *ou* quand le commerce l'ajoute (avant, seulement à l'inscription : un grossiste ajouté après
+n'était jamais connecté). Le numéro est lu dans le format du pays du commerce. Le catalogue du grossiste
+est visible par tous ses commerces connectés, et seulement par eux.
+
+**D18 — Assistant IA fournisseur supprimé** : il répétait le tableau de bord, coûtait un appel OpenAI par
+message et laissait un modèle changer le statut des commandes. Remplacé par ce dont un grossiste a besoin :
+voir la commande, appeler/WhatsApp le commerce, accepter → livrer en un geste, refuser en deux.
+
+**D19 — Pays par défaut à l'inscription = fuseau horaire de l'appareil** : un téléphone en français au Maroc
+annonce `fr-FR` ; on inscrivait donc des commerces marocains en France, en euros. Le fuseau
+(`Africa/Casablanca`) passe avant la langue ; le choix reste modifiable.

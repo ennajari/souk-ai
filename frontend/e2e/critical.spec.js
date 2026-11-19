@@ -144,7 +144,7 @@ test('wholesaler: invited by a shop, signs up from the link, accepts and deliver
   await expect(page.getByText('1 commerce connecté')).toBeVisible()
 
   await page.goto('/supplier-orders')
-  const card = page.locator('div.rounded-2xl', { hasText: 'Hanout Grossiste' }).first()
+  const card = page.locator('li', { hasText: 'Hanout Grossiste' }).first()
   await expect(card.getByRole('link', { name: 'WhatsApp' })).toBeVisible()
   for (const action of ['Accepter', 'En livraison', 'Livrée']) {
     await card.getByRole('button', { name: action }).click()

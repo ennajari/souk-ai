@@ -947,6 +947,21 @@
     "inviteText": "Hello, I place my orders on Souk.AI. Sign up as a supplier with this number to receive my orders and show me your catalogue: {{url}}",
     "notConnectedHint": "This supplier is not on Souk.AI yet. Invite them: they will receive your orders and you will see their prices here.",
     "itemsCount_one": "{{count}} item",
-    "itemsCount_other": "{{count}} items"
+    "itemsCount_other": "{{count}} items",
+    "step": {
+      "PENDING": "Received",
+      "SUBMITTED": "Confirmed",
+      "IN_DELIVERY": "On the way",
+      "DELIVERED": "Delivered"
+    },
+    "todo_one": "{{count}} order to handle",
+    "todo_other": "{{count}} orders to handle",
+    "allDone": "All caught up",
+    "allDoneHint": "No order is waiting for an answer or a delivery.",
+    "toAccept_one": "{{count}} to accept",
+    "toAccept_other": "{{count}} to accept",
+    "toDeliver_one": "{{count}} to deliver",
+    "toDeliver_other": "{{count}} to deliver",
+    "handleOrders": "Handle orders"
   }
 }

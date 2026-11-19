@@ -4,7 +4,7 @@ import { supplierPortalAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { useMoney } from '../utils/money'
-import { isPaid } from './SupplierDashboard'
+import { isPaid } from '../components/OrderProgress'
 
 const statusColor = {
   PENDING: 'bg-yellow-100 text-yellow-700', PROCESSING: 'bg-blue-100 text-blue-700',

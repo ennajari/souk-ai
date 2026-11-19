@@ -1002,6 +1002,25 @@
     "inviteText": "السلام، أنا كندوز الطلبيات ديالي على Souk.AI. تسجل كمورد بهاد الرقم باش توصلك الطلبيات ديالي وتوريني الكاتالوگ ديالك: {{url}}",
     "notConnectedHint": "هاد المورد مازال ما كاينش على Souk.AI. عرضو: غادي توصلو الطلبيات ديالك وغادي تشوف الأثمنة ديالو هنا.",
     "itemsCount_one": "{{count}} سلعة",
-    "itemsCount_other": "{{count}} سلعة"
+    "itemsCount_other": "{{count}} سلعة",
+    "step": {
+      "PENDING": "جديدة",
+      "SUBMITTED": "مأكدة",
+      "IN_DELIVERY": "فالطريق",
+      "DELIVERED": "توصلات"
+    },
+    "todo_zero": "ما كاين والو",
+    "todo_one": "طلبية وحدة خاصها تتعالج",
+    "todo_two": "جوج طلبيات خاصهم يتعالجو",
+    "todo_few": "{{count}} طلبيات خاصهم يتعالجو",
+    "todo_many": "{{count}} طلبية خاصها تتعالج",
+    "todo_other": "{{count}} طلبية خاصها تتعالج",
+    "allDone": "كلشي مزيان",
+    "allDoneHint": "حتى طلبية ما كتسنى جواب ولا توصيل.",
+    "toAccept_one": "وحدة خاصها القبول",
+    "toAccept_other": "{{count}} خاصهم القبول",
+    "toDeliver_one": "وحدة خاصها التوصيل",
+    "toDeliver_other": "{{count}} خاصهم التوصيل",
+    "handleOrders": "عالج الطلبيات"
   }
 }

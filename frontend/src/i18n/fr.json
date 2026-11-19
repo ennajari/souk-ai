@@ -947,6 +947,21 @@
     "inviteText": "Bonjour, je passe mes commandes sur Souk.AI. Inscrivez-vous comme fournisseur avec ce numéro pour recevoir mes commandes et me montrer votre catalogue : {{url}}",
     "notConnectedHint": "Ce fournisseur n'est pas encore sur Souk.AI. Invitez-le : il recevra vos commandes et vous verrez ses prix ici.",
     "itemsCount_one": "{{count}} article",
-    "itemsCount_other": "{{count}} articles"
+    "itemsCount_other": "{{count}} articles",
+    "step": {
+      "PENDING": "Reçue",
+      "SUBMITTED": "Confirmée",
+      "IN_DELIVERY": "En route",
+      "DELIVERED": "Livrée"
+    },
+    "todo_one": "{{count}} commande à traiter",
+    "todo_other": "{{count}} commandes à traiter",
+    "allDone": "Tout est à jour",
+    "allDoneHint": "Aucune commande n'attend de réponse ou de livraison.",
+    "toAccept_one": "{{count}} à accepter",
+    "toAccept_other": "{{count}} à accepter",
+    "toDeliver_one": "{{count}} à livrer",
+    "toDeliver_other": "{{count}} à livrer",
+    "handleOrders": "Traiter les commandes"
   }
 }
