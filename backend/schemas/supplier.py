@@ -35,6 +35,7 @@ class SupplierResponse(BaseModel):
     minimum_order_value: float
     product_ids: Optional[List[str]] = None
     is_active: bool
+    is_connected: bool = False  # the wholesaler has a Souk.AI account linked to this record
     created_at: datetime
 
     model_config = {"from_attributes": True}

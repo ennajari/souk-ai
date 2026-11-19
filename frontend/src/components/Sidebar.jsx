@@ -61,14 +61,13 @@ export default function Sidebar({ onClose }) {
 
   const supplierSections = [
     {
-      label: 'Principal',
+      label: t("nav.principal"),
       links: [
-        { to: "/supplier-dashboard", icon: FiHome,       label: 'Tableau de bord' },
-        { to: "/supplier-orders",    icon: FiTruck,      label: 'Commandes' },
-        { to: "/supplier-catalog",   icon: FiList,       label: 'Mon catalogue' },
-        { to: "/supplier-payments",  icon: FiCreditCard, label: 'Paiements reçus' },
-        { to: "/supplier-chat",      icon: FiMessageSquare, label: 'Assistant IA' },
-        { to: "/notifications",      icon: FiBell,       label: 'Notifications' },
+        { to: "/supplier-dashboard", icon: FiHome,       label: t("nav.dashboard") },
+        { to: "/supplier-orders",    icon: FiTruck,      label: t("suppliersPage.orders") },
+        { to: "/supplier-catalog",   icon: FiList,       label: t("supplierPortal.myCatalog") },
+        { to: "/supplier-payments",  icon: FiCreditCard, label: t("supplierPortal.paymentsTitle") },
+        { to: "/notifications",      icon: FiBell,       label: t("supplierPortal.notifications") },
       ],
     },
   ]

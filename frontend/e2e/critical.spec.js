@@ -122,3 +122,34 @@ test('accountant export: the monthly sales journal downloads as an Excel-friendl
   expect(text.startsWith('﻿Date;Heure;Reference')).toBe(true)
   expect(text).toContain('Soda;1;12,00;12,00;20;2,00;10,00')
 })
+
+test('wholesaler: invited by a shop, signs up from the link, accepts and delivers, shop stock goes up', async ({ page, request }) => {
+  const shopReg = await request.post('/api/v1/auth/register', { data: { phone_number: phone(), password: PASSWORD, business_name: 'Hanout Grossiste' } })
+  const headers = { Authorization: `Bearer ${(await shopReg.json()).access_token}` }
+  const prod = await (await request.post('/api/v1/products/', {
+    headers, data: { name_fr: 'Lait E2E', name_ar: 'حليب', unit_price: 7, cost_price: 5, initial_stock: 0 },
+  })).json()
+  const wholesalerPhone = phone()
+  const sup = await (await request.post('/api/v1/suppliers/', { headers, data: { name: 'Laiterie E2E', phone_number: wholesalerPhone } })).json()
+  expect(sup.is_connected).toBe(false)
+  await request.post(`/api/v1/suppliers/${sup.id}/order`, { headers, data: { items: [{ product_id: prod.id, quantity: 24 }] } })
+
+  // the invite link opens sign-up with "Supplier" already chosen
+  await page.goto('/register?as=supplier')
+  await page.fill('input[name="business_name"]', 'Laiterie E2E')
+  await page.fill('input[name="phone_number"]', wholesalerPhone)
+  await page.fill('input[name="password"]', PASSWORD)
+  await page.click('button[type="submit"]')
+  await expect(page).toHaveURL(/\/supplier-dashboard/)
+  await expect(page.getByText('1 commerce connecté')).toBeVisible()
+
+  await page.goto('/supplier-orders')
+  const card = page.locator('li', { hasText: 'Hanout Grossiste' }).first()
+  await expect(card.getByRole('link', { name: 'WhatsApp' })).toBeVisible()
+  for (const action of ['Accepter', 'En livraison', 'Livrée']) {
+    await card.getByRole('button', { name: action }).click()
+    await expect(card.getByRole('button', { name: action })).toHaveCount(0)
+  }
+  const after = await (await request.get(`/api/v1/products/${prod.id}`, { headers })).json()
+  expect(after.stock_quantity).toBe(24)
+})

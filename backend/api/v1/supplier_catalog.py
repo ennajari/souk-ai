@@ -11,6 +11,7 @@ from core.deps import get_current_merchant
 from models.merchant import Merchant
 from models.supplier import Supplier
 from models.supplier_catalog import SupplierCatalogItem
+from services.supplier_link import catalogue_supplier_ids
 
 router = APIRouter(prefix="/supplier-catalog", tags=["Supplier Catalog"])
 
@@ -37,16 +38,17 @@ async def get_supplier_catalog(
     merchant: Annotated[Merchant, Depends(get_current_merchant)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Get all catalog items for a supplier (visible to any merchant)."""
-    # Verify supplier exists
-    sup = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
-    if not sup.scalar_one_or_none():
+    """Catalogue of one of this shop's suppliers, as published by the wholesaler on the portal."""
+    supplier = (await db.execute(
+        select(Supplier).where(Supplier.id == supplier_id, Supplier.merchant_id == merchant.id)
+    )).scalar_one_or_none()
+    if not supplier:
         raise HTTPException(404, "Fournisseur introuvable")
 
     result = await db.execute(
         select(SupplierCatalogItem)
         .where(
-            SupplierCatalogItem.supplier_id == supplier_id,
+            SupplierCatalogItem.supplier_id.in_(await catalogue_supplier_ids(db, supplier)),
             SupplierCatalogItem.is_available == True,
         )
         .order_by(SupplierCatalogItem.name)

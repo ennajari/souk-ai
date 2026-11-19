@@ -1,186 +1,164 @@
-import { useState, useEffect } from 'react'
-import { FiTruck, FiCheckCircle, FiPackage, FiFilter } from 'react-icons/fi'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { FiTruck, FiCheckCircle, FiPackage, FiPhone, FiX, FiMessageCircle } from 'react-icons/fi'
 import { supplierPortalAPI } from '../api/client'
 import useSSE, { playNotificationSound } from '../hooks/useSSE'
+import { useMoney } from '../utils/money'
+import OrderProgress, { isPaid } from '../components/OrderProgress'
 import toast from 'react-hot-toast'
 
-const STATUS_LABELS = {
-  PENDING: 'En attente', SUBMITTED: 'Soumise', IN_DELIVERY: 'En livraison',
-  DELIVERED: 'Livree', CANCELLED: 'Annulee',
+const FILTERS = ['', 'PENDING', 'SUBMITTED', 'IN_DELIVERY', 'DELIVERED']
+// The one next step for each status (the backend enforces the same transitions).
+const NEXT = {
+  PENDING: { status: 'SUBMITTED', icon: FiCheckCircle, key: 'accept' },
+  SUBMITTED: { status: 'IN_DELIVERY', icon: FiTruck, key: 'ship' },
+  IN_DELIVERY: { status: 'DELIVERED', icon: FiCheckCircle, key: 'delivered' },
 }
-const statusColor = {
-  PENDING: 'bg-yellow-100 text-yellow-700', SUBMITTED: 'bg-blue-100 text-blue-700',
-  IN_DELIVERY: 'bg-orange-100 text-orange-700', DELIVERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-gray-100 text-gray-500',
-}
-const FILTERS = [
-  { value: '', label: 'Toutes' },
-  { value: 'PENDING', label: 'En attente' },
-  { value: 'SUBMITTED', label: 'Soumises' },
-  { value: 'IN_DELIVERY', label: 'En livraison' },
-  { value: 'DELIVERED', label: 'Livrees' },
-]
 
 export default function SupplierOrders() {
+  const { t, i18n } = useTranslation()
+  const money = useMoney()
+  const [params, setParams] = useSearchParams()
+  const filter = FILTERS.includes(params.get('status')) ? params.get('status') : ''
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('')
   const [updating, setUpdating] = useState(null)
+  const [refusing, setRefusing] = useState(null)  // two taps to refuse: no accidental cancellation
 
-  const fetchOrders = () => {
-    setLoading(true)
-    supplierPortalAPI.orders(filter || undefined)
-      .then(r => setOrders(r.data || []))
-      .catch(() => toast.error('Erreur chargement commandes'))
-      .finally(() => setLoading(false))
-  }
+  // shortcut: loads every order and filters in the browser (gives tab counts); paginate past ~1k orders
+  const fetchOrders = useCallback(() => supplierPortalAPI.orders()
+    .then(r => setOrders(r.data || []))
+    .catch(() => toast.error(t('common.error')))
+    .finally(() => setLoading(false)), [t])
 
-  useEffect(() => { fetchOrders() }, [filter])
+  useEffect(() => { fetchOrders() }, [fetchOrders])
 
-  // SSE real-time updates
   useSSE('/supplier-portal/events', {
     new_order: (data) => {
       playNotificationSound()
-      toast.success(`Nouvelle commande de ${data.merchant_name}`, { icon: '🛒', duration: 6000 })
+      toast.success(t('supplierPortal.newOrderFrom', { shop: data.merchant_name }), { icon: '🛒', duration: 6000 })
       fetchOrders()
     },
     order_update: () => fetchOrders(),
     payment: () => fetchOrders(),
   })
 
-  const updateStatus = async (orderId, newStatus) => {
+  const updateStatus = async (orderId, status) => {
     setUpdating(orderId)
     try {
-      await supplierPortalAPI.updateOrderStatus(orderId, newStatus)
-      const msgs = { SUBMITTED: 'Commande confirmee', IN_DELIVERY: 'Commande en livraison', DELIVERED: 'Commande livree' }
-      toast.success(msgs[newStatus] || 'Statut mis a jour')
-      fetchOrders()
+      await supplierPortalAPI.updateOrderStatus(orderId, status)
+      toast.success(t(`suppliersPage.status.${status}`))
+      setRefusing(null)
+      await fetchOrders()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur mise a jour')
+      toast.error(err.response?.data?.detail || t('common.error'))
     } finally {
       setUpdating(null)
     }
   }
 
+  const count = (f) => f ? orders.filter(o => o.status === f).length : orders.length
+  const shown = filter ? orders.filter(o => o.status === filter) : orders
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Commandes</h1>
-        <p className="text-gray-500 text-sm mt-1">Gerez les commandes de vos marchands</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-900">{t('suppliersPage.orders')}</h1>
+        <p className="text-gray-500 text-sm mt-1">{t('supplierPortal.ordersSubtitle')}</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <FiFilter className="h-4 w-4 text-gray-500" />
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              filter === f.value
-                ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+        <div className="flex gap-2 w-max" role="tablist">
+          {FILTERS.map((f) => (
+            <button key={f} role="tab" aria-selected={filter === f}
+              onClick={() => setParams(f ? { status: f } : {}, { replace: true })}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                filter === f ? 'bg-ink-900 text-white' : 'bg-white border border-sand-200 text-gray-600 hover:border-brand-300'}`}>
+              {f ? t(`suppliersPage.status.${f}`) : t('supplierPortal.all')}
+              <span className={`tabular-nums text-xs rounded-full px-1.5 ${filter === f ? 'bg-white/20' : 'bg-sand-200 text-gray-600'}`}>{count(f)}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="text-center py-16">
-          <FiPackage className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Aucune commande{filter ? ` avec le statut "${STATUS_LABELS[filter]}"` : ''}</p>
+        <div className="space-y-3 animate-pulse" aria-busy="true">{[0, 1].map(i => <div key={i} className="h-48 rounded-3xl bg-sand-200" />)}</div>
+      ) : shown.length === 0 ? (
+        <div className="rounded-3xl bg-white border border-sand-200 text-center py-16">
+          <FiPackage className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">{t('suppliersPage.noOrders')}</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {orders.map((o) => (
-            <div key={o.id} className="bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-bold text-gray-900">{o.merchant_name || 'Marchand'}</p>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor[o.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {STATUS_LABELS[o.status] || o.status}
-                    </span>
+        <ul className="space-y-3">
+          {shown.map((o) => {
+            const next = NEXT[o.status]
+            const canRefuse = o.status === 'PENDING' || o.status === 'SUBMITTED'
+            const busy = updating === o.id
+            return (
+              <li key={o.id} className={`rounded-3xl bg-white border p-5 transition-shadow hover:shadow-md ${o.status === 'PENDING' ? 'border-brand-200 shadow-sm shadow-brand-100' : 'border-sand-200'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold text-ink-900 truncate">{o.merchant_name}</p>
+                    <p className="text-xs text-gray-500">
+                      #{o.id.slice(0, 8).toUpperCase()}
+                      {o.created_at && ` · ${new Date(o.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    {o.items?.length > 0
-                      ? o.items.map((it, idx) => (
-                          <span key={idx}>{it.product_name} x{it.quantity}{idx < o.items.length - 1 ? ', ' : ''}</span>
-                        ))
-                      : o.product_name ? `${o.product_name} x${o.quantity || 0}` : 'Aucun article'
-                    }
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-lg font-black text-gray-900">{Number(o.total_amount || o.total_cost || 0).toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-500">MAD</p>
+                  <div className="text-end shrink-0">
+                    <p className="text-xl font-extrabold tabular-nums text-ink-900">{money(o.total_amount)}</p>
+                    {o.payment && (
+                      <p className={`text-xs font-semibold ${isPaid(o.payment.status) ? 'text-mint-700' : 'text-amber-700'}`}>
+                        {t(`payments.statuses.${o.payment.status}`, { defaultValue: o.payment.status })}
+                        {o.payment.method && ` · ${t(`payments.methods.${o.payment.method}`, { defaultValue: o.payment.method })}`}
+                      </p>
+                    )}
                   </div>
-
-                  {/* Action buttons — PENDING→SUBMITTED→IN_DELIVERY→DELIVERED */}
-                  {o.status === 'PENDING' && (
-                    <button
-                      onClick={() => updateStatus(o.id, 'SUBMITTED')}
-                      disabled={updating === o.id}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
-                    >
-                      <FiCheckCircle className="h-3.5 w-3.5" />
-                      Confirmer
-                    </button>
-                  )}
-                  {o.status === 'SUBMITTED' && (
-                    <button
-                      onClick={() => updateStatus(o.id, 'IN_DELIVERY')}
-                      disabled={updating === o.id}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
-                    >
-                      <FiTruck className="h-3.5 w-3.5" />
-                      En livraison
-                    </button>
-                  )}
-                  {o.status === 'IN_DELIVERY' && (
-                    <button
-                      onClick={() => updateStatus(o.id, 'DELIVERED')}
-                      disabled={updating === o.id}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
-                    >
-                      <FiCheckCircle className="h-3.5 w-3.5" />
-                      Livree
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {/* Payment info */}
-              {o.payment && (
-                <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    o.payment.status === 'COMPLETED' || o.payment.status === 'PAID'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {o.payment.status === 'COMPLETED' || o.payment.status === 'PAID' ? 'Paye' : 'Paiement en attente'}
-                  </span>
-                  {o.payment.method && (
-                    <span className="text-[10px] text-gray-500">
-                      {o.payment.method === 'CASH' ? 'Especes' : o.payment.method === 'NFC_SOUKCARD' ? 'Carte Souk.AI' : o.payment.method}
-                    </span>
+                <ul className="mt-3 flex flex-wrap gap-1.5">
+                  {(o.items || []).map((it, i) => (
+                    <li key={i} className="rounded-lg bg-sand-100 px-2.5 py-1 text-xs text-ink-800">
+                      <span className="font-bold tabular-nums">{it.quantity}×</span> {it.product_name}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-4"><OrderProgress status={o.status} /></div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-sand-200 pt-4">
+                  {o.merchant_phone && (
+                    <>
+                      <a href={`tel:+${o.merchant_phone}`} aria-label={t('supplierPortal.call')}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-sand-100 px-3 py-2 text-sm font-semibold text-ink-800 hover:bg-sand-200">
+                        <FiPhone className="h-4 w-4" /> <span className="hidden sm:inline">{t('supplierPortal.call')}</span>
+                      </a>
+                      <a href={`https://wa.me/${o.merchant_phone}`} target="_blank" rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-mint-50 px-3 py-2 text-sm font-semibold text-mint-800 hover:bg-mint-100">
+                        <FiMessageCircle className="h-4 w-4" /> WhatsApp
+                      </a>
+                    </>
                   )}
+                  <div className="ms-auto flex items-center gap-2">
+                    {canRefuse && (
+                      <button onClick={() => refusing === o.id ? updateStatus(o.id, 'CANCELLED') : setRefusing(o.id)} disabled={busy}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                          refusing === o.id ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-red-50 hover:text-red-700'}`}>
+                        <FiX className="h-4 w-4" /> {refusing === o.id ? t('supplierPortal.confirmRefuse') : t('supplierPortal.refuse')}
+                      </button>
+                    )}
+                    {next && (
+                      <button onClick={() => updateStatus(o.id, next.status)} disabled={busy}
+                        className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50">
+                        <next.icon className="h-4 w-4" /> {t(`supplierPortal.${next.key}`)}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              </li>
+            )
+          })}
+        </ul>
       )}
     </div>
   )

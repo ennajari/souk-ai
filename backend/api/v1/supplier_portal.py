@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -37,8 +37,9 @@ async def supplier_dashboard(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     supplier_ids = await _get_supplier_ids(db, merchant.id)
-    if not supplier_ids:
-        return {"total_orders": 0, "pending": 0, "in_delivery": 0, "delivered": 0, "total_revenue": 0}
+    if not supplier_ids:  # no shop has added this number yet: the portal shows how to get connected
+        return {"shops": 0, "phone_number": merchant.phone_number, "total_orders": 0, "pending": 0,
+                "submitted": 0, "in_delivery": 0, "delivered": 0, "total_revenue": 0}
 
     orders_result = await db.execute(
         select(SupplierOrder).where(SupplierOrder.supplier_id.in_(supplier_ids))
@@ -56,6 +57,8 @@ async def supplier_dashboard(
     total_revenue = float(payments_result.scalar() or 0)
 
     return {
+        "shops": len(supplier_ids),
+        "phone_number": merchant.phone_number,
         "total_orders": len(orders),
         "pending": sum(1 for o in orders if o.status == SupplierOrderStatus.PENDING),
         "submitted": sum(1 for o in orders if o.status == SupplierOrderStatus.SUBMITTED),
@@ -92,9 +95,9 @@ async def supplier_orders(
     merchants_map = {}
     if merchant_ids:
         m_result = await db.execute(
-            select(Merchant.id, Merchant.business_name).where(Merchant.id.in_(merchant_ids))
+            select(Merchant.id, Merchant.business_name, Merchant.phone_number).where(Merchant.id.in_(merchant_ids))
         )
-        merchants_map = {r.id: r.business_name for r in m_result.all()}
+        merchants_map = {r.id: r for r in m_result.all()}
 
     # Batch fetch payment statuses
     order_ids = [o.id for o in orders]
@@ -114,7 +117,9 @@ async def supplier_orders(
         {
             "id": o.id,
             "merchant_id": o.merchant_id,
-            "merchant_name": merchants_map.get(o.merchant_id, "—"),
+            "merchant_name": merchants_map[o.merchant_id].business_name if o.merchant_id in merchants_map else "—",
+            # the shop placed this order with them: the wholesaler needs it to call or deliver
+            "merchant_phone": merchants_map[o.merchant_id].phone_number if o.merchant_id in merchants_map else None,
             "supplier_id": o.supplier_id,
             "status": o.status.value,
             "total_amount": float(o.total_amount),
@@ -176,11 +181,12 @@ async def update_order_status(
             "DELIVERED": "livree",
             "CANCELLED": "annulee",
         }
+        shop_currency = (await db.execute(select(Merchant.currency).where(Merchant.id == order.merchant_id))).scalar()
         notif = Notification(
             merchant_id=order.merchant_id,
             type="delivery",
             title=f"Commande {status_labels.get(new_status.value, new_status.value)}",
-            message=f"Commande #{order.id[:8].upper()} — {float(order.total_amount):.2f} MAD",
+            message=f"Commande #{order.id[:8].upper()} — {float(order.total_amount):.2f} {shop_currency or 'MAD'}",
         )
         db.add(notif)
 
@@ -282,11 +288,11 @@ async def get_my_catalog(
 
 
 class CatalogItemInput(BaseModel):
-    name: str
-    unit: str = "piece"
-    unit_price: float = 0
-    barcode: str | None = None
-    category: str | None = None
+    name: str = Field(min_length=1, max_length=200)
+    unit: str = Field("piece", max_length=20)
+    unit_price: float = Field(gt=0)
+    barcode: str | None = Field(None, max_length=50)
+    category: str | None = Field(None, max_length=50)
 
 
 @router.post("/catalog", status_code=201)

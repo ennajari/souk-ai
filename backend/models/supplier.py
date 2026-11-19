@@ -33,3 +33,7 @@ class Supplier(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     orders = relationship("SupplierOrder", back_populates="supplier")
+
+    @property
+    def is_connected(self) -> bool:
+        return self.supplier_account_id is not None

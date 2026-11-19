@@ -26,9 +26,12 @@ Horodatage UTC. Toutes les phases sont terminées ; voir REPORT.md pour la synth
   versionnées avec rollback, journal des ventes pour le comptable (CSV Excel), toutes les pages commerçant traduites.
 - [2026-11-15] Passe 6 — pages publiques : le lien de paiement `/pay/:token` n'avait aucune route (lien mort) → corrigé ;
   paiement + catalogue public traduits, dans la devise du commerçant ; smoke public en CI.
+- [2026-11-19] Passe 7 — portail fournisseur réel : lien commerce ↔ grossiste dans les deux sens, catalogue partagé
+  entre commerces, pays par fuseau horaire, appel/WhatsApp du commerce, refus, invitation WhatsApp, assistant IA
+  retiré, traduit FR/EN/AR ; nouveau design « tableau de livraison » (à faire maintenant + suivi en 4 étapes).
 
 ## État final
-73 tests backend + 8 e2e + 2 unitaires verts ; smoke i18n EN/AR (20 pages) en CI ; ruff 0 ; build OK ; CI GitHub verte.
+75 tests backend + 9 e2e + 2 unitaires verts ; smoke i18n EN/AR (25 pages) en CI ; ruff 0 ; build OK.
 
 ## Reste à faire
 Voir REPORT.md, sections « Reste à faire » et « Actions manuelles requises ».

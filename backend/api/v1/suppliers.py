@@ -19,6 +19,7 @@ from services.supplier_aggregation import create_aggregated_bulk_order
 from services.payment_service import create_payment
 from services.whatsapp import send_text_message
 from services.sse_events import publish_event
+from services.supplier_link import link_supplier
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 
@@ -55,6 +56,7 @@ async def create_supplier(
     if existing.scalar_one_or_none():
         raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
     supplier = Supplier(merchant_id=merchant.id, **data.model_dump())
+    await link_supplier(db, supplier, merchant.country_code)  # wholesaler already on Souk.AI: connect now
     db.add(supplier)
     await db.commit()
     await db.refresh(supplier)
@@ -82,8 +84,11 @@ async def update_supplier(
         )
         if dup.scalar_one_or_none():
             raise HTTPException(400, f"Le fournisseur '{data.name}' existe deja")
-    for key, value in data.model_dump(exclude_unset=True).items():
+    changes = data.model_dump(exclude_unset=True)
+    for key, value in changes.items():
         setattr(supplier, key, value)
+    if "phone_number" in changes:
+        await link_supplier(db, supplier, merchant.country_code)
     await db.commit()
     await db.refresh(supplier)
     return supplier

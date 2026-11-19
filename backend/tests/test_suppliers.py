@@ -69,3 +69,40 @@ async def test_supplier_portal_delivery_restocks_merchant(client):
         r = await client.patch(f"/api/v1/supplier-portal/orders/{order['id']}/status", json={"status": st}, headers=sup)
         assert r.status_code == 200, (st, r.text)
     assert (await _stock_and_cost(client, h, p["id"]))[0] == 12
+
+
+async def test_wholesaler_serving_two_shops_reaches_both_whatever_signs_up_first(client):
+    """Real flow: shop A adds the wholesaler, the wholesaler signs up, then shop B adds them.
+    Both shops are connected, the wholesaler sees both orders, and one catalogue serves both shops."""
+    a = await register(client, phone="0611000041")
+    sid_a = await _supplier(client, a, phone="0699000041")
+    sup = await register(client, phone="+212 699-000041", account_type="SUPPLIER")  # other format, same number
+    b = await register(client, phone="0611000042")
+    sid_b = await _supplier(client, b, phone="06 99 00 00 41")  # added after the wholesaler signed up
+
+    shops = {s["id"]: s for s in (await client.get(f"{S}/", headers=a)).json() + (await client.get(f"{S}/", headers=b)).json()}
+    assert shops[sid_a]["is_connected"] and shops[sid_b]["is_connected"]
+
+    for h, sid in ((a, sid_a), (b, sid_b)):
+        r = await client.post(f"{S}/{sid}/order", json={"items": [{"product_name": "Lait", "unit_price": 7, "quantity": 10}]}, headers=h)
+        assert r.status_code == 201, r.text
+    orders = (await client.get("/api/v1/supplier-portal/orders", headers=sup)).json()
+    assert len(orders) == 2 and {o["merchant_phone"] for o in orders} == {"212611000041", "212611000042"}
+    assert (await client.get("/api/v1/supplier-portal/dashboard", headers=sup)).json()["shops"] == 2
+
+    r = await client.post("/api/v1/supplier-portal/catalog", json={"name": "Lait 1L", "unit_price": 6.5}, headers=sup)
+    assert r.status_code == 201, r.text
+    for h, sid in ((a, sid_a), (b, sid_b)):
+        assert [i["name"] for i in (await client.get(f"/api/v1/supplier-catalog/{sid}", headers=h)).json()] == ["Lait 1L"]
+    # a shop cannot read the catalogue through another shop's supplier record
+    assert (await client.get(f"/api/v1/supplier-catalog/{sid_a}", headers=b)).status_code == 404
+    # a free or nameless catalogue item is refused
+    assert (await client.post("/api/v1/supplier-portal/catalog", json={"name": "X", "unit_price": 0}, headers=sup)).status_code == 422
+
+
+async def test_changing_the_phone_moves_the_link(client):
+    h = await register(client, phone="0611000051")
+    await register(client, phone="0699000051", account_type="SUPPLIER")
+    sid = await _supplier(client, h, phone="0699000051")
+    r = await client.patch(f"{S}/{sid}", json={"phone_number": "0699000052"}, headers=h)
+    assert r.status_code == 200 and r.json()["is_connected"] is False
